@@ -87,6 +87,15 @@ gridShell.appendChild(expandBottom);
 gridShell.appendChild(expandLeft);
 gridShell.appendChild(expandRight);
 
+function updateExpandLabels(isShiftPressed) {
+	expandTop.textContent = isShiftPressed ? "- Row" : "+ Row";
+	expandBottom.textContent = isShiftPressed ? "- Row" : "+ Row";
+	expandLeft.textContent = isShiftPressed ? "- Col" : "+ Col";
+	expandRight.textContent = isShiftPressed ? "- Col" : "+ Col";
+}
+
+updateExpandLabels(false);
+
 function shiftPlacedSquares(dx, dy) {
 	if (!dx && !dy) return;
 	placedSquares.forEach((placed) => {
@@ -97,6 +106,34 @@ function shiftPlacedSquares(dx, dy) {
 	});
 	if (selectedPrimary) {
 		showMenuFor(selectedPrimary);
+	}
+}
+
+function pruneOutOfBounds() {
+	const removed = [];
+	for (let i = placedSquares.length - 1; i >= 0; i -= 1) {
+		const placed = placedSquares[i];
+		const outOfBounds =
+			placed.x < 0 ||
+			placed.y < 0 ||
+			placed.x + placed.w > cols ||
+			placed.y + placed.h > rows;
+		if (outOfBounds) {
+			removed.push(placed.el);
+			placed.el.remove();
+			placedSquares.splice(i, 1);
+		}
+	}
+	if (removed.length) {
+		removed.forEach((el) => selectedPlaced.delete(el));
+		if (selectedPrimary && !selectedPlaced.has(selectedPrimary)) {
+			selectedPrimary = selectedPlaced.values().next().value || null;
+		}
+		if (selectedPrimary) {
+			showMenuFor(selectedPrimary);
+		} else {
+			hideMenu();
+		}
 	}
 }
 
@@ -113,6 +150,23 @@ function addChunkRowTop() {
 	renderGridCells();
 }
 
+function removeChunkRowBottom() {
+	if (rows <= chunkSize) return;
+	rows -= chunkSize;
+	updateGridSize();
+	pruneOutOfBounds();
+	renderGridCells();
+}
+
+function removeChunkRowTop() {
+	if (rows <= chunkSize) return;
+	rows -= chunkSize;
+	updateGridSize();
+	shiftPlacedSquares(0, -chunkSize);
+	pruneOutOfBounds();
+	renderGridCells();
+}
+
 function addChunkColumnRight() {
 	cols += chunkSize;
 	updateGridSize();
@@ -126,10 +180,59 @@ function addChunkColumnLeft() {
 	renderGridCells();
 }
 
-expandTop.addEventListener("click", addChunkRowTop);
-expandBottom.addEventListener("click", addChunkRowBottom);
-expandLeft.addEventListener("click", addChunkColumnLeft);
-expandRight.addEventListener("click", addChunkColumnRight);
+function removeChunkColumnRight() {
+	if (cols <= chunkSize) return;
+	cols -= chunkSize;
+	updateGridSize();
+	pruneOutOfBounds();
+	renderGridCells();
+}
+
+function removeChunkColumnLeft() {
+	if (cols <= chunkSize) return;
+	cols -= chunkSize;
+	updateGridSize();
+	shiftPlacedSquares(-chunkSize, 0);
+	pruneOutOfBounds();
+	renderGridCells();
+}
+
+expandTop.addEventListener("click", (event) => {
+	if (event.shiftKey) {
+		removeChunkRowTop();
+		return;
+	}
+	addChunkRowTop();
+});
+expandBottom.addEventListener("click", (event) => {
+	if (event.shiftKey) {
+		removeChunkRowBottom();
+		return;
+	}
+	addChunkRowBottom();
+});
+expandLeft.addEventListener("click", (event) => {
+	if (event.shiftKey) {
+		removeChunkColumnLeft();
+		return;
+	}
+	addChunkColumnLeft();
+});
+expandRight.addEventListener("click", (event) => {
+	if (event.shiftKey) {
+		removeChunkColumnRight();
+		return;
+	}
+	addChunkColumnRight();
+});
+
+document.addEventListener("keydown", (event) => {
+	if (event.key === "Shift") updateExpandLabels(true);
+});
+
+document.addEventListener("keyup", (event) => {
+	if (event.key === "Shift") updateExpandLabels(false);
+});
 
 const bottomBar = document.createElement("div");
 bottomBar.className = "bottom-bar";
@@ -519,6 +622,7 @@ function getCenteredSnapPoint(clientX, clientY, w, h, step) {
 }
 
 function snapToGrid(x, y, w, h, step) {
+	if (w > cols || h > rows) return null;
 	const snapStep = Math.max(1, step || 1);
 	const snappedX = Math.round(x / snapStep) * snapStep;
 	const snappedY = Math.round(y / snapStep) * snapStep;
@@ -797,6 +901,7 @@ grid.addEventListener("click", (event) => {
 		if (!duplicateGroup) return;
 		const anchor = duplicateGroup.anchor;
 		const snap = snapToGrid(x, y, anchor?.w || 1, anchor?.h || 1, step);
+		if (!snap) return;
 		if (!anchor) return;
 		const nextPositions = duplicateGroup.items.map((entry) => {
 			const nextX = snap.x + entry.dx;
@@ -826,6 +931,7 @@ grid.addEventListener("click", (event) => {
 	const y = Number(cell.dataset.y);
 	const step = event.ctrlKey ? chunkSize : 1;
 	const snap = snapToGrid(x, y, selectedShape.w, selectedShape.h, step);
+	if (!snap) return;
 	if (snap.x + selectedShape.w > cols || snap.y + selectedShape.h > rows)
 		return;
 	if (!canPlaceAt(snap.x, snap.y, selectedShape.w, selectedShape.h)) return;

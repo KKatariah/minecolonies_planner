@@ -43,7 +43,7 @@ body {
 .grid-expand {
 	position: absolute;
 	padding: 6px 10px;
-	border-radius: 8px;
+	border-radius: 0;
 	border: 1px solid #8087a2;
 	background: #2c2f43;
 	color: var(--ink);
@@ -53,27 +53,33 @@ body {
 }
 
 .grid-expand--top {
-	left: 50%;
-	transform: translateX(-50%);
-	top: -38px;
+	left: 0;
+	right: 0;
+	top: -28px;
+	height: 28px;
 }
 
 .grid-expand--bottom {
-	left: 50%;
-	transform: translateX(-50%);
-	bottom: -38px;
+	left: 0;
+	right: 0;
+	bottom: -28px;
+	height: 28px;
 }
 
 .grid-expand--left {
-	top: 50%;
-	transform: translateY(-50%);
-	left: -52px;
+	top: 0;
+	bottom: 0;
+	left: -28px;
+	width: 28px;
+	padding: 0;
 }
 
 .grid-expand--right {
-	top: 50%;
-	transform: translateY(-50%);
-	right: -52px;
+	top: 0;
+	bottom: 0;
+	right: -28px;
+	width: 28px;
+	padding: 0;
 }
 
 .grid-cell {
