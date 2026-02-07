@@ -71,6 +71,13 @@ tabBar.className = "tab-bar";
 const tabs = [
 	{ id: "farming", label: "Farming" },
 	{ id: "craftsmanship", label: "Craftsmanship" },
+	{ id: "decoration", label: "Decoration" },
+	{ id: "education", label: "Education" },
+	{ id: "fundamentals", label: "Fundamentals" },
+	{ id: "infrastructure", label: "Infrastructure" },
+	{ id: "military", label: "Military" },
+	{ id: "mystic", label: "Mystic" },
+	{ id: "walls", label: "Walls" },
 ];
 
 const bottomTop = document.createElement("div");

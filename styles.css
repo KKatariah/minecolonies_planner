@@ -76,6 +76,8 @@ body {
 	display: flex;
 	align-items: flex-end;
 	gap: 12px;
+	overflow-x: auto;
+	overflow-y: hidden;
 }
 
 .bottom-bottom {
@@ -91,14 +93,8 @@ body {
 	display: flex;
 	align-items: flex-end;
 	gap: 6px;
-	position: relative;
-	margin-top: -12px;
-	padding-top: 14px;
-	padding-bottom: 6px;
-	background: #efe6d6;
-	border-left: 2px solid var(--grid-line);
-	border-right: 2px solid var(--grid-line);
-	border-top: 2px solid var(--grid-line);
+	flex-wrap: nowrap;
+	min-width: max-content;
 }
 
 .tab {
@@ -106,16 +102,13 @@ body {
 	font-size: 13px;
 	padding: 6px 14px;
 	border: 2px solid var(--grid-line);
-	border-bottom: none;
 	background: #f5e9d8;
 	cursor: pointer;
-	box-shadow: 0 -2px 0 rgba(35, 26, 18, 0.08);
-	position: relative;
-	top: -6px;
+	box-shadow: 0 2px 0 rgba(35, 26, 18, 0.08);
 }
 
 .tab.is-active {
-	background: #efe6d6;
+	background: #e7d6bf;
 	font-weight: 600;
 }
 
