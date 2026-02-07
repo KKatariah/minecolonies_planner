@@ -126,6 +126,18 @@ let shapes = [];
 let activeTab = "farming";
 let activeSubcategory = "all";
 
+const categoryEmoji = {
+	farming: "🌾",
+	craftsmanship: "🛠️",
+	decoration: "🌿",
+	education: "📘",
+	fundamentals: "🏛️",
+	infrastructure: "🧱",
+	military: "🛡️",
+	mystic: "🔮",
+	walls: "🧱",
+};
+
 const subcategoryMap = {
 	farming: ["horticulture", "husbandry"],
 	craftsmanship: ["carpentry", "luxury", "masonry", "metallurgy", "storage"],
@@ -264,6 +276,8 @@ function renderShapeTray() {
 		return getSubcategory(shape) === activeSubcategory;
 	});
 	visibleShapes.forEach((shape) => {
+		const category = shape.category || "farming";
+		const emoji = categoryEmoji[category] || "🏷️";
 		const previewWidth = shape.w * cellSize;
 		const previewHeight = shape.h * cellSize;
 		const scale =
@@ -277,9 +291,11 @@ function renderShapeTray() {
 			<div class="shape-label">${shape.label}</div>
 			<div class="shape-preview-wrap" style="width:${scaledWidth}px;">
 				<div
-					class="shape-preview"
+					class="shape-preview category-${category}"
 					style="width:${previewWidth}px; height:${previewHeight}px; transform: scale(${scale});"
-				></div>
+				>
+					<div class="preview-badge">${emoji} ${shape.label}</div>
+				</div>
 			</div>
 		`;
 		button.style.width = `${scaledWidth + 12}px`;
@@ -310,10 +326,16 @@ function getSelectedShape() {
 function placeSquare(x, y, shape) {
 	const placed = document.createElement("div");
 	placed.className = "placed-square";
+	const category = shape.category || "farming";
+	placed.classList.add(`category-${category}`);
 	placed.style.width = `${cellSize * shape.w}px`;
 	placed.style.height = `${cellSize * shape.h}px`;
 	placed.style.left = `${x * cellSize}px`;
 	placed.style.top = `${y * cellSize}px`;
+	const badge = document.createElement("div");
+	badge.className = "placed-badge";
+	badge.textContent = `${categoryEmoji[category] || "🏷️"} ${shape.label}`;
+	placed.appendChild(badge);
 	placed.addEventListener("pointerdown", startDrag);
 	placed.addEventListener("click", (event) => {
 		if (suppressClick || isDragging) return;
