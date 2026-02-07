@@ -240,8 +240,7 @@ function renderSubTabs() {
 		button.className = "subtab";
 		button.textContent = formatSubcategoryLabel(subcategory);
 		button.dataset.subtabId = subcategory;
-		if (subcategory === activeSubcategory)
-			button.classList.add("is-active");
+		if (subcategory === activeSubcategory) button.classList.add("is-active");
 		button.addEventListener("click", () => setActiveSubcategory(subcategory));
 		subTabBar.appendChild(button);
 	});
