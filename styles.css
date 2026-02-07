@@ -306,9 +306,9 @@ body {
 }
 
 .category-fundamentals {
-	--category-color: rgba(183, 189, 248, 0.35);
-	--category-line: rgba(183, 189, 248, 0.6);
-	--category-border: rgba(183, 189, 248, 0.9);
+	--category-color: rgba(238, 212, 159, 0.35);
+	--category-line: rgba(238, 212, 159, 0.6);
+	--category-border: rgba(238, 212, 159, 0.9);
 }
 
 .category-infrastructure {
