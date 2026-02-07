@@ -227,7 +227,7 @@
 		},
 		{
 			"id": "planning_barracks",
-			"label": "Barracks",
+			"label": "Barracks Plot",
 			"w": 39,
 			"h": 19,
 			"category": "decoration"
