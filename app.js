@@ -165,10 +165,13 @@ function getCenteredSnapPoint(clientX, clientY, w, h) {
 	const rect = grid.getBoundingClientRect();
 	const centeredX = (clientX - rect.left) / cellSize - w / 2;
 	const centeredY = (clientY - rect.top) / cellSize - h / 2;
-	const x = Math.floor(centeredX);
-	const y = Math.floor(centeredY);
-	if (x < 0 || y < 0 || x + w > cols || y + h > rows) return null;
-	return { x, y };
+	const x = Math.round(centeredX);
+	const y = Math.round(centeredY);
+	const maxX = cols - w;
+	const maxY = rows - h;
+	const clampedX = Math.min(Math.max(x, 0), maxX);
+	const clampedY = Math.min(Math.max(y, 0), maxY);
+	return { x: clampedX, y: clampedY };
 }
 
 function startDrag(event) {
@@ -197,11 +200,29 @@ function handleMove(event) {
 		dragItem.h,
 	);
 	if (!snap) return;
-	if (!canPlaceAt(snap.x, snap.y, dragItem.w, dragItem.h, dragItem.el)) return;
-	dragItem.x = snap.x;
-	dragItem.y = snap.y;
-	dragItem.el.style.left = `${snap.x * cellSize}px`;
-	dragItem.el.style.top = `${snap.y * cellSize}px`;
+	if (canPlaceAt(snap.x, snap.y, dragItem.w, dragItem.h, dragItem.el)) {
+		dragItem.x = snap.x;
+		dragItem.y = snap.y;
+		dragItem.el.style.left = `${snap.x * cellSize}px`;
+		dragItem.el.style.top = `${snap.y * cellSize}px`;
+		return;
+	}
+
+	const canMoveX =
+		snap.x !== dragItem.x &&
+		canPlaceAt(snap.x, dragItem.y, dragItem.w, dragItem.h, dragItem.el);
+	const canMoveY =
+		snap.y !== dragItem.y &&
+		canPlaceAt(dragItem.x, snap.y, dragItem.w, dragItem.h, dragItem.el);
+
+	if (canMoveY) {
+		dragItem.y = snap.y;
+		dragItem.el.style.top = `${snap.y * cellSize}px`;
+	}
+	if (canMoveX) {
+		dragItem.x = snap.x;
+		dragItem.el.style.left = `${snap.x * cellSize}px`;
+	}
 }
 
 function finishDrag(event) {
