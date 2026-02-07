@@ -37,7 +37,7 @@ body {
 	border-bottom: 1px solid var(--grid-line);
 }
 
-.grid-cell:nth-child(20n) {
+.grid-cell.last-col {
 	border-right: none;
 }
 
@@ -53,6 +53,53 @@ body {
 	align-items: center;
 	gap: 16px;
 	box-shadow: 0 -8px 20px rgba(35, 26, 18, 0.08);
+}
+
+.style-select {
+	font: inherit;
+	font-size: 14px;
+	padding: 6px 10px;
+	border-radius: 8px;
+	border: 1px solid #b59a7a;
+	background: #fff6e7;
+}
+
+.shape-tray {
+	display: flex;
+	align-items: flex-end;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.shape-option {
+	border: 2px solid transparent;
+	background: transparent;
+	padding: 6px;
+	border-radius: 10px;
+	cursor: pointer;
+	display: grid;
+	justify-items: center;
+	gap: 4px;
+}
+
+.shape-option.is-selected {
+	border-color: #3f2e22;
+	background: rgba(255, 255, 255, 0.4);
+}
+
+.shape-preview {
+	background-color: #d8c4a8;
+	background-image:
+		linear-gradient(to right, rgba(90, 70, 50, 0.35) 1px, transparent 1px),
+		linear-gradient(to bottom, rgba(90, 70, 50, 0.35) 1px, transparent 1px);
+	background-size: var(--cell-size) var(--cell-size);
+	border: 2px solid #b59a7a;
+	border-radius: 6px;
+	box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+.shape-label {
+	font-size: 12px;
 }
 
 .sample-square,
@@ -89,7 +136,7 @@ body {
 .placed-square.is-dragging {
 	cursor: grabbing;
 	opacity: 0.85;
-	}
+}
 
 .action-menu {
 	position: absolute;

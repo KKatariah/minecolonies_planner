@@ -1,6 +1,9 @@
-const rows = 20;
-const cols = 20;
-const cellSize = 24;
+const rows = 100;
+const cols = 100;
+const cellSize = 5;
+const STYLE_FILES = [
+	{ id: "caledonia", label: "Caledonia", file: "styles/caledonia.json" },
+];
 
 const root = document.getElementById("root");
 const grid = document.createElement("div");
@@ -22,8 +25,11 @@ const fragment = document.createDocumentFragment();
 for (let i = 0; i < rows * cols; i += 1) {
 	const cell = document.createElement("div");
 	cell.className = "grid-cell";
-	cell.dataset.x = String(i % cols);
-	cell.dataset.y = String(Math.floor(i / cols));
+	const x = i % cols;
+	const y = Math.floor(i / cols);
+	if (x === cols - 1) cell.classList.add("last-col");
+	cell.dataset.x = String(x);
+	cell.dataset.y = String(y);
 	fragment.appendChild(cell);
 }
 
@@ -42,32 +48,72 @@ grid.appendChild(actionMenu);
 const bottomBar = document.createElement("div");
 bottomBar.className = "bottom-bar";
 
-const sampleSquare = document.createElement("div");
-sampleSquare.className = "sample-square";
-sampleSquare.style.width = `${cellSize * 2}px`;
-sampleSquare.style.height = `${cellSize * 2}px`;
+const styleSelect = document.createElement("select");
+styleSelect.className = "style-select";
+STYLE_FILES.forEach((styleFile) => {
+	const option = document.createElement("option");
+	option.value = styleFile.file;
+	option.textContent = styleFile.label;
+	styleSelect.appendChild(option);
+});
 
-bottomBar.appendChild(sampleSquare);
+const shapeTray = document.createElement("div");
+shapeTray.className = "shape-tray";
+
+bottomBar.appendChild(styleSelect);
+bottomBar.appendChild(shapeTray);
 document.body.appendChild(bottomBar);
 
-let isSelected = false;
 const placedSquares = [];
 let isDragging = false;
 let dragItem = null;
 let suppressClick = false;
 let selectedPlaced = null;
 let duplicateMode = false;
+let duplicateSource = null;
+let selectedShapeId = null;
+let shapes = [];
 
-function toggleSelected() {
-	isSelected = !isSelected;
-	sampleSquare.classList.toggle("is-selected", isSelected);
+function renderShapeTray() {
+	shapeTray.innerHTML = "";
+	shapes.forEach((shape) => {
+		const button = document.createElement("button");
+		button.type = "button";
+		button.className = "shape-option";
+		button.dataset.shapeId = shape.id;
+		button.innerHTML = `
+			<div class="shape-preview" style="width:${shape.w * cellSize}px; height:${shape.h * cellSize}px"></div>
+			<div class="shape-label">${shape.label}</div>
+		`;
+		button.addEventListener("click", () => selectShape(shape.id));
+		shapeTray.appendChild(button);
+	});
+	updateShapeSelectionUI();
 }
 
-function placeSquare(x, y) {
+function selectShape(shapeId) {
+	selectedShapeId = selectedShapeId === shapeId ? null : shapeId;
+	updateShapeSelectionUI();
+}
+
+function updateShapeSelectionUI() {
+	shapeTray.querySelectorAll(".shape-option").forEach((button) => {
+		button.classList.toggle(
+			"is-selected",
+			button.dataset.shapeId === selectedShapeId,
+		);
+	});
+}
+
+function getSelectedShape() {
+	return shapes.find((shape) => shape.id === selectedShapeId) || null;
+}
+
+function placeSquare(x, y, shape) {
 	const placed = document.createElement("div");
 	placed.className = "placed-square";
-	placed.style.width = `${cellSize * 2}px`;
-	placed.style.height = `${cellSize * 2}px`;
+	placed.style.width = `${cellSize * shape.w}px`;
+	placed.style.height = `${cellSize * shape.h}px`;
 	placed.style.left = `${x * cellSize}px`;
 	placed.style.top = `${y * cellSize}px`;
 	placed.addEventListener("pointerdown", startDrag);
@@ -77,23 +123,28 @@ function placeSquare(x, y) {
 		selectPlaced(placed);
 	});
 	grid.appendChild(placed);
-	placedSquares.push({ el: placed, x, y, w: 2, h: 2 });
-	isSelected = false;
-	sampleSquare.classList.remove("is-selected");
+	placedSquares.push({
+		el: placed,
+		x,
+		y,
+		w: shape.w,
+		h: shape.h,
+		id: shape.id,
+	});
 }
 
 function rectanglesOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
 	return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 }
 
-function canPlaceAt(x, y, ignoreEl) {
+function canPlaceAt(x, y, w, h, ignoreEl) {
 	return !placedSquares.some((placed) => {
 		if (ignoreEl && placed.el === ignoreEl) return false;
 		return rectanglesOverlap(
 			x,
 			y,
-			2,
-			2,
+			w,
+			h,
 			placed.x,
 			placed.y,
 			placed.w,
@@ -102,11 +153,21 @@ function canPlaceAt(x, y, ignoreEl) {
 	});
 }
 
-function getSnapPoint(clientX, clientY) {
+function getSnapPoint(clientX, clientY, w, h) {
 	const rect = grid.getBoundingClientRect();
 	const x = Math.floor((clientX - rect.left) / cellSize);
 	const y = Math.floor((clientY - rect.top) / cellSize);
-	if (x < 0 || y < 0 || x + 2 > cols || y + 2 > rows) return null;
+	if (x < 0 || y < 0 || x + w > cols || y + h > rows) return null;
+	return { x, y };
+}
+
+function getCenteredSnapPoint(clientX, clientY, w, h) {
+	const rect = grid.getBoundingClientRect();
+	const centeredX = (clientX - rect.left) / cellSize - w / 2;
+	const centeredY = (clientY - rect.top) / cellSize - h / 2;
+	const x = Math.floor(centeredX);
+	const y = Math.floor(centeredY);
+	if (x < 0 || y < 0 || x + w > cols || y + h > rows) return null;
 	return { x, y };
 }
 
@@ -124,13 +185,19 @@ function startDrag(event) {
 	if (target.setPointerCapture) {
 		target.setPointerCapture(event.pointerId);
 	}
+	handleMove(event);
 }
 
 function handleMove(event) {
 	if (!isDragging || !dragItem) return;
-	const snap = getSnapPoint(event.clientX, event.clientY);
+	const snap = getCenteredSnapPoint(
+		event.clientX,
+		event.clientY,
+		dragItem.w,
+		dragItem.h,
+	);
 	if (!snap) return;
-	if (!canPlaceAt(snap.x, snap.y, dragItem.el)) return;
+	if (!canPlaceAt(snap.x, snap.y, dragItem.w, dragItem.h, dragItem.el)) return;
 	dragItem.x = snap.x;
 	dragItem.y = snap.y;
 	dragItem.el.style.left = `${snap.x * cellSize}px`;
@@ -173,7 +240,7 @@ function showMenuFor(element) {
 	actionMenu.style.display = "flex";
 	const menuWidth = actionMenu.offsetWidth;
 	const menuHeight = actionMenu.offsetHeight;
-	let left = (item.x + 2) * cellSize + 8;
+	let left = (item.x + item.w) * cellSize + 8;
 	let top = item.y * cellSize;
 	if (left + menuWidth > gridWidth) {
 		left = item.x * cellSize - menuWidth - 8;
@@ -203,10 +270,33 @@ function deleteSelected() {
 	if (index >= 0) placedSquares.splice(index, 1);
 	selectedPlaced.remove();
 	duplicateMode = false;
+	duplicateSource = null;
 	hideMenu();
 }
 
-sampleSquare.addEventListener("click", toggleSelected);
+async function loadStyle(file) {
+	const response = await fetch(file);
+	if (!response.ok) throw new Error("Failed to load style file.");
+	return response.json();
+}
+
+async function applyStyle(file) {
+	try {
+		const data = await loadStyle(file);
+		shapes = Array.isArray(data.shapes) ? data.shapes : [];
+		renderShapeTray();
+		selectedShapeId = null;
+	} catch (error) {
+		console.error(error);
+		shapes = [];
+		renderShapeTray();
+		selectedShapeId = null;
+	}
+}
+
+styleSelect.addEventListener("change", (event) => {
+	applyStyle(event.target.value);
+});
 grid.addEventListener("click", (event) => {
 	if (!event.target.closest(".placed-square") && !duplicateMode) hideMenu();
 	if (duplicateMode) {
@@ -214,20 +304,26 @@ grid.addEventListener("click", (event) => {
 		if (!cell) return;
 		const x = Number(cell.dataset.x);
 		const y = Number(cell.dataset.y);
-		if (x + 2 > cols || y + 2 > rows) return;
-		if (!canPlaceAt(x, y)) return;
-		placeSquare(x, y);
+		if (!duplicateSource) return;
+		if (x + duplicateSource.w > cols || y + duplicateSource.h > rows) return;
+		if (!canPlaceAt(x, y, duplicateSource.w, duplicateSource.h)) return;
+		placeSquare(x, y, duplicateSource);
 		duplicateMode = false;
+		duplicateSource = null;
 		return;
 	}
-	if (!isSelected || suppressClick) return;
+	if (suppressClick) return;
+	const selectedShape = getSelectedShape();
+	if (!selectedShape) return;
 	const cell = event.target.closest(".grid-cell");
 	if (!cell) return;
 	const x = Number(cell.dataset.x);
 	const y = Number(cell.dataset.y);
-	if (x + 2 > cols || y + 2 > rows) return;
-	if (!canPlaceAt(x, y)) return;
-	placeSquare(x, y);
+	if (x + selectedShape.w > cols || y + selectedShape.h > rows) return;
+	if (!canPlaceAt(x, y, selectedShape.w, selectedShape.h)) return;
+	placeSquare(x, y, selectedShape);
+	selectedShapeId = null;
+	updateShapeSelectionUI();
 });
 
 document.addEventListener("pointermove", handleMove);
@@ -241,6 +337,9 @@ actionMenu.addEventListener("click", (event) => {
 	if (action === "duplicate") {
 		if (!selectedPlaced) return;
 		duplicateMode = true;
+		duplicateSource = placedSquares.find(
+			(placed) => placed.el === selectedPlaced,
+		);
 		hideMenu(true);
 	}
 });
@@ -249,3 +348,5 @@ document.addEventListener("click", (event) => {
 	if (event.target.closest(".placed-square")) return;
 	hideMenu();
 });
+
+applyStyle(STYLE_FILES[0].file);
