@@ -47,6 +47,9 @@ actionMenu.innerHTML = `
 `;
 grid.appendChild(actionMenu);
 
+const topControls = document.createElement("div");
+topControls.className = "top-controls";
+
 const bottomBar = document.createElement("div");
 bottomBar.className = "bottom-bar";
 
@@ -62,8 +65,26 @@ STYLE_FILES.forEach((styleFile) => {
 const shapeTray = document.createElement("div");
 shapeTray.className = "shape-tray";
 
-bottomBar.appendChild(styleSelect);
-bottomBar.appendChild(shapeTray);
+const tabBar = document.createElement("div");
+tabBar.className = "tab-bar";
+
+const tabs = [
+	{ id: "farming", label: "Farming" },
+	{ id: "craftsmanship", label: "Craftsmanship" },
+];
+
+const bottomTop = document.createElement("div");
+bottomTop.className = "bottom-top";
+
+const bottomBottom = document.createElement("div");
+bottomBottom.className = "bottom-bottom";
+
+topControls.appendChild(styleSelect);
+document.body.appendChild(topControls);
+bottomTop.appendChild(tabBar);
+bottomBottom.appendChild(shapeTray);
+bottomBar.appendChild(bottomTop);
+bottomBar.appendChild(bottomBottom);
 document.body.appendChild(bottomBar);
 
 function updateBottomBarHeight() {
@@ -91,18 +112,56 @@ let duplicateMode = false;
 let duplicateSource = null;
 let selectedShapeId = null;
 let shapes = [];
+let activeTab = "farming";
+
+function renderTabs() {
+	tabBar.innerHTML = "";
+	tabs.forEach((tab) => {
+		const button = document.createElement("button");
+		button.type = "button";
+		button.className = "tab";
+		button.textContent = tab.label;
+		button.dataset.tabId = tab.id;
+		if (tab.id === activeTab) button.classList.add("is-active");
+		button.addEventListener("click", () => setActiveTab(tab.id));
+		tabBar.appendChild(button);
+	});
+}
+
+function setActiveTab(tabId) {
+	activeTab = tabId;
+	selectedShapeId = null;
+	updateShapeSelectionUI();
+	renderTabs();
+	renderShapeTray();
+}
 
 function renderShapeTray() {
 	shapeTray.innerHTML = "";
-	shapes.forEach((shape) => {
+	const maxPreviewHeight = 110;
+	const visibleShapes = shapes.filter(
+		(shape) => (shape.category || "farming") === activeTab,
+	);
+	visibleShapes.forEach((shape) => {
+		const previewWidth = shape.w * cellSize;
+		const previewHeight = shape.h * cellSize;
+		const scale =
+			previewHeight > maxPreviewHeight ? maxPreviewHeight / previewHeight : 1;
+		const scaledWidth = Math.round(previewWidth * scale);
 		const button = document.createElement("button");
 		button.type = "button";
 		button.className = "shape-option";
 		button.dataset.shapeId = shape.id;
 		button.innerHTML = `
-			<div class="shape-preview" style="width:${shape.w * cellSize}px; height:${shape.h * cellSize}px"></div>
 			<div class="shape-label">${shape.label}</div>
+			<div class="shape-preview-wrap" style="width:${scaledWidth}px;">
+				<div
+					class="shape-preview"
+					style="width:${previewWidth}px; height:${previewHeight}px; transform: scale(${scale});"
+				></div>
+			</div>
 		`;
+		button.style.width = `${scaledWidth + 12}px`;
 		button.addEventListener("click", () => selectShape(shape.id));
 		shapeTray.appendChild(button);
 	});
@@ -336,11 +395,19 @@ async function applyStyle(file) {
 	try {
 		const data = await loadStyle(file);
 		shapes = Array.isArray(data.shapes) ? data.shapes : [];
+		const availableTabs = new Set(
+			shapes.map((shape) => shape.category || "farming"),
+		);
+		if (!availableTabs.has(activeTab)) {
+			activeTab = availableTabs.values().next().value || "farming";
+		}
+		renderTabs();
 		renderShapeTray();
 		selectedShapeId = null;
 	} catch (error) {
 		console.error(error);
 		shapes = [];
+		renderTabs();
 		renderShapeTray();
 		selectedShapeId = null;
 	}

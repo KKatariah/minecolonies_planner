@@ -23,6 +23,17 @@ body {
 	padding-bottom: calc(var(--bottom-bar-height) + 24px);
 }
 
+.top-controls {
+	position: fixed;
+	top: 16px;
+	left: 16px;
+	z-index: 10;
+	background: #efe6d6;
+	border: 2px solid var(--grid-line);
+	padding: 8px 10px;
+	box-shadow: 0 6px 16px rgba(35, 26, 18, 0.12);
+}
+
 .grid {
 	position: relative;
 	display: grid;
@@ -55,9 +66,51 @@ body {
 	border-top: 2px solid var(--grid-line);
 	padding: 16px 24px;
 	display: flex;
-	align-items: center;
+	flex-direction: column;
+	align-items: stretch;
 	gap: 16px;
 	box-shadow: 0 -8px 20px rgba(35, 26, 18, 0.08);
+}
+
+.bottom-top {
+	display: flex;
+	align-items: flex-end;
+	gap: 12px;
+}
+
+.bottom-bottom {
+	display: flex;
+	height: 260px;
+	overflow-x: auto;
+	overflow-y: hidden;
+	padding-bottom: 0;
+	box-sizing: border-box;
+}
+
+.tab-bar {
+	display: flex;
+	align-items: flex-end;
+	gap: 6px;
+	position: relative;
+	margin-top: -12px;
+}
+
+.tab {
+	font: inherit;
+	font-size: 13px;
+	padding: 6px 14px;
+	border: 2px solid var(--grid-line);
+	border-bottom: none;
+	background: #f5e9d8;
+	cursor: pointer;
+	box-shadow: 0 -2px 0 rgba(35, 26, 18, 0.08);
+	position: relative;
+	top: -6px;
+}
+
+.tab.is-active {
+	background: #efe6d6;
+	font-weight: 600;
 }
 
 .style-select {
@@ -70,10 +123,14 @@ body {
 }
 
 .shape-tray {
-	display: flex;
-	align-items: flex-end;
-	gap: 12px;
-	flex-wrap: wrap;
+	display: grid;
+	grid-auto-flow: column;
+	grid-template-rows: repeat(2, auto);
+	grid-auto-columns: max-content;
+	column-gap: 12px;
+	row-gap: 6px;
+	align-content: start;
+	min-width: max-content;
 }
 
 .shape-option {
@@ -84,11 +141,21 @@ body {
 	display: grid;
 	justify-items: center;
 	gap: 4px;
+	align-content: start;
+	align-items: start;
 }
 
 .shape-option.is-selected {
 	border-color: #3f2e22;
 	background: rgba(255, 255, 255, 0.4);
+}
+
+.shape-preview-wrap {
+	height: 110px;
+	overflow: hidden;
+	display: flex;
+	align-items: flex-start;
+	justify-content: flex-start;
 }
 
 .shape-preview {
@@ -99,6 +166,7 @@ body {
 	background-size: var(--cell-size) var(--cell-size);
 	border: 2px solid #b59a7a;
 	box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+	transform-origin: top left;
 }
 
 .shape-label {

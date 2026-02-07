@@ -1,17 +1,96 @@
 {
 	"name": "Caledonia",
 	"shapes": [
-		{ "id": "altfarmer", "label": "Alt Farmer", "w": 39, "h": 26 },
-		{ "id": "composter", "label": "Composter", "w": 19, "h": 13 },
-		{ "id": "farmer", "label": "Farmer", "w": 13, "h": 13 },
-		{ "id": "florist", "label": "Florist", "w": 13, "h": 13 },
-		{ "id": "plantation", "label": "Plantation", "w": 19, "h": 19 },
-		{ "id": "beekeeper", "label": "Beekeeper", "w": 13, "h": 13 },
-		{ "id": "chickenherder", "label": "Chicken Herder", "w": 13, "h": 13 },
-		{ "id": "cowboy", "label": "Cowboy", "w": 13, "h": 13 },
-		{ "id": "fisherman", "label": "Fisherman", "w": 13, "h": 13 },
-		{ "id": "rabbithutch", "label": "Rabbit Hutch", "w": 13, "h": 13 },
-		{ "id": "shepherd", "label": "Shepherd", "w": 13, "h": 13 },
-		{ "id": "swineherder", "label": "Swineherder", "w": 13, "h": 13 }
+		{
+			"id": "altfarmer",
+			"label": "Alt Farmer",
+			"w": 39,
+			"h": 26,
+			"category": "farming"
+		},
+		{
+			"id": "composter",
+			"label": "Composter",
+			"w": 19,
+			"h": 13,
+			"category": "farming"
+		},
+		{
+			"id": "farmer",
+			"label": "Farmer",
+			"w": 13,
+			"h": 13,
+			"category": "farming"
+		},
+		{
+			"id": "florist",
+			"label": "Florist",
+			"w": 13,
+			"h": 13,
+			"category": "farming"
+		},
+		{
+			"id": "plantation",
+			"label": "Plantation",
+			"w": 19,
+			"h": 19,
+			"category": "farming"
+		},
+		{
+			"id": "beekeeper",
+			"label": "Beekeeper",
+			"w": 13,
+			"h": 13,
+			"category": "farming"
+		},
+		{
+			"id": "chickenherder",
+			"label": "Chicken Herder",
+			"w": 13,
+			"h": 13,
+			"category": "farming"
+		},
+		{
+			"id": "cowboy",
+			"label": "Cowboy",
+			"w": 13,
+			"h": 13,
+			"category": "farming"
+		},
+		{
+			"id": "fisherman",
+			"label": "Fisherman",
+			"w": 13,
+			"h": 13,
+			"category": "farming"
+		},
+		{
+			"id": "rabbithutch",
+			"label": "Rabbit Hutch",
+			"w": 13,
+			"h": 13,
+			"category": "farming"
+		},
+		{
+			"id": "shepherd",
+			"label": "Shepherd",
+			"w": 13,
+			"h": 13,
+			"category": "farming"
+		},
+		{
+			"id": "swineherder",
+			"label": "Swineherder",
+			"w": 13,
+			"h": 13,
+			"category": "farming"
+		},
+		{
+			"id": "craftsman",
+			"label": "Craftsman",
+			"w": 13,
+			"h": 13,
+			"category": "craftsmanship"
+		}
 	]
 }
