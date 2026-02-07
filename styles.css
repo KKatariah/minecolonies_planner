@@ -93,6 +93,12 @@ body {
 	gap: 6px;
 	position: relative;
 	margin-top: -12px;
+	padding-top: 14px;
+	padding-bottom: 6px;
+	background: #efe6d6;
+	border-left: 2px solid var(--grid-line);
+	border-right: 2px solid var(--grid-line);
+	border-top: 2px solid var(--grid-line);
 }
 
 .tab {

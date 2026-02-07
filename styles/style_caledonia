@@ -26,3 +26,222 @@ rabbithutch = SMALL
 shepherd = SMALL
 swineherder = SMALL
 
+# ------------------
+# craftsmanship tab
+# -------------------
+
+# carpentry
+fletcher = MEDIUM
+sawmill = MEDIUM
+
+# luxury
+alchemist = LARGE
+baker = SMALL
+concretemixer = SMALL
+dyer = MEDIUM
+glassblower = SMALL
+kitchen = SMALL
+
+#masonry
+crusher = MEDIUM
+sifter = MEDIUM
+stonemason = MEDIUM
+stonesmeltery = MEDIUM
+
+# metallurgy
+blacksmith = MEDIUM
+mechanic = MEDIUM
+smeltery = MEDIUM
+
+# storage
+deliveryman = SMALL
+warehouse = LARGE
+
+#------------------
+# decoration tab
+#------------------
+
+# arches
+double = 9,29
+single = 9,21
+
+# decorative
+windmill = MEDIUM
+
+# planning
+barracks = 39,19
+large = LARGE
+medium = MEDIUM
+small = SMALL
+
+# plaza
+diorite_lrg = LARGE
+diorite_med = MEDIUM
+diorite_sml = SMALL
+garden_tower = LARGE
+lamp_plaza = SMALL
+market_plaza = LARGE
+sitting_plaza = MEDIUM
+waystone = SMALL
+
+# supplies
+camp = 39,31
+ship = 39,31
+supplycamp = 39,31
+supplyship = 39,31
+
+# utility
+auto_smelter = SMALL
+concrete_machine = SMALL
+greenhouse_a = SMALL
+greenhouse_b = SMALL
+meat_grinder = SMALL
+
+#--------------------
+# education tab
+#--------------------
+library = LARGE
+school = SMALL
+university = LARGE
+
+#--------------------
+# fundamentals tab
+#--------------------
+builder = SMALL
+cook = LARGE
+hospital = LARGE
+lumberjack = SMALL
+miner = LARGE
+residence = MEDIUM
+tavern = SMALL
+townhall = LARGE
+
+#--------------------
+# infrastructure tab
+#--------------------
+
+# alleys
+cross = 5,5
+down_a = 5,5
+down_b = 5,5
+long = 13,5
+short = 7,5
+tee = 5,5
+trans_nature = 7,5
+turn = 5,5
+
+# avenues
+cross = SMALL
+down_a = 5,13
+down_b = 5,13
+long = SMALL
+short = 7,13
+tee = SMALL
+trans_alley = 7,13
+trans_nature = 7,13
+turn = SMALL
+
+# birail
+cross = SMALL
+down_a = 5,7
+down_b = 5,7
+long = 13,7
+plug_b = 1,7
+plug_a = 1,7
+plug_c = 1,7
+short = 7,7
+station = 13,7
+tee = 13,10
+turn = 10,10
+
+# fields
+field_big = 39,26
+
+# monorail
+cross = SMALL
+down_a = 5,5
+down_b = 5,5
+long = 11,5
+plug_b = 1,5
+plug_a = 1,5
+short = 1,5
+short = 7,5
+station = 12,5
+tee = 13,9
+turn = 9,8
+
+# plaza
+large = LARGE
+medium = MEDIUM
+small = SMALL
+
+# roads
+corner = 7,7
+cross = 7,7
+long = 19,7
+long_stair = 19,7
+medium = 13,7
+medium_stair = 13,7
+plug_a = 3,7
+plug_b = 1,7
+short = 7,7
+short_stair_a = 7,7
+short_stair_b = 7,7
+station_long = 19,7
+station_medium = 13,7
+station_short = 7,7
+station_stair_l = 19,7
+station_stair_m = 13,7
+tee = 7,7
+
+
+#--------------------
+# military tab
+#--------------------
+altguardtower = SMALL
+archery = MEDIUM
+barracks = LARGE
+combatacademy = MEDIUM
+guardtower = MEDIUM
+
+#--------------------
+# mystic tab
+#--------------------
+enchanter = MEDIUM
+graveyard = MEDIUM
+mysticalsite = MEDIUM
+netherworker = MEDIUM
+
+#--------------------
+# walls tab
+#--------------------
+# corners
+corner_a = 6,6
+corner_b = 12,12
+tower = 9,9
+
+# gates
+double = 19,7
+double_house = 19,9
+single = 19,7
+single_house = 19,9
+
+# misc
+cross = 5,5
+diagonal = 7,7
+end_tower = 9,9
+
+# stairs
+end = 11,7
+side = 15,5
+
+# walls
+down_a = 5,7
+down_b = 5,7
+end = 5,7
+long = 19,7
+medium = 13,7
+plug_a = 1,7
+plug_b = 1,7
+short = 5,7
+tee = 5,6
