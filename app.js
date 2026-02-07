@@ -350,6 +350,8 @@ function placeSquare(x, y, shape) {
 		w: shape.w,
 		h: shape.h,
 		id: shape.id,
+		label: shape.label,
+		category,
 	});
 }
 
