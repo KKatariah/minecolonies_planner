@@ -2,95 +2,1082 @@
 	"name": "Caledonia",
 	"shapes": [
 		{
-			"id": "altfarmer",
+			"id": "horticulture_altfarmer",
 			"label": "Alt Farmer",
 			"w": 39,
 			"h": 26,
 			"category": "farming"
 		},
 		{
-			"id": "composter",
+			"id": "horticulture_composter",
 			"label": "Composter",
 			"w": 19,
 			"h": 13,
 			"category": "farming"
 		},
 		{
-			"id": "farmer",
+			"id": "horticulture_farmer",
 			"label": "Farmer",
 			"w": 13,
 			"h": 13,
 			"category": "farming"
 		},
 		{
-			"id": "florist",
+			"id": "horticulture_florist",
 			"label": "Florist",
 			"w": 13,
 			"h": 13,
 			"category": "farming"
 		},
 		{
-			"id": "plantation",
+			"id": "horticulture_plantation",
 			"label": "Plantation",
 			"w": 19,
 			"h": 19,
 			"category": "farming"
 		},
 		{
-			"id": "beekeeper",
+			"id": "husbandry_beekeeper",
 			"label": "Beekeeper",
 			"w": 13,
 			"h": 13,
 			"category": "farming"
 		},
 		{
-			"id": "chickenherder",
+			"id": "husbandry_chickenherder",
 			"label": "Chicken Herder",
 			"w": 13,
 			"h": 13,
 			"category": "farming"
 		},
 		{
-			"id": "cowboy",
+			"id": "husbandry_cowboy",
 			"label": "Cowboy",
 			"w": 13,
 			"h": 13,
 			"category": "farming"
 		},
 		{
-			"id": "fisherman",
+			"id": "husbandry_fisherman",
 			"label": "Fisherman",
 			"w": 13,
 			"h": 13,
 			"category": "farming"
 		},
 		{
-			"id": "rabbithutch",
+			"id": "husbandry_rabbithutch",
 			"label": "Rabbit Hutch",
 			"w": 13,
 			"h": 13,
 			"category": "farming"
 		},
 		{
-			"id": "shepherd",
+			"id": "husbandry_shepherd",
 			"label": "Shepherd",
 			"w": 13,
 			"h": 13,
 			"category": "farming"
 		},
 		{
-			"id": "swineherder",
+			"id": "husbandry_swineherder",
 			"label": "Swineherder",
 			"w": 13,
 			"h": 13,
 			"category": "farming"
 		},
 		{
-			"id": "craftsman",
-			"label": "Craftsman",
+			"id": "carpentry_fletcher",
+			"label": "Fletcher",
+			"w": 19,
+			"h": 13,
+			"category": "craftsmanship"
+		},
+		{
+			"id": "carpentry_sawmill",
+			"label": "Sawmill",
+			"w": 19,
+			"h": 13,
+			"category": "craftsmanship"
+		},
+		{
+			"id": "luxury_alchemist",
+			"label": "Alchemist",
+			"w": 19,
+			"h": 19,
+			"category": "craftsmanship"
+		},
+		{
+			"id": "luxury_baker",
+			"label": "Baker",
 			"w": 13,
 			"h": 13,
 			"category": "craftsmanship"
+		},
+		{
+			"id": "luxury_concretemixer",
+			"label": "Concrete Mixer",
+			"w": 13,
+			"h": 13,
+			"category": "craftsmanship"
+		},
+		{
+			"id": "luxury_dyer",
+			"label": "Dyer",
+			"w": 19,
+			"h": 13,
+			"category": "craftsmanship"
+		},
+		{
+			"id": "luxury_glassblower",
+			"label": "Glassblower",
+			"w": 13,
+			"h": 13,
+			"category": "craftsmanship"
+		},
+		{
+			"id": "luxury_kitchen",
+			"label": "Kitchen",
+			"w": 13,
+			"h": 13,
+			"category": "craftsmanship"
+		},
+		{
+			"id": "masonry_crusher",
+			"label": "Crusher",
+			"w": 19,
+			"h": 13,
+			"category": "craftsmanship"
+		},
+		{
+			"id": "masonry_sifter",
+			"label": "Sifter",
+			"w": 19,
+			"h": 13,
+			"category": "craftsmanship"
+		},
+		{
+			"id": "masonry_stonemason",
+			"label": "Stone Mason",
+			"w": 19,
+			"h": 13,
+			"category": "craftsmanship"
+		},
+		{
+			"id": "masonry_stonesmeltery",
+			"label": "Stone Smeltery",
+			"w": 19,
+			"h": 13,
+			"category": "craftsmanship"
+		},
+		{
+			"id": "metallurgy_blacksmith",
+			"label": "Blacksmith",
+			"w": 19,
+			"h": 13,
+			"category": "craftsmanship"
+		},
+		{
+			"id": "metallurgy_mechanic",
+			"label": "Mechanic",
+			"w": 19,
+			"h": 13,
+			"category": "craftsmanship"
+		},
+		{
+			"id": "metallurgy_smeltery",
+			"label": "Smeltery",
+			"w": 19,
+			"h": 13,
+			"category": "craftsmanship"
+		},
+		{
+			"id": "storage_deliveryman",
+			"label": "Deliveryman",
+			"w": 13,
+			"h": 13,
+			"category": "craftsmanship"
+		},
+		{
+			"id": "storage_warehouse",
+			"label": "Warehouse",
+			"w": 19,
+			"h": 19,
+			"category": "craftsmanship"
+		},
+		{
+			"id": "arches_double",
+			"label": "Double Arch",
+			"w": 9,
+			"h": 29,
+			"category": "decoration"
+		},
+		{
+			"id": "arches_single",
+			"label": "Single Arch",
+			"w": 9,
+			"h": 21,
+			"category": "decoration"
+		},
+		{
+			"id": "decorative_windmill",
+			"label": "Windmill",
+			"w": 19,
+			"h": 13,
+			"category": "decoration"
+		},
+		{
+			"id": "planning_barracks",
+			"label": "Barracks",
+			"w": 39,
+			"h": 19,
+			"category": "decoration"
+		},
+		{
+			"id": "planning_large",
+			"label": "Large Plot",
+			"w": 19,
+			"h": 19,
+			"category": "decoration"
+		},
+		{
+			"id": "planning_medium",
+			"label": "Medium Plot",
+			"w": 19,
+			"h": 13,
+			"category": "decoration"
+		},
+		{
+			"id": "planning_small",
+			"label": "Small Plot",
+			"w": 13,
+			"h": 13,
+			"category": "decoration"
+		},
+		{
+			"id": "plaza_diorite_lrg",
+			"label": "Diorite Plaza (Large)",
+			"w": 19,
+			"h": 19,
+			"category": "decoration"
+		},
+		{
+			"id": "plaza_diorite_med",
+			"label": "Diorite Plaza (Medium)",
+			"w": 19,
+			"h": 13,
+			"category": "decoration"
+		},
+		{
+			"id": "plaza_diorite_sml",
+			"label": "Diorite Plaza (Small)",
+			"w": 13,
+			"h": 13,
+			"category": "decoration"
+		},
+		{
+			"id": "plaza_garden_tower",
+			"label": "Garden Tower",
+			"w": 19,
+			"h": 19,
+			"category": "decoration"
+		},
+		{
+			"id": "plaza_lamp_plaza",
+			"label": "Lamp Plaza",
+			"w": 13,
+			"h": 13,
+			"category": "decoration"
+		},
+		{
+			"id": "plaza_market_plaza",
+			"label": "Market Plaza",
+			"w": 19,
+			"h": 19,
+			"category": "decoration"
+		},
+		{
+			"id": "plaza_sitting_plaza",
+			"label": "Sitting Plaza",
+			"w": 19,
+			"h": 13,
+			"category": "decoration"
+		},
+		{
+			"id": "plaza_waystone",
+			"label": "Waystone",
+			"w": 13,
+			"h": 13,
+			"category": "decoration"
+		},
+		{
+			"id": "supplies_camp",
+			"label": "Camp",
+			"w": 39,
+			"h": 31,
+			"category": "decoration"
+		},
+		{
+			"id": "supplies_ship",
+			"label": "Ship",
+			"w": 39,
+			"h": 31,
+			"category": "decoration"
+		},
+		{
+			"id": "supplies_supplycamp",
+			"label": "Supply Camp",
+			"w": 39,
+			"h": 31,
+			"category": "decoration"
+		},
+		{
+			"id": "supplies_supplyship",
+			"label": "Supply Ship",
+			"w": 39,
+			"h": 31,
+			"category": "decoration"
+		},
+		{
+			"id": "utility_auto_smelter",
+			"label": "Auto Smelter",
+			"w": 13,
+			"h": 13,
+			"category": "decoration"
+		},
+		{
+			"id": "utility_concrete_machine",
+			"label": "Concrete Machine",
+			"w": 13,
+			"h": 13,
+			"category": "decoration"
+		},
+		{
+			"id": "utility_greenhouse_a",
+			"label": "Greenhouse A",
+			"w": 13,
+			"h": 13,
+			"category": "decoration"
+		},
+		{
+			"id": "utility_greenhouse_b",
+			"label": "Greenhouse B",
+			"w": 13,
+			"h": 13,
+			"category": "decoration"
+		},
+		{
+			"id": "utility_meat_grinder",
+			"label": "Meat Grinder",
+			"w": 13,
+			"h": 13,
+			"category": "decoration"
+		},
+		{
+			"id": "education_library",
+			"label": "Library",
+			"w": 19,
+			"h": 19,
+			"category": "education"
+		},
+		{
+			"id": "education_school",
+			"label": "School",
+			"w": 13,
+			"h": 13,
+			"category": "education"
+		},
+		{
+			"id": "education_university",
+			"label": "University",
+			"w": 19,
+			"h": 19,
+			"category": "education"
+		},
+		{
+			"id": "fundamentals_builder",
+			"label": "Builder",
+			"w": 13,
+			"h": 13,
+			"category": "fundamentals"
+		},
+		{
+			"id": "fundamentals_cook",
+			"label": "Cook",
+			"w": 19,
+			"h": 19,
+			"category": "fundamentals"
+		},
+		{
+			"id": "fundamentals_hospital",
+			"label": "Hospital",
+			"w": 19,
+			"h": 19,
+			"category": "fundamentals"
+		},
+		{
+			"id": "fundamentals_lumberjack",
+			"label": "Lumberjack",
+			"w": 13,
+			"h": 13,
+			"category": "fundamentals"
+		},
+		{
+			"id": "fundamentals_miner",
+			"label": "Miner",
+			"w": 19,
+			"h": 19,
+			"category": "fundamentals"
+		},
+		{
+			"id": "fundamentals_residence",
+			"label": "Residence",
+			"w": 19,
+			"h": 13,
+			"category": "fundamentals"
+		},
+		{
+			"id": "fundamentals_tavern",
+			"label": "Tavern",
+			"w": 13,
+			"h": 13,
+			"category": "fundamentals"
+		},
+		{
+			"id": "fundamentals_townhall",
+			"label": "Town Hall",
+			"w": 19,
+			"h": 19,
+			"category": "fundamentals"
+		},
+		{
+			"id": "alleys_cross",
+			"label": "Alleys Cross",
+			"w": 5,
+			"h": 5,
+			"category": "infrastructure"
+		},
+		{
+			"id": "alleys_down_a",
+			"label": "Alleys Down A",
+			"w": 5,
+			"h": 5,
+			"category": "infrastructure"
+		},
+		{
+			"id": "alleys_down_b",
+			"label": "Alleys Down B",
+			"w": 5,
+			"h": 5,
+			"category": "infrastructure"
+		},
+		{
+			"id": "alleys_long",
+			"label": "Alleys Long",
+			"w": 13,
+			"h": 5,
+			"category": "infrastructure"
+		},
+		{
+			"id": "alleys_short",
+			"label": "Alleys Short",
+			"w": 7,
+			"h": 5,
+			"category": "infrastructure"
+		},
+		{
+			"id": "alleys_tee",
+			"label": "Alleys Tee",
+			"w": 5,
+			"h": 5,
+			"category": "infrastructure"
+		},
+		{
+			"id": "alleys_trans_nature",
+			"label": "Alleys Trans Nature",
+			"w": 7,
+			"h": 5,
+			"category": "infrastructure"
+		},
+		{
+			"id": "alleys_turn",
+			"label": "Alleys Turn",
+			"w": 5,
+			"h": 5,
+			"category": "infrastructure"
+		},
+		{
+			"id": "avenues_cross",
+			"label": "Avenues Cross",
+			"w": 13,
+			"h": 13,
+			"category": "infrastructure"
+		},
+		{
+			"id": "avenues_down_a",
+			"label": "Avenues Down A",
+			"w": 5,
+			"h": 13,
+			"category": "infrastructure"
+		},
+		{
+			"id": "avenues_down_b",
+			"label": "Avenues Down B",
+			"w": 5,
+			"h": 13,
+			"category": "infrastructure"
+		},
+		{
+			"id": "avenues_long",
+			"label": "Avenues Long",
+			"w": 13,
+			"h": 13,
+			"category": "infrastructure"
+		},
+		{
+			"id": "avenues_short",
+			"label": "Avenues Short",
+			"w": 7,
+			"h": 13,
+			"category": "infrastructure"
+		},
+		{
+			"id": "avenues_tee",
+			"label": "Avenues Tee",
+			"w": 13,
+			"h": 13,
+			"category": "infrastructure"
+		},
+		{
+			"id": "avenues_trans_alley",
+			"label": "Avenues Trans Alley",
+			"w": 7,
+			"h": 13,
+			"category": "infrastructure"
+		},
+		{
+			"id": "avenues_trans_nature",
+			"label": "Avenues Trans Nature",
+			"w": 7,
+			"h": 13,
+			"category": "infrastructure"
+		},
+		{
+			"id": "avenues_turn",
+			"label": "Avenues Turn",
+			"w": 13,
+			"h": 13,
+			"category": "infrastructure"
+		},
+		{
+			"id": "birail_cross",
+			"label": "Birail Cross",
+			"w": 13,
+			"h": 13,
+			"category": "infrastructure"
+		},
+		{
+			"id": "birail_down_a",
+			"label": "Birail Down A",
+			"w": 5,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "birail_down_b",
+			"label": "Birail Down B",
+			"w": 5,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "birail_long",
+			"label": "Birail Long",
+			"w": 13,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "birail_plug_b",
+			"label": "Birail Plug B",
+			"w": 1,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "birail_plug_a",
+			"label": "Birail Plug A",
+			"w": 1,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "birail_plug_c",
+			"label": "Birail Plug C",
+			"w": 1,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "birail_short",
+			"label": "Birail Short",
+			"w": 7,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "birail_station",
+			"label": "Birail Station",
+			"w": 13,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "birail_tee",
+			"label": "Birail Tee",
+			"w": 13,
+			"h": 10,
+			"category": "infrastructure"
+		},
+		{
+			"id": "birail_turn",
+			"label": "Birail Turn",
+			"w": 10,
+			"h": 10,
+			"category": "infrastructure"
+		},
+		{
+			"id": "fields_field_big",
+			"label": "Field Big",
+			"w": 39,
+			"h": 26,
+			"category": "infrastructure"
+		},
+		{
+			"id": "monorail_cross",
+			"label": "Monorail Cross",
+			"w": 13,
+			"h": 13,
+			"category": "infrastructure"
+		},
+		{
+			"id": "monorail_down_a",
+			"label": "Monorail Down A",
+			"w": 5,
+			"h": 5,
+			"category": "infrastructure"
+		},
+		{
+			"id": "monorail_down_b",
+			"label": "Monorail Down B",
+			"w": 5,
+			"h": 5,
+			"category": "infrastructure"
+		},
+		{
+			"id": "monorail_long",
+			"label": "Monorail Long",
+			"w": 11,
+			"h": 5,
+			"category": "infrastructure"
+		},
+		{
+			"id": "monorail_plug_b",
+			"label": "Monorail Plug B",
+			"w": 1,
+			"h": 5,
+			"category": "infrastructure"
+		},
+		{
+			"id": "monorail_plug_a",
+			"label": "Monorail Plug A",
+			"w": 1,
+			"h": 5,
+			"category": "infrastructure"
+		},
+		{
+			"id": "monorail_short_a",
+			"label": "Monorail Short A",
+			"w": 1,
+			"h": 5,
+			"category": "infrastructure"
+		},
+		{
+			"id": "monorail_short_b",
+			"label": "Monorail Short B",
+			"w": 7,
+			"h": 5,
+			"category": "infrastructure"
+		},
+		{
+			"id": "monorail_station",
+			"label": "Monorail Station",
+			"w": 12,
+			"h": 5,
+			"category": "infrastructure"
+		},
+		{
+			"id": "monorail_tee",
+			"label": "Monorail Tee",
+			"w": 13,
+			"h": 9,
+			"category": "infrastructure"
+		},
+		{
+			"id": "monorail_turn",
+			"label": "Monorail Turn",
+			"w": 9,
+			"h": 8,
+			"category": "infrastructure"
+		},
+		{
+			"id": "infra_plaza_large",
+			"label": "Plaza (Large)",
+			"w": 19,
+			"h": 19,
+			"category": "infrastructure"
+		},
+		{
+			"id": "infra_plaza_medium",
+			"label": "Plaza (Medium)",
+			"w": 19,
+			"h": 13,
+			"category": "infrastructure"
+		},
+		{
+			"id": "infra_plaza_small",
+			"label": "Plaza (Small)",
+			"w": 13,
+			"h": 13,
+			"category": "infrastructure"
+		},
+		{
+			"id": "roads_corner",
+			"label": "Roads Corner",
+			"w": 7,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "roads_cross",
+			"label": "Roads Cross",
+			"w": 7,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "roads_long",
+			"label": "Roads Long",
+			"w": 19,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "roads_long_stair",
+			"label": "Roads Long Stair",
+			"w": 19,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "roads_medium",
+			"label": "Roads Medium",
+			"w": 13,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "roads_medium_stair",
+			"label": "Roads Medium Stair",
+			"w": 13,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "roads_plug_a",
+			"label": "Roads Plug A",
+			"w": 3,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "roads_plug_b",
+			"label": "Roads Plug B",
+			"w": 1,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "roads_short",
+			"label": "Roads Short",
+			"w": 7,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "roads_short_stair_a",
+			"label": "Roads Short Stair A",
+			"w": 7,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "roads_short_stair_b",
+			"label": "Roads Short Stair B",
+			"w": 7,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "roads_station_long",
+			"label": "Roads Station Long",
+			"w": 19,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "roads_station_medium",
+			"label": "Roads Station Medium",
+			"w": 13,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "roads_station_short",
+			"label": "Roads Station Short",
+			"w": 7,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "roads_station_stair_l",
+			"label": "Roads Station Stair L",
+			"w": 19,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "roads_station_stair_m",
+			"label": "Roads Station Stair M",
+			"w": 13,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "roads_tee",
+			"label": "Roads Tee",
+			"w": 7,
+			"h": 7,
+			"category": "infrastructure"
+		},
+		{
+			"id": "military_altguardtower",
+			"label": "Alt Guard Tower",
+			"w": 13,
+			"h": 13,
+			"category": "military"
+		},
+		{
+			"id": "military_archery",
+			"label": "Archery",
+			"w": 19,
+			"h": 13,
+			"category": "military"
+		},
+		{
+			"id": "military_barracks",
+			"label": "Barracks",
+			"w": 19,
+			"h": 19,
+			"category": "military"
+		},
+		{
+			"id": "military_combatacademy",
+			"label": "Combat Academy",
+			"w": 19,
+			"h": 13,
+			"category": "military"
+		},
+		{
+			"id": "military_guardtower",
+			"label": "Guard Tower",
+			"w": 19,
+			"h": 13,
+			"category": "military"
+		},
+		{
+			"id": "mystic_enchanter",
+			"label": "Enchanter",
+			"w": 19,
+			"h": 13,
+			"category": "mystic"
+		},
+		{
+			"id": "mystic_graveyard",
+			"label": "Graveyard",
+			"w": 19,
+			"h": 13,
+			"category": "mystic"
+		},
+		{
+			"id": "mystic_mysticalsite",
+			"label": "Mystical Site",
+			"w": 19,
+			"h": 13,
+			"category": "mystic"
+		},
+		{
+			"id": "mystic_netherworker",
+			"label": "Nether Worker",
+			"w": 19,
+			"h": 13,
+			"category": "mystic"
+		},
+		{
+			"id": "walls_corners_corner_a",
+			"label": "Corner A",
+			"w": 6,
+			"h": 6,
+			"category": "walls"
+		},
+		{
+			"id": "walls_corners_corner_b",
+			"label": "Corner B",
+			"w": 12,
+			"h": 12,
+			"category": "walls"
+		},
+		{
+			"id": "walls_corners_tower",
+			"label": "Tower",
+			"w": 9,
+			"h": 9,
+			"category": "walls"
+		},
+		{
+			"id": "walls_gates_double",
+			"label": "Gate Double",
+			"w": 19,
+			"h": 7,
+			"category": "walls"
+		},
+		{
+			"id": "walls_gates_double_house",
+			"label": "Gate Double House",
+			"w": 19,
+			"h": 9,
+			"category": "walls"
+		},
+		{
+			"id": "walls_gates_single",
+			"label": "Gate Single",
+			"w": 19,
+			"h": 7,
+			"category": "walls"
+		},
+		{
+			"id": "walls_gates_single_house",
+			"label": "Gate Single House",
+			"w": 19,
+			"h": 9,
+			"category": "walls"
+		},
+		{
+			"id": "walls_misc_cross",
+			"label": "Cross",
+			"w": 5,
+			"h": 5,
+			"category": "walls"
+		},
+		{
+			"id": "walls_misc_diagonal",
+			"label": "Diagonal",
+			"w": 7,
+			"h": 7,
+			"category": "walls"
+		},
+		{
+			"id": "walls_misc_end_tower",
+			"label": "End Tower",
+			"w": 9,
+			"h": 9,
+			"category": "walls"
+		},
+		{
+			"id": "walls_stairs_end",
+			"label": "Stairs End",
+			"w": 11,
+			"h": 7,
+			"category": "walls"
+		},
+		{
+			"id": "walls_stairs_side",
+			"label": "Stairs Side",
+			"w": 15,
+			"h": 5,
+			"category": "walls"
+		},
+		{
+			"id": "walls_down_a",
+			"label": "Wall Down A",
+			"w": 5,
+			"h": 7,
+			"category": "walls"
+		},
+		{
+			"id": "walls_down_b",
+			"label": "Wall Down B",
+			"w": 5,
+			"h": 7,
+			"category": "walls"
+		},
+		{
+			"id": "walls_end",
+			"label": "Wall End",
+			"w": 5,
+			"h": 7,
+			"category": "walls"
+		},
+		{
+			"id": "walls_long",
+			"label": "Wall Long",
+			"w": 19,
+			"h": 7,
+			"category": "walls"
+		},
+		{
+			"id": "walls_medium",
+			"label": "Wall Medium",
+			"w": 13,
+			"h": 7,
+			"category": "walls"
+		},
+		{
+			"id": "walls_plug_a",
+			"label": "Wall Plug A",
+			"w": 1,
+			"h": 7,
+			"category": "walls"
+		},
+		{
+			"id": "walls_plug_b",
+			"label": "Wall Plug B",
+			"w": 1,
+			"h": 7,
+			"category": "walls"
+		},
+		{
+			"id": "walls_short",
+			"label": "Wall Short",
+			"w": 5,
+			"h": 7,
+			"category": "walls"
+		},
+		{
+			"id": "walls_tee",
+			"label": "Wall Tee",
+			"w": 5,
+			"h": 6,
+			"category": "walls"
 		}
 	]
 }
