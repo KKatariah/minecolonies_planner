@@ -56,6 +56,7 @@ let isDragging = false;
 let dragItem = null;
 let suppressClick = false;
 let selectedPlaced = null;
+let duplicateMode = false;
 
 function toggleSelected() {
 	isSelected = !isSelected;
@@ -186,9 +187,9 @@ function showMenuFor(element) {
 	actionMenu.style.top = `${top}px`;
 }
 
-function hideMenu() {
+function hideMenu(preserveSelection = false) {
 	actionMenu.style.display = "none";
-	if (selectedPlaced) {
+	if (!preserveSelection && selectedPlaced) {
 		selectedPlaced.classList.remove("is-selected");
 		selectedPlaced = null;
 	}
@@ -201,12 +202,24 @@ function deleteSelected() {
 	);
 	if (index >= 0) placedSquares.splice(index, 1);
 	selectedPlaced.remove();
+	duplicateMode = false;
 	hideMenu();
 }
 
 sampleSquare.addEventListener("click", toggleSelected);
 grid.addEventListener("click", (event) => {
-	if (!event.target.closest(".placed-square")) hideMenu();
+	if (!event.target.closest(".placed-square") && !duplicateMode) hideMenu();
+	if (duplicateMode) {
+		const cell = event.target.closest(".grid-cell");
+		if (!cell) return;
+		const x = Number(cell.dataset.x);
+		const y = Number(cell.dataset.y);
+		if (x + 2 > cols || y + 2 > rows) return;
+		if (!canPlaceAt(x, y)) return;
+		placeSquare(x, y);
+		duplicateMode = false;
+		return;
+	}
 	if (!isSelected || suppressClick) return;
 	const cell = event.target.closest(".grid-cell");
 	if (!cell) return;
@@ -225,6 +238,11 @@ actionMenu.addEventListener("click", (event) => {
 	if (!button) return;
 	const action = button.dataset.action;
 	if (action === "delete") deleteSelected();
+	if (action === "duplicate") {
+		if (!selectedPlaced) return;
+		duplicateMode = true;
+		hideMenu(true);
+	}
 });
 document.addEventListener("click", (event) => {
 	if (event.target.closest(".action-menu")) return;

@@ -1,5 +1,28 @@
-# enums for standard sizes
+# enums for standard sizes for caledonia plots
+# buildings can either use standard sizes below or custom sizes
 LARGE = 19,19
 MEDIUM = 19,13
 SMALL = 13,13
+
+# ------------------
+# agriculture tab
+# -------------------
+
+# horticulture 
+
+altfarmer = 39,26
+composter = MEDIUM
+farmer = SMALL
+florist = SMALL
+plantation = LARGE
+
+# husbandry
+
+beekeeper = SMALL
+chickenherder = SMALL
+cowboy = SMALL
+fisherman = SMALL
+rabbithutch = SMALL
+shepherd = SMALL
+swineherder = SMALL
 
