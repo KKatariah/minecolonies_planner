@@ -123,7 +123,7 @@ let pendingDrag = null;
 const selectedPlaced = new Set();
 let selectedPrimary = null;
 let duplicateMode = false;
-let duplicateSource = null;
+let duplicateGroup = null;
 let selectedShapeId = null;
 let shapes = [];
 let activeTab = "farming";
@@ -710,21 +710,33 @@ grid.addEventListener("click", (event) => {
 		const x = Number(cell.dataset.x);
 		const y = Number(cell.dataset.y);
 		const step = event.ctrlKey ? chunkSize : 1;
+		if (!duplicateGroup) return;
+		const anchor = duplicateGroup.anchor;
 		const snap = snapToGrid(
 			x,
 			y,
-			duplicateSource?.w || 1,
-			duplicateSource?.h || 1,
+			anchor?.w || 1,
+			anchor?.h || 1,
 			step,
 		);
-		if (!duplicateSource) return;
-		if (snap.x + duplicateSource.w > cols || snap.y + duplicateSource.h > rows)
-			return;
-		if (!canPlaceAt(snap.x, snap.y, duplicateSource.w, duplicateSource.h))
-			return;
-		placeSquare(snap.x, snap.y, duplicateSource);
+		if (!anchor) return;
+		const nextPositions = duplicateGroup.items.map((entry) => {
+			const nextX = snap.x + entry.dx;
+			const nextY = snap.y + entry.dy;
+			return { entry, x: nextX, y: nextY };
+		});
+		const fits = nextPositions.every(({ entry, x: nextX, y: nextY }) => {
+			if (nextX < 0 || nextY < 0) return false;
+			if (nextX + entry.item.w > cols || nextY + entry.item.h > rows)
+				return false;
+			return canPlaceAt(nextX, nextY, entry.item.w, entry.item.h);
+		});
+		if (!fits) return;
+		nextPositions.forEach(({ entry, x: nextX, y: nextY }) => {
+			placeSquare(nextX, nextY, entry.item);
+		});
 		duplicateMode = false;
-		duplicateSource = null;
+		duplicateGroup = null;
 		return;
 	}
 	if (suppressClick) return;
@@ -754,11 +766,23 @@ actionMenu.addEventListener("click", (event) => {
 	if (action === "rotate") rotateSelected();
 	if (action === "delete") deleteSelected();
 	if (action === "duplicate") {
-		if (!selectedPrimary) return;
+		if (!selectedPlaced.size) return;
+		const selectedItems = Array.from(selectedPlaced)
+			.map((el) => placedSquares.find((placed) => placed.el === el))
+			.filter(Boolean);
+		const anchor =
+			placedSquares.find((placed) => placed.el === selectedPrimary) ||
+			selectedItems[0];
+		if (!anchor) return;
 		duplicateMode = true;
-		duplicateSource = placedSquares.find(
-			(placed) => placed.el === selectedPrimary,
-		);
+		duplicateGroup = {
+			anchor,
+			items: selectedItems.map((item) => ({
+				item,
+				dx: item.x - anchor.x,
+				dy: item.y - anchor.y,
+			})),
+		};
 		hideMenu(true);
 	}
 });
