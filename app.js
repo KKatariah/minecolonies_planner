@@ -117,8 +117,11 @@ if (window.ResizeObserver) {
 const placedSquares = [];
 let isDragging = false;
 let dragItem = null;
+let dragGroup = null;
 let suppressClick = false;
-let selectedPlaced = null;
+let pendingDrag = null;
+const selectedPlaced = new Set();
+let selectedPrimary = null;
 let duplicateMode = false;
 let duplicateSource = null;
 let selectedShapeId = null;
@@ -354,7 +357,7 @@ function placeSquare(x, y, shape) {
 	placed.addEventListener("click", (event) => {
 		if (suppressClick || isDragging) return;
 		event.stopPropagation();
-		selectPlaced(placed);
+		selectPlaced(placed, event.shiftKey);
 	});
 	grid.appendChild(placed);
 	placedSquares.push({
@@ -376,7 +379,11 @@ function rectanglesOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
 
 function canPlaceAt(x, y, w, h, ignoreEl) {
 	return !placedSquares.some((placed) => {
-		if (ignoreEl && placed.el === ignoreEl) return false;
+		if (ignoreEl instanceof Set) {
+			if (ignoreEl.has(placed.el)) return false;
+		} else if (ignoreEl && placed.el === ignoreEl) {
+			return false;
+		}
 		return rectanglesOverlap(
 			x,
 			y,
@@ -388,6 +395,26 @@ function canPlaceAt(x, y, w, h, ignoreEl) {
 			placed.h,
 		);
 	});
+}
+
+function clampGroupAnchor(anchorX, anchorY, groupItems) {
+	let minAnchorX = -Infinity;
+	let maxAnchorX = Infinity;
+	let minAnchorY = -Infinity;
+	let maxAnchorY = Infinity;
+	groupItems.forEach((entry) => {
+		const minX = -entry.dx;
+		const maxX = cols - entry.item.w - entry.dx;
+		const minY = -entry.dy;
+		const maxY = rows - entry.item.h - entry.dy;
+		minAnchorX = Math.max(minAnchorX, minX);
+		maxAnchorX = Math.min(maxAnchorX, maxX);
+		minAnchorY = Math.max(minAnchorY, minY);
+		maxAnchorY = Math.min(maxAnchorY, maxY);
+	});
+	const clampedX = Math.min(Math.max(anchorX, minAnchorX), maxAnchorX);
+	const clampedY = Math.min(Math.max(anchorY, minAnchorY), maxAnchorY);
+	return { x: clampedX, y: clampedY };
 }
 
 function getSnapPoint(clientX, clientY, w, h, step) {
@@ -426,13 +453,43 @@ function startDrag(event) {
 	const target = event.currentTarget;
 	const item = placedSquares.find((placed) => placed.el === target);
 	if (!item) return;
-	if (selectedPlaced !== target) return;
+	if (!selectedPlaced.has(target) && !event.shiftKey) {
+		selectPlaced(target, false);
+	}
+	if (!selectedPlaced.has(target)) return;
+	pendingDrag = {
+		pointerId: event.pointerId,
+		startX: event.clientX,
+		startY: event.clientY,
+		anchor: item,
+		target,
+	};
+}
+
+function beginDrag(event) {
+	if (!pendingDrag) return;
+	const target = pendingDrag.target;
+	const item = pendingDrag.anchor;
+	pendingDrag = null;
 	event.preventDefault();
 	isDragging = true;
 	dragItem = item;
 	suppressClick = true;
-	hideMenu();
-	item.el.classList.add("is-dragging");
+	hideMenu(true);
+	const dragItems = Array.from(selectedPlaced)
+		.map((el) => placedSquares.find((placed) => placed.el === el))
+		.filter(Boolean);
+	dragGroup = {
+		anchor: item,
+		items: dragItems.map((entry) => ({
+			item: entry,
+			dx: entry.x - item.x,
+			dy: entry.y - item.y,
+		})),
+	};
+	dragGroup.items.forEach((entry) => {
+		entry.item.el.classList.add("is-dragging");
+	});
 	if (target.setPointerCapture) {
 		target.setPointerCapture(event.pointerId);
 	}
@@ -440,8 +497,15 @@ function startDrag(event) {
 }
 
 function handleMove(event) {
-	if (!isDragging || !dragItem) return;
-	const step = event.shiftKey ? chunkSize : 1;
+	if (pendingDrag && event.pointerId === pendingDrag.pointerId) {
+		const dx = event.clientX - pendingDrag.startX;
+		const dy = event.clientY - pendingDrag.startY;
+		if (Math.hypot(dx, dy) >= 4) {
+			beginDrag(event);
+		}
+	}
+	if (!isDragging || !dragItem || !dragGroup) return;
+	const step = event.ctrlKey ? chunkSize : 1;
 	const snap = getCenteredSnapPoint(
 		event.clientX,
 		event.clientY,
@@ -450,38 +514,36 @@ function handleMove(event) {
 		step,
 	);
 	if (!snap) return;
-	if (canPlaceAt(snap.x, snap.y, dragItem.w, dragItem.h, dragItem.el)) {
-		dragItem.x = snap.x;
-		dragItem.y = snap.y;
-		dragItem.el.style.left = `${snap.x * cellSize}px`;
-		dragItem.el.style.top = `${snap.y * cellSize}px`;
-		return;
-	}
-
-	const canMoveX =
-		snap.x !== dragItem.x &&
-		canPlaceAt(snap.x, dragItem.y, dragItem.w, dragItem.h, dragItem.el);
-	const canMoveY =
-		snap.y !== dragItem.y &&
-		canPlaceAt(dragItem.x, snap.y, dragItem.w, dragItem.h, dragItem.el);
-
-	if (canMoveY) {
-		dragItem.y = snap.y;
-		dragItem.el.style.top = `${snap.y * cellSize}px`;
-	}
-	if (canMoveX) {
-		dragItem.x = snap.x;
-		dragItem.el.style.left = `${snap.x * cellSize}px`;
-	}
+	const clamped = clampGroupAnchor(snap.x, snap.y, dragGroup.items);
+	const canMove = dragGroup.items.every((entry) => {
+		const nextX = clamped.x + entry.dx;
+		const nextY = clamped.y + entry.dy;
+		return canPlaceAt(nextX, nextY, entry.item.w, entry.item.h, selectedPlaced);
+	});
+	if (!canMove) return;
+	dragGroup.items.forEach((entry) => {
+		const nextX = clamped.x + entry.dx;
+		const nextY = clamped.y + entry.dy;
+		entry.item.x = nextX;
+		entry.item.y = nextY;
+		entry.item.el.style.left = `${nextX * cellSize}px`;
+		entry.item.el.style.top = `${nextY * cellSize}px`;
+	});
 }
 
 function finishDrag(event) {
-	if (!isDragging || !dragItem) return;
+	if (pendingDrag && event.pointerId === pendingDrag.pointerId) {
+		pendingDrag = null;
+	}
+	if (!isDragging || !dragItem || !dragGroup) return;
 	const element = dragItem.el;
-	dragItem.el.classList.remove("is-dragging");
+	dragGroup.items.forEach((entry) => {
+		entry.item.el.classList.remove("is-dragging");
+	});
 	isDragging = false;
 	dragItem = null;
-	selectPlaced(element);
+	dragGroup = null;
+	if (selectedPrimary) showMenuFor(selectedPrimary);
 	if (event && element.releasePointerCapture) {
 		try {
 			element.releasePointerCapture(event.pointerId);
@@ -494,14 +556,36 @@ function finishDrag(event) {
 	}, 0);
 }
 
-function selectPlaced(element) {
-	if (selectedPlaced && selectedPlaced !== element) {
-		selectedPlaced.classList.remove("is-selected");
+function clearSelection() {
+	selectedPlaced.forEach((el) => el.classList.remove("is-selected"));
+	selectedPlaced.clear();
+	selectedPrimary = null;
+}
+
+function selectPlaced(element, additive = false) {
+	if (!additive) {
+		clearSelection();
+		selectedPlaced.add(element);
+		selectedPrimary = element;
+		element.classList.add("is-selected");
+		showMenuFor(element);
+		return;
 	}
-	selectedPlaced = element;
-	if (selectedPlaced) {
-		selectedPlaced.classList.add("is-selected");
-		showMenuFor(selectedPlaced);
+	if (selectedPlaced.has(element)) {
+		element.classList.remove("is-selected");
+		selectedPlaced.delete(element);
+		if (selectedPrimary === element) {
+			selectedPrimary = selectedPlaced.values().next().value || null;
+		}
+	} else {
+		selectedPlaced.add(element);
+		selectedPrimary = element;
+		element.classList.add("is-selected");
+	}
+	if (selectedPrimary) {
+		showMenuFor(selectedPrimary);
+	} else {
+		hideMenu(true);
 	}
 }
 
@@ -527,27 +611,32 @@ function showMenuFor(element) {
 
 function hideMenu(preserveSelection = false) {
 	actionMenu.style.display = "none";
-	if (!preserveSelection && selectedPlaced) {
-		selectedPlaced.classList.remove("is-selected");
-		selectedPlaced = null;
+	if (!preserveSelection && selectedPlaced.size) {
+		clearSelection();
 	}
 }
 
 function deleteSelected() {
-	if (!selectedPlaced) return;
+	if (!selectedPrimary) return;
 	const index = placedSquares.findIndex(
-		(placed) => placed.el === selectedPlaced,
+		(placed) => placed.el === selectedPrimary,
 	);
 	if (index >= 0) placedSquares.splice(index, 1);
-	selectedPlaced.remove();
+	selectedPrimary.remove();
+	selectedPlaced.delete(selectedPrimary);
+	selectedPrimary = selectedPlaced.values().next().value || null;
 	duplicateMode = false;
 	duplicateSource = null;
-	hideMenu();
+	if (selectedPrimary) {
+		showMenuFor(selectedPrimary);
+	} else {
+		hideMenu();
+	}
 }
 
 function rotateSelected() {
-	if (!selectedPlaced) return;
-	const item = placedSquares.find((placed) => placed.el === selectedPlaced);
+	if (!selectedPrimary) return;
+	const item = placedSquares.find((placed) => placed.el === selectedPrimary);
 	if (!item) return;
 	const nextW = item.h;
 	const nextH = item.w;
@@ -609,7 +698,7 @@ grid.addEventListener("click", (event) => {
 		if (!cell) return;
 		const x = Number(cell.dataset.x);
 		const y = Number(cell.dataset.y);
-		const step = event.shiftKey ? chunkSize : 1;
+		const step = event.ctrlKey ? chunkSize : 1;
 		const snap = snapToGrid(
 			x,
 			y,
@@ -634,7 +723,7 @@ grid.addEventListener("click", (event) => {
 	if (!cell) return;
 	const x = Number(cell.dataset.x);
 	const y = Number(cell.dataset.y);
-	const step = event.shiftKey ? chunkSize : 1;
+	const step = event.ctrlKey ? chunkSize : 1;
 	const snap = snapToGrid(x, y, selectedShape.w, selectedShape.h, step);
 	if (snap.x + selectedShape.w > cols || snap.y + selectedShape.h > rows)
 		return;
@@ -654,10 +743,10 @@ actionMenu.addEventListener("click", (event) => {
 	if (action === "rotate") rotateSelected();
 	if (action === "delete") deleteSelected();
 	if (action === "duplicate") {
-		if (!selectedPlaced) return;
+		if (!selectedPrimary) return;
 		duplicateMode = true;
 		duplicateSource = placedSquares.find(
-			(placed) => placed.el === selectedPlaced,
+			(placed) => placed.el === selectedPrimary,
 		);
 		hideMenu(true);
 	}
