@@ -530,6 +530,29 @@ function deleteSelected() {
 	hideMenu();
 }
 
+function rotateSelected() {
+	if (!selectedPlaced) return;
+	const item = placedSquares.find((placed) => placed.el === selectedPlaced);
+	if (!item) return;
+	const nextW = item.h;
+	const nextH = item.w;
+	const centerX = item.x + item.w / 2;
+	const centerY = item.y + item.h / 2;
+	const desiredX = Math.round(centerX - nextW / 2);
+	const desiredY = Math.round(centerY - nextH / 2);
+	const clamped = clampToBounds(desiredX, desiredY, nextW, nextH);
+	if (!canPlaceAt(clamped.x, clamped.y, nextW, nextH, item.el)) return;
+	item.w = nextW;
+	item.h = nextH;
+	item.x = clamped.x;
+	item.y = clamped.y;
+	item.el.style.width = `${cellSize * item.w}px`;
+	item.el.style.height = `${cellSize * item.h}px`;
+	item.el.style.left = `${item.x * cellSize}px`;
+	item.el.style.top = `${item.y * cellSize}px`;
+	showMenuFor(item.el);
+}
+
 async function loadStyle(file) {
 	const response = await fetch(file);
 	if (!response.ok) throw new Error("Failed to load style file.");
@@ -564,6 +587,7 @@ styleSelect.addEventListener("change", (event) => {
 	applyStyle(event.target.value);
 });
 grid.addEventListener("click", (event) => {
+	if (event.target.closest(".action-menu")) return;
 	if (!event.target.closest(".placed-square") && !duplicateMode) hideMenu();
 	if (duplicateMode) {
 		const cell = event.target.closest(".grid-cell");
@@ -612,6 +636,7 @@ actionMenu.addEventListener("click", (event) => {
 	const button = event.target.closest("button");
 	if (!button) return;
 	const action = button.dataset.action;
+	if (action === "rotate") rotateSelected();
 	if (action === "delete") deleteSelected();
 	if (action === "duplicate") {
 		if (!selectedPlaced) return;
