@@ -179,8 +179,6 @@ function getSubcategory(shape) {
 	const id = shape.id || "";
 	const allowed = subcategoryMap[category];
 	if (!allowed) return "";
-	const firstToken = id.split("_")[0] || "";
-	if (allowed.includes(firstToken)) return firstToken;
 	if (category === "walls" && id.startsWith("walls_")) {
 		if (id.startsWith("walls_corners_")) return "corners";
 		if (id.startsWith("walls_gates_")) return "gates";
@@ -188,6 +186,8 @@ function getSubcategory(shape) {
 		if (id.startsWith("walls_stairs_")) return "stairs";
 		return "walls";
 	}
+	const firstToken = id.split("_")[0] || "";
+	if (allowed.includes(firstToken)) return firstToken;
 	if (id.startsWith("infra_plaza_")) return "plaza";
 	return "";
 }
