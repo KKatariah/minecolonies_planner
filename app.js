@@ -617,21 +617,18 @@ function hideMenu(preserveSelection = false) {
 }
 
 function deleteSelected() {
-	if (!selectedPrimary) return;
-	const index = placedSquares.findIndex(
-		(placed) => placed.el === selectedPrimary,
-	);
-	if (index >= 0) placedSquares.splice(index, 1);
-	selectedPrimary.remove();
-	selectedPlaced.delete(selectedPrimary);
-	selectedPrimary = selectedPlaced.values().next().value || null;
+	if (!selectedPlaced.size) return;
+	const toDelete = Array.from(selectedPlaced);
+	for (let i = placedSquares.length - 1; i >= 0; i -= 1) {
+		if (selectedPlaced.has(placedSquares[i].el)) {
+			placedSquares.splice(i, 1);
+		}
+	}
+	toDelete.forEach((el) => el.remove());
+	clearSelection();
 	duplicateMode = false;
 	duplicateSource = null;
-	if (selectedPrimary) {
-		showMenuFor(selectedPrimary);
-	} else {
-		hideMenu();
-	}
+	hideMenu();
 }
 
 function rotateSelected() {
