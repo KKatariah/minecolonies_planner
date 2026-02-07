@@ -712,13 +712,7 @@ grid.addEventListener("click", (event) => {
 		const step = event.ctrlKey ? chunkSize : 1;
 		if (!duplicateGroup) return;
 		const anchor = duplicateGroup.anchor;
-		const snap = snapToGrid(
-			x,
-			y,
-			anchor?.w || 1,
-			anchor?.h || 1,
-			step,
-		);
+		const snap = snapToGrid(x, y, anchor?.w || 1, anchor?.h || 1, step);
 		if (!anchor) return;
 		const nextPositions = duplicateGroup.items.map((entry) => {
 			const nextX = snap.x + entry.dx;
