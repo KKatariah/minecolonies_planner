@@ -23,6 +23,11 @@ body {
 	padding-bottom: calc(var(--bottom-bar-height) + 24px);
 }
 
+.grid-shell {
+	position: relative;
+	display: inline-block;
+}
+
 .grid {
 	position: relative;
 	display: grid;
@@ -33,6 +38,42 @@ body {
 	background-size: var(--chunk-size) var(--chunk-size);
 	border: 2px solid var(--grid-line);
 	box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.grid-expand {
+	position: absolute;
+	padding: 6px 10px;
+	border-radius: 8px;
+	border: 1px solid #8087a2;
+	background: #2c2f43;
+	color: var(--ink);
+	font-size: 12px;
+	cursor: pointer;
+	box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.grid-expand--top {
+	left: 50%;
+	transform: translateX(-50%);
+	top: -38px;
+}
+
+.grid-expand--bottom {
+	left: 50%;
+	transform: translateX(-50%);
+	bottom: -38px;
+}
+
+.grid-expand--left {
+	top: 50%;
+	transform: translateY(-50%);
+	left: -52px;
+}
+
+.grid-expand--right {
+	top: 50%;
+	transform: translateY(-50%);
+	right: -52px;
 }
 
 .grid-cell {

@@ -1,5 +1,5 @@
-const rows = 8 * 16;
-const cols = 10 * 16;
+let rows = 8 * 16;
+let cols = 10 * 16;
 const cellSize = 5;
 const chunkSize = 16;
 const STYLE_FILES = [
@@ -7,36 +7,50 @@ const STYLE_FILES = [
 ];
 
 const root = document.getElementById("root");
+const gridShell = document.createElement("div");
+gridShell.className = "grid-shell";
 const grid = document.createElement("div");
-
 grid.className = "grid";
+gridShell.appendChild(grid);
+root.appendChild(gridShell);
 
-const gridWidth = cols * cellSize;
-const gridHeight = rows * cellSize;
+let gridWidth = 0;
+let gridHeight = 0;
 
 grid.style.setProperty("--cell-size", `${cellSize}px`);
 grid.style.setProperty("--chunk-size", `${cellSize * chunkSize}px`);
 document.documentElement.style.setProperty("--cell-size", `${cellSize}px`);
-grid.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
-grid.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
-grid.style.width = `${gridWidth}px`;
-grid.style.height = `${gridHeight}px`;
 
-const fragment = document.createDocumentFragment();
-
-for (let i = 0; i < rows * cols; i += 1) {
-	const cell = document.createElement("div");
-	cell.className = "grid-cell";
-	const x = i % cols;
-	const y = Math.floor(i / cols);
-	if (x === cols - 1) cell.classList.add("last-col");
-	cell.dataset.x = String(x);
-	cell.dataset.y = String(y);
-	fragment.appendChild(cell);
+function updateGridSize() {
+	gridWidth = cols * cellSize;
+	gridHeight = rows * cellSize;
+	grid.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+	grid.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
+	grid.style.width = `${gridWidth}px`;
+	grid.style.height = `${gridHeight}px`;
 }
 
-grid.appendChild(fragment);
-root.appendChild(grid);
+function renderGridCells() {
+	grid.querySelectorAll(".grid-cell").forEach((cell) => cell.remove());
+	const fragment = document.createDocumentFragment();
+	for (let i = 0; i < rows * cols; i += 1) {
+		const cell = document.createElement("div");
+		cell.className = "grid-cell";
+		const x = i % cols;
+		const y = Math.floor(i / cols);
+		if (x === cols - 1) cell.classList.add("last-col");
+		cell.dataset.x = String(x);
+		cell.dataset.y = String(y);
+		fragment.appendChild(cell);
+	}
+	if (actionMenu) {
+		grid.insertBefore(fragment, actionMenu);
+	} else {
+		grid.appendChild(fragment);
+	}
+}
+
+updateGridSize();
 
 const actionMenu = document.createElement("div");
 actionMenu.className = "action-menu";
@@ -46,6 +60,76 @@ actionMenu.innerHTML = `
 	<button type="button" data-action="duplicate">Duplicate</button>
 `;
 grid.appendChild(actionMenu);
+renderGridCells();
+
+const expandTop = document.createElement("button");
+expandTop.type = "button";
+expandTop.className = "grid-expand grid-expand--top";
+expandTop.textContent = "+ Row";
+
+const expandBottom = document.createElement("button");
+expandBottom.type = "button";
+expandBottom.className = "grid-expand grid-expand--bottom";
+expandBottom.textContent = "+ Row";
+
+const expandLeft = document.createElement("button");
+expandLeft.type = "button";
+expandLeft.className = "grid-expand grid-expand--left";
+expandLeft.textContent = "+ Col";
+
+const expandRight = document.createElement("button");
+expandRight.type = "button";
+expandRight.className = "grid-expand grid-expand--right";
+expandRight.textContent = "+ Col";
+
+gridShell.appendChild(expandTop);
+gridShell.appendChild(expandBottom);
+gridShell.appendChild(expandLeft);
+gridShell.appendChild(expandRight);
+
+function shiftPlacedSquares(dx, dy) {
+	if (!dx && !dy) return;
+	placedSquares.forEach((placed) => {
+		placed.x += dx;
+		placed.y += dy;
+		placed.el.style.left = `${placed.x * cellSize}px`;
+		placed.el.style.top = `${placed.y * cellSize}px`;
+	});
+	if (selectedPrimary) {
+		showMenuFor(selectedPrimary);
+	}
+}
+
+function addChunkRowBottom() {
+	rows += chunkSize;
+	updateGridSize();
+	renderGridCells();
+}
+
+function addChunkRowTop() {
+	rows += chunkSize;
+	updateGridSize();
+	shiftPlacedSquares(0, chunkSize);
+	renderGridCells();
+}
+
+function addChunkColumnRight() {
+	cols += chunkSize;
+	updateGridSize();
+	renderGridCells();
+}
+
+function addChunkColumnLeft() {
+	cols += chunkSize;
+	updateGridSize();
+	shiftPlacedSquares(chunkSize, 0);
+	renderGridCells();
+}
+
+expandTop.addEventListener("click", addChunkRowTop);
+expandBottom.addEventListener("click", addChunkRowBottom);
+expandLeft.addEventListener("click", addChunkColumnLeft);
+expandRight.addEventListener("click", addChunkColumnRight);
 
 const bottomBar = document.createElement("div");
 bottomBar.className = "bottom-bar";
