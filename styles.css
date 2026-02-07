@@ -1,0 +1,120 @@
+:root {
+	--bg: #f2efe8;
+	--grid-line: #d3c7b4;
+	--grid-bg: #fff9ef;
+	--ink: #2f231a;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	font-family: "Segoe UI", Tahoma, sans-serif;
+	background: var(--bg);
+	color: var(--ink);
+}
+
+#root {
+	padding: 32px;
+	padding-bottom: 140px;
+}
+
+.grid {
+	position: relative;
+	display: grid;
+	background: var(--grid-bg);
+	border: 2px solid var(--grid-line);
+	border-radius: 12px;
+	box-shadow: 0 10px 20px rgba(35, 26, 18, 0.08);
+}
+
+.grid-cell {
+	width: var(--cell-size);
+	height: var(--cell-size);
+	border-right: 1px solid var(--grid-line);
+	border-bottom: 1px solid var(--grid-line);
+}
+
+.grid-cell:nth-child(20n) {
+	border-right: none;
+}
+
+.bottom-bar {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: #efe6d6;
+	border-top: 2px solid var(--grid-line);
+	padding: 16px 24px;
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	box-shadow: 0 -8px 20px rgba(35, 26, 18, 0.08);
+}
+
+.sample-square,
+.placed-square {
+	background-color: #d8c4a8;
+	background-image:
+		linear-gradient(to right, rgba(90, 70, 50, 0.35) 1px, transparent 1px),
+		linear-gradient(to bottom, rgba(90, 70, 50, 0.35) 1px, transparent 1px);
+	background-size: var(--cell-size) var(--cell-size);
+	border: 2px solid #b59a7a;
+	border-radius: 6px;
+	box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+.sample-square {
+	cursor: pointer;
+}
+
+.sample-square.is-selected {
+	outline: 3px solid #3f2e22;
+	outline-offset: 3px;
+}
+
+.placed-square {
+	position: absolute;
+	cursor: grab;
+}
+
+.placed-square.is-selected {
+	outline: 3px solid #3f2e22;
+	outline-offset: 3px;
+}
+
+.placed-square.is-dragging {
+	cursor: grabbing;
+	opacity: 0.85;
+	}
+
+.action-menu {
+	position: absolute;
+	z-index: 5;
+	display: none;
+	flex-direction: column;
+	gap: 6px;
+	padding: 8px;
+	background: #fff6e7;
+	border: 2px solid #b59a7a;
+	border-radius: 10px;
+	box-shadow: 0 8px 16px rgba(35, 26, 18, 0.18);
+}
+
+.action-menu button {
+	font: inherit;
+	font-size: 12px;
+	padding: 6px 10px;
+	border-radius: 8px;
+	border: 1px solid #b59a7a;
+	background: #efe6d6;
+	cursor: pointer;
+	text-align: left;
+}
+
+.action-menu button:hover {
+	background: #e3d3bc;
+}

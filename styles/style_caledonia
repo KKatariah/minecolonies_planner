@@ -1,0 +1,5 @@
+# enums for standard sizes
+LARGE = 19,19
+MEDIUM = 19,13
+SMALL = 13,13
+
