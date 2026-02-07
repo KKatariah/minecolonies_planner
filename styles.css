@@ -4,6 +4,7 @@
 	--grid-line-light: rgba(211, 199, 180, 0.35);
 	--grid-bg: #fff9ef;
 	--ink: #2f231a;
+	--bottom-bar-height: 0px;
 }
 
 * {
@@ -19,7 +20,7 @@ body {
 
 #root {
 	padding: 32px;
-	padding-bottom: 140px;
+	padding-bottom: calc(var(--bottom-bar-height) + 24px);
 }
 
 .grid {

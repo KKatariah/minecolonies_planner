@@ -66,6 +66,22 @@ bottomBar.appendChild(styleSelect);
 bottomBar.appendChild(shapeTray);
 document.body.appendChild(bottomBar);
 
+function updateBottomBarHeight() {
+	const height = bottomBar.offsetHeight;
+	document.documentElement.style.setProperty(
+		"--bottom-bar-height",
+		`${height}px`,
+	);
+}
+
+updateBottomBarHeight();
+window.addEventListener("resize", updateBottomBarHeight);
+
+if (window.ResizeObserver) {
+	const observer = new ResizeObserver(updateBottomBarHeight);
+	observer.observe(bottomBar);
+}
+
 const placedSquares = [];
 let isDragging = false;
 let dragItem = null;
