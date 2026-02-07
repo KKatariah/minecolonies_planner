@@ -514,21 +514,35 @@ function handleMove(event) {
 		step,
 	);
 	if (!snap) return;
-	const clamped = clampGroupAnchor(snap.x, snap.y, dragGroup.items);
-	const canMove = dragGroup.items.every((entry) => {
-		const nextX = clamped.x + entry.dx;
-		const nextY = clamped.y + entry.dy;
-		return canPlaceAt(nextX, nextY, entry.item.w, entry.item.h, selectedPlaced);
-	});
-	if (!canMove) return;
-	dragGroup.items.forEach((entry) => {
-		const nextX = clamped.x + entry.dx;
-		const nextY = clamped.y + entry.dy;
-		entry.item.x = nextX;
-		entry.item.y = nextY;
-		entry.item.el.style.left = `${nextX * cellSize}px`;
-		entry.item.el.style.top = `${nextY * cellSize}px`;
-	});
+	const applyGroupMove = (anchorX, anchorY) => {
+		const clamped = clampGroupAnchor(anchorX, anchorY, dragGroup.items);
+		const canMove = dragGroup.items.every((entry) => {
+			const nextX = clamped.x + entry.dx;
+			const nextY = clamped.y + entry.dy;
+			return canPlaceAt(
+				nextX,
+				nextY,
+				entry.item.w,
+				entry.item.h,
+				selectedPlaced,
+			);
+		});
+		if (!canMove) return false;
+		dragGroup.items.forEach((entry) => {
+			const nextX = clamped.x + entry.dx;
+			const nextY = clamped.y + entry.dy;
+			entry.item.x = nextX;
+			entry.item.y = nextY;
+			entry.item.el.style.left = `${nextX * cellSize}px`;
+			entry.item.el.style.top = `${nextY * cellSize}px`;
+		});
+		return true;
+	};
+	if (applyGroupMove(snap.x, snap.y)) return;
+	const currentX = dragItem.x;
+	const currentY = dragItem.y;
+	if (applyGroupMove(snap.x, currentY)) return;
+	applyGroupMove(currentX, snap.y);
 }
 
 function finishDrag(event) {
