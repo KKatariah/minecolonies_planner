@@ -519,7 +519,7 @@
 			"w": 5,
 			"h": 5,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚶"
 		},
 		{
 			"id": "alleys_down_a",
@@ -527,7 +527,7 @@
 			"w": 5,
 			"h": 5,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚶"
 		},
 		{
 			"id": "alleys_down_b",
@@ -535,7 +535,7 @@
 			"w": 5,
 			"h": 5,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚶"
 		},
 		{
 			"id": "alleys_long",
@@ -543,7 +543,7 @@
 			"w": 13,
 			"h": 5,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚶"
 		},
 		{
 			"id": "alleys_short",
@@ -551,7 +551,7 @@
 			"w": 7,
 			"h": 5,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚶"
 		},
 		{
 			"id": "alleys_tee",
@@ -559,7 +559,7 @@
 			"w": 5,
 			"h": 5,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚶"
 		},
 		{
 			"id": "alleys_trans_nature",
@@ -567,7 +567,7 @@
 			"w": 7,
 			"h": 5,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚶"
 		},
 		{
 			"id": "alleys_turn",
@@ -575,7 +575,7 @@
 			"w": 5,
 			"h": 5,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚶"
 		},
 		{
 			"id": "avenues_cross",
@@ -583,7 +583,7 @@
 			"w": 13,
 			"h": 13,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🛣️"
 		},
 		{
 			"id": "avenues_down_a",
@@ -591,7 +591,7 @@
 			"w": 5,
 			"h": 13,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🛣️"
 		},
 		{
 			"id": "avenues_down_b",
@@ -599,7 +599,7 @@
 			"w": 5,
 			"h": 13,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🛣️"
 		},
 		{
 			"id": "avenues_long",
@@ -607,7 +607,7 @@
 			"w": 13,
 			"h": 13,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🛣️"
 		},
 		{
 			"id": "avenues_short",
@@ -615,7 +615,7 @@
 			"w": 7,
 			"h": 13,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🛣️"
 		},
 		{
 			"id": "avenues_tee",
@@ -623,7 +623,7 @@
 			"w": 13,
 			"h": 13,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🛣️"
 		},
 		{
 			"id": "avenues_trans_alley",
@@ -639,7 +639,7 @@
 			"w": 7,
 			"h": 13,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🛣️"
 		},
 		{
 			"id": "avenues_turn",
@@ -647,7 +647,7 @@
 			"w": 13,
 			"h": 13,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🛣️"
 		},
 		{
 			"id": "birail_cross",
@@ -751,7 +751,7 @@
 			"w": 13,
 			"h": 13,
 			"category": "infrastructure",
-			"emoji": "🚈"
+			"emoji": "🚝"
 		},
 		{
 			"id": "monorail_down_a",
@@ -759,7 +759,7 @@
 			"w": 5,
 			"h": 5,
 			"category": "infrastructure",
-			"emoji": "🚈"
+			"emoji": "🚝"
 		},
 		{
 			"id": "monorail_down_b",
@@ -767,7 +767,7 @@
 			"w": 5,
 			"h": 5,
 			"category": "infrastructure",
-			"emoji": "🚈"
+			"emoji": "🚝"
 		},
 		{
 			"id": "monorail_long",
@@ -775,7 +775,7 @@
 			"w": 11,
 			"h": 5,
 			"category": "infrastructure",
-			"emoji": "🚈"
+			"emoji": "🚝"
 		},
 		{
 			"id": "monorail_plug_b",
@@ -783,7 +783,7 @@
 			"w": 1,
 			"h": 5,
 			"category": "infrastructure",
-			"emoji": "🚈"
+			"emoji": "🚝"
 		},
 		{
 			"id": "monorail_plug_a",
@@ -791,7 +791,7 @@
 			"w": 1,
 			"h": 5,
 			"category": "infrastructure",
-			"emoji": "🚈"
+			"emoji": "🚝"
 		},
 		{
 			"id": "monorail_short_a",
@@ -799,7 +799,7 @@
 			"w": 1,
 			"h": 5,
 			"category": "infrastructure",
-			"emoji": "🚈"
+			"emoji": "🚝"
 		},
 		{
 			"id": "monorail_short_b",
@@ -807,7 +807,7 @@
 			"w": 7,
 			"h": 5,
 			"category": "infrastructure",
-			"emoji": "🚈"
+			"emoji": "🚝"
 		},
 		{
 			"id": "monorail_station",
@@ -815,7 +815,7 @@
 			"w": 12,
 			"h": 5,
 			"category": "infrastructure",
-			"emoji": "🚈"
+			"emoji": "🚝"
 		},
 		{
 			"id": "monorail_tee",
@@ -823,7 +823,7 @@
 			"w": 13,
 			"h": 9,
 			"category": "infrastructure",
-			"emoji": "🚈"
+			"emoji": "🚝"
 		},
 		{
 			"id": "monorail_turn",
@@ -831,7 +831,7 @@
 			"w": 9,
 			"h": 8,
 			"category": "infrastructure",
-			"emoji": "🚈"
+			"emoji": "🚝"
 		},
 		{
 			"id": "infra_plaza_large",
@@ -863,7 +863,7 @@
 			"w": 7,
 			"h": 7,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚗"
 		},
 		{
 			"id": "roads_cross",
@@ -871,7 +871,7 @@
 			"w": 7,
 			"h": 7,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚗"
 		},
 		{
 			"id": "roads_long",
@@ -879,7 +879,7 @@
 			"w": 19,
 			"h": 7,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚗"
 		},
 		{
 			"id": "roads_long_stair",
@@ -887,7 +887,7 @@
 			"w": 19,
 			"h": 7,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚗"
 		},
 		{
 			"id": "roads_medium",
@@ -895,7 +895,7 @@
 			"w": 13,
 			"h": 7,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚗"
 		},
 		{
 			"id": "roads_medium_stair",
@@ -903,7 +903,7 @@
 			"w": 13,
 			"h": 7,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚗"
 		},
 		{
 			"id": "roads_plug_a",
@@ -911,7 +911,7 @@
 			"w": 3,
 			"h": 7,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚗"
 		},
 		{
 			"id": "roads_plug_b",
@@ -919,7 +919,7 @@
 			"w": 1,
 			"h": 7,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚗"
 		},
 		{
 			"id": "roads_short",
@@ -927,7 +927,7 @@
 			"w": 7,
 			"h": 7,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚗"
 		},
 		{
 			"id": "roads_short_stair_a",
@@ -935,7 +935,7 @@
 			"w": 7,
 			"h": 7,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚗"
 		},
 		{
 			"id": "roads_short_stair_b",
@@ -943,7 +943,7 @@
 			"w": 7,
 			"h": 7,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚗"
 		},
 		{
 			"id": "roads_station_long",
@@ -951,7 +951,7 @@
 			"w": 19,
 			"h": 7,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚗"
 		},
 		{
 			"id": "roads_station_medium",
@@ -959,7 +959,7 @@
 			"w": 13,
 			"h": 7,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚗"
 		},
 		{
 			"id": "roads_station_short",
@@ -967,7 +967,7 @@
 			"w": 7,
 			"h": 7,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚗"
 		},
 		{
 			"id": "roads_station_stair_l",
@@ -975,7 +975,7 @@
 			"w": 19,
 			"h": 7,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚗"
 		},
 		{
 			"id": "roads_station_stair_m",
@@ -983,7 +983,7 @@
 			"w": 13,
 			"h": 7,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚗"
 		},
 		{
 			"id": "roads_tee",
@@ -991,7 +991,7 @@
 			"w": 7,
 			"h": 7,
 			"category": "infrastructure",
-			"emoji": "🧱"
+			"emoji": "🚗"
 		},
 		{
 			"id": "military_altguardtower",
