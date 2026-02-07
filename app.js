@@ -1,6 +1,7 @@
-const rows = 100;
-const cols = 100;
+const rows = 8 * 16;
+const cols = 8 * 16;
 const cellSize = 5;
+const chunkSize = 16;
 const STYLE_FILES = [
 	{ id: "caledonia", label: "Caledonia", file: "styles/caledonia.json" },
 ];
@@ -14,6 +15,7 @@ const gridWidth = cols * cellSize;
 const gridHeight = rows * cellSize;
 
 grid.style.setProperty("--cell-size", `${cellSize}px`);
+grid.style.setProperty("--chunk-size", `${cellSize * chunkSize}px`);
 document.documentElement.style.setProperty("--cell-size", `${cellSize}px`);
 grid.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
 grid.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
@@ -153,20 +155,31 @@ function canPlaceAt(x, y, w, h, ignoreEl) {
 	});
 }
 
-function getSnapPoint(clientX, clientY, w, h) {
+function getSnapPoint(clientX, clientY, w, h, step) {
 	const rect = grid.getBoundingClientRect();
 	const x = Math.floor((clientX - rect.left) / cellSize);
 	const y = Math.floor((clientY - rect.top) / cellSize);
 	if (x < 0 || y < 0 || x + w > cols || y + h > rows) return null;
-	return { x, y };
+	return snapToGrid(x, y, w, h, step);
 }
 
-function getCenteredSnapPoint(clientX, clientY, w, h) {
+function getCenteredSnapPoint(clientX, clientY, w, h, step) {
 	const rect = grid.getBoundingClientRect();
 	const centeredX = (clientX - rect.left) / cellSize - w / 2;
 	const centeredY = (clientY - rect.top) / cellSize - h / 2;
 	const x = Math.round(centeredX);
 	const y = Math.round(centeredY);
+	return snapToGrid(x, y, w, h, step);
+}
+
+function snapToGrid(x, y, w, h, step) {
+	const snapStep = Math.max(1, step || 1);
+	const snappedX = Math.round(x / snapStep) * snapStep;
+	const snappedY = Math.round(y / snapStep) * snapStep;
+	return clampToBounds(snappedX, snappedY, w, h);
+}
+
+function clampToBounds(x, y, w, h) {
 	const maxX = cols - w;
 	const maxY = rows - h;
 	const clampedX = Math.min(Math.max(x, 0), maxX);
@@ -193,11 +206,13 @@ function startDrag(event) {
 
 function handleMove(event) {
 	if (!isDragging || !dragItem) return;
+	const step = event.shiftKey ? chunkSize : 1;
 	const snap = getCenteredSnapPoint(
 		event.clientX,
 		event.clientY,
 		dragItem.w,
 		dragItem.h,
+		step,
 	);
 	if (!snap) return;
 	if (canPlaceAt(snap.x, snap.y, dragItem.w, dragItem.h, dragItem.el)) {
@@ -325,10 +340,20 @@ grid.addEventListener("click", (event) => {
 		if (!cell) return;
 		const x = Number(cell.dataset.x);
 		const y = Number(cell.dataset.y);
+		const step = event.shiftKey ? chunkSize : 1;
+		const snap = snapToGrid(
+			x,
+			y,
+			duplicateSource?.w || 1,
+			duplicateSource?.h || 1,
+			step,
+		);
 		if (!duplicateSource) return;
-		if (x + duplicateSource.w > cols || y + duplicateSource.h > rows) return;
-		if (!canPlaceAt(x, y, duplicateSource.w, duplicateSource.h)) return;
-		placeSquare(x, y, duplicateSource);
+		if (snap.x + duplicateSource.w > cols || snap.y + duplicateSource.h > rows)
+			return;
+		if (!canPlaceAt(snap.x, snap.y, duplicateSource.w, duplicateSource.h))
+			return;
+		placeSquare(snap.x, snap.y, duplicateSource);
 		duplicateMode = false;
 		duplicateSource = null;
 		return;
@@ -340,9 +365,12 @@ grid.addEventListener("click", (event) => {
 	if (!cell) return;
 	const x = Number(cell.dataset.x);
 	const y = Number(cell.dataset.y);
-	if (x + selectedShape.w > cols || y + selectedShape.h > rows) return;
-	if (!canPlaceAt(x, y, selectedShape.w, selectedShape.h)) return;
-	placeSquare(x, y, selectedShape);
+	const step = event.shiftKey ? chunkSize : 1;
+	const snap = snapToGrid(x, y, selectedShape.w, selectedShape.h, step);
+	if (snap.x + selectedShape.w > cols || snap.y + selectedShape.h > rows)
+		return;
+	if (!canPlaceAt(snap.x, snap.y, selectedShape.w, selectedShape.h)) return;
+	placeSquare(snap.x, snap.y, selectedShape);
 	selectedShapeId = null;
 	updateShapeSelectionUI();
 });

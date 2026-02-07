@@ -1,6 +1,7 @@
 :root {
 	--bg: #f2efe8;
 	--grid-line: #d3c7b4;
+	--grid-line-light: rgba(211, 199, 180, 0.35);
 	--grid-bg: #fff9ef;
 	--ink: #2f231a;
 }
@@ -25,6 +26,10 @@ body {
 	position: relative;
 	display: grid;
 	background: var(--grid-bg);
+	background-image:
+		linear-gradient(to right, var(--grid-line) 2px, transparent 2px),
+		linear-gradient(to bottom, var(--grid-line) 2px, transparent 2px);
+	background-size: var(--chunk-size) var(--chunk-size);
 	border: 2px solid var(--grid-line);
 	box-shadow: 0 10px 20px rgba(35, 26, 18, 0.08);
 }
@@ -32,8 +37,8 @@ body {
 .grid-cell {
 	width: var(--cell-size);
 	height: var(--cell-size);
-	border-right: 1px solid var(--grid-line);
-	border-bottom: 1px solid var(--grid-line);
+	border-right: 1px solid var(--grid-line-light);
+	border-bottom: 1px solid var(--grid-line-light);
 }
 
 .grid-cell.last-col {
