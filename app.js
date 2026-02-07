@@ -1,5 +1,5 @@
 const rows = 8 * 16;
-const cols = 8 * 16;
+const cols = 10 * 16;
 const cellSize = 5;
 const chunkSize = 16;
 const STYLE_FILES = [
@@ -47,9 +47,6 @@ actionMenu.innerHTML = `
 `;
 grid.appendChild(actionMenu);
 
-const topControls = document.createElement("div");
-topControls.className = "top-controls";
-
 const bottomBar = document.createElement("div");
 bottomBar.className = "bottom-bar";
 
@@ -68,6 +65,9 @@ shapeTray.className = "shape-tray";
 const tabBar = document.createElement("div");
 tabBar.className = "tab-bar";
 
+const subTabBar = document.createElement("div");
+subTabBar.className = "subtab-bar";
+
 const tabs = [
 	{ id: "farming", label: "Farming" },
 	{ id: "craftsmanship", label: "Craftsmanship" },
@@ -83,12 +83,16 @@ const tabs = [
 const bottomTop = document.createElement("div");
 bottomTop.className = "bottom-top";
 
+const categoryStack = document.createElement("div");
+categoryStack.className = "category-stack";
+
 const bottomBottom = document.createElement("div");
 bottomBottom.className = "bottom-bottom";
 
-topControls.appendChild(styleSelect);
-document.body.appendChild(topControls);
-bottomTop.appendChild(tabBar);
+categoryStack.appendChild(tabBar);
+categoryStack.appendChild(subTabBar);
+bottomTop.appendChild(styleSelect);
+bottomTop.appendChild(categoryStack);
 bottomBottom.appendChild(shapeTray);
 bottomBar.appendChild(bottomTop);
 bottomBar.appendChild(bottomBottom);
@@ -120,6 +124,30 @@ let duplicateSource = null;
 let selectedShapeId = null;
 let shapes = [];
 let activeTab = "farming";
+let activeSubcategory = "all";
+
+const subcategoryMap = {
+	farming: ["horticulture", "husbandry"],
+	craftsmanship: ["carpentry", "luxury", "masonry", "metallurgy", "storage"],
+	decoration: [
+		"arches",
+		"decorative",
+		"planning",
+		"plaza",
+		"supplies",
+		"utility",
+	],
+	infrastructure: [
+		"alleys",
+		"avenues",
+		"birail",
+		"fields",
+		"monorail",
+		"plaza",
+		"roads",
+	],
+	walls: ["corners", "gates", "misc", "stairs", "walls"],
+};
 
 function renderTabs() {
 	tabBar.innerHTML = "";
@@ -137,18 +165,105 @@ function renderTabs() {
 
 function setActiveTab(tabId) {
 	activeTab = tabId;
+	activeSubcategory = "all";
 	selectedShapeId = null;
 	updateShapeSelectionUI();
 	renderTabs();
+	renderSubTabs();
+	renderShapeTray();
+}
+
+function getSubcategory(shape) {
+	if (shape.subcategory) return shape.subcategory;
+	const category = shape.category || "";
+	const id = shape.id || "";
+	const allowed = subcategoryMap[category];
+	if (!allowed) return "";
+	const firstToken = id.split("_")[0] || "";
+	if (allowed.includes(firstToken)) return firstToken;
+	if (category === "walls" && id.startsWith("walls_")) {
+		if (id.startsWith("walls_corners_")) return "corners";
+		if (id.startsWith("walls_gates_")) return "gates";
+		if (id.startsWith("walls_misc_")) return "misc";
+		if (id.startsWith("walls_stairs_")) return "stairs";
+		return "walls";
+	}
+	if (id.startsWith("infra_plaza_")) return "plaza";
+	return "";
+}
+
+function formatSubcategoryLabel(key) {
+	const cleaned = key.replace(/_/g, " ");
+	return cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function renderSubTabs() {
+	const visibleShapes = shapes.filter(
+		(shape) => (shape.category || "farming") === activeTab,
+	);
+	const definedSubcategories = subcategoryMap[activeTab];
+	if (!definedSubcategories || definedSubcategories.length === 0) {
+		subTabBar.innerHTML = "";
+		subTabBar.classList.add("is-hidden");
+		activeSubcategory = "all";
+		return;
+	}
+	const subcategories = definedSubcategories.filter((subcategory) =>
+		visibleShapes.some((shape) => getSubcategory(shape) === subcategory),
+	);
+	if (subcategories.length <= 1) {
+		subTabBar.innerHTML = "";
+		subTabBar.classList.add("is-hidden");
+		activeSubcategory = "all";
+		return;
+	}
+
+	if (!subcategories.includes(activeSubcategory)) {
+		activeSubcategory = "all";
+	}
+
+	subTabBar.classList.remove("is-hidden");
+	subTabBar.innerHTML = "";
+
+	const allButton = document.createElement("button");
+	allButton.type = "button";
+	allButton.className = "subtab";
+	allButton.textContent = "All";
+	allButton.dataset.subtabId = "all";
+	if (activeSubcategory === "all") allButton.classList.add("is-active");
+	allButton.addEventListener("click", () => setActiveSubcategory("all"));
+	subTabBar.appendChild(allButton);
+
+	subcategories.forEach((subcategory) => {
+		const button = document.createElement("button");
+		button.type = "button";
+		button.className = "subtab";
+		button.textContent = formatSubcategoryLabel(subcategory);
+		button.dataset.subtabId = subcategory;
+		if (subcategory === activeSubcategory)
+			button.classList.add("is-active");
+		button.addEventListener("click", () => setActiveSubcategory(subcategory));
+		subTabBar.appendChild(button);
+	});
+}
+
+function setActiveSubcategory(subcategory) {
+	activeSubcategory = subcategory;
+	selectedShapeId = null;
+	updateShapeSelectionUI();
+	renderSubTabs();
 	renderShapeTray();
 }
 
 function renderShapeTray() {
 	shapeTray.innerHTML = "";
 	const maxPreviewHeight = 110;
-	const visibleShapes = shapes.filter(
-		(shape) => (shape.category || "farming") === activeTab,
-	);
+	const visibleShapes = shapes.filter((shape) => {
+		const category = shape.category || "farming";
+		if (category !== activeTab) return false;
+		if (activeSubcategory === "all") return true;
+		return getSubcategory(shape) === activeSubcategory;
+	});
 	visibleShapes.forEach((shape) => {
 		const previewWidth = shape.w * cellSize;
 		const previewHeight = shape.h * cellSize;
@@ -409,12 +524,14 @@ async function applyStyle(file) {
 			activeTab = availableTabs.values().next().value || "farming";
 		}
 		renderTabs();
+		renderSubTabs();
 		renderShapeTray();
 		selectedShapeId = null;
 	} catch (error) {
 		console.error(error);
 		shapes = [];
 		renderTabs();
+		renderSubTabs();
 		renderShapeTray();
 		selectedShapeId = null;
 	}

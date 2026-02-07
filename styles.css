@@ -23,17 +23,6 @@ body {
 	padding-bottom: calc(var(--bottom-bar-height) + 24px);
 }
 
-.top-controls {
-	position: fixed;
-	top: 16px;
-	left: 16px;
-	z-index: 10;
-	background: #efe6d6;
-	border: 2px solid var(--grid-line);
-	padding: 8px 10px;
-	box-shadow: 0 6px 16px rgba(35, 26, 18, 0.12);
-}
-
 .grid {
 	position: relative;
 	display: grid;
@@ -74,10 +63,16 @@ body {
 
 .bottom-top {
 	display: flex;
-	align-items: flex-end;
+	align-items: flex-start;
 	gap: 12px;
 	overflow-x: auto;
 	overflow-y: hidden;
+}
+
+.category-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
 }
 
 .bottom-bottom {
@@ -91,10 +86,36 @@ body {
 
 .tab-bar {
 	display: flex;
-	align-items: flex-end;
+	align-items: center;
 	gap: 6px;
 	flex-wrap: nowrap;
 	min-width: max-content;
+}
+
+.subtab-bar {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: nowrap;
+	min-width: max-content;
+}
+
+.subtab-bar.is-hidden {
+	display: none;
+}
+
+.subtab {
+	font: inherit;
+	font-size: 12px;
+	padding: 4px 10px;
+	border: 1px solid var(--grid-line);
+	background: #f6ede0;
+	cursor: pointer;
+}
+
+.subtab.is-active {
+	background: #e7d6bf;
+	font-weight: 600;
 }
 
 .tab {
