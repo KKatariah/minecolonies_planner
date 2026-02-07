@@ -256,6 +256,12 @@ function setActiveSubcategory(subcategory) {
 	renderShapeTray();
 }
 
+function getBadgeFontSize(w, h) {
+	const minPx = Math.min(w, h) * cellSize;
+	const scaled = Math.round(minPx * 0.18);
+	return Math.max(8, Math.min(18, scaled));
+}
+
 function renderShapeTray() {
 	shapeTray.innerHTML = "";
 	const maxPreviewHeight = 110;
@@ -270,6 +276,7 @@ function renderShapeTray() {
 		const emoji = shape.emoji || defaultEmoji;
 		const previewWidth = shape.w * cellSize;
 		const previewHeight = shape.h * cellSize;
+		const badgeSize = getBadgeFontSize(shape.w, shape.h);
 		const scale =
 			previewHeight > maxPreviewHeight ? maxPreviewHeight / previewHeight : 1;
 		const scaledWidth = Math.round(previewWidth * scale);
@@ -284,7 +291,7 @@ function renderShapeTray() {
 					class="shape-preview category-${category}"
 					style="width:${previewWidth}px; height:${previewHeight}px; transform: scale(${scale});"
 				>
-					<div class="preview-badge">${emoji} ${shape.label}</div>
+					<div class="preview-badge" style="font-size:${badgeSize}px;">${emoji} ${shape.label}</div>
 				</div>
 			</div>
 		`;
@@ -341,6 +348,7 @@ function placeSquare(x, y, shape) {
 	badge.className = "placed-badge";
 	const emoji = resolved.emoji || defaultEmoji;
 	badge.textContent = `${emoji} ${resolved.label}`;
+	badge.style.fontSize = `${getBadgeFontSize(resolved.w, resolved.h)}px`;
 	placed.appendChild(badge);
 	placed.addEventListener("pointerdown", startDrag);
 	placed.addEventListener("click", (event) => {

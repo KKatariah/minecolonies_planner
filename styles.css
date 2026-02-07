@@ -199,17 +199,20 @@ body {
 
 .preview-badge {
 	position: absolute;
-	left: 2px;
-	top: 2px;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
 	font-size: 10px;
-	line-height: 1.1;
-	padding: 2px 4px;
-	background: rgba(255, 255, 255, 0.8);
+	line-height: 1.2;
+	padding: 4px;
+	background: color-mix(
+		in srgb,
+		var(--category-color, rgba(255, 255, 255, 0.2)) 35%,
+		rgba(255, 255, 255, 0.35)
+	);
 	border: 1px solid rgba(0, 0, 0, 0.1);
-	white-space: nowrap;
-	max-width: calc(100% - 4px);
-	overflow: hidden;
-	text-overflow: ellipsis;
 }
 
 .shape-label {
@@ -251,17 +254,20 @@ body {
 
 .placed-badge {
 	position: absolute;
-	left: 2px;
-	top: 2px;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
 	font-size: 11px;
-	line-height: 1.1;
-	padding: 2px 4px;
-	background: rgba(255, 255, 255, 0.8);
+	line-height: 1.2;
+	padding: 4px;
+	background: color-mix(
+		in srgb,
+		var(--category-color, rgba(255, 255, 255, 0.2)) 35%,
+		rgba(255, 255, 255, 0.35)
+	);
 	border: 1px solid rgba(0, 0, 0, 0.1);
-	white-space: nowrap;
-	max-width: calc(100% - 4px);
-	overflow: hidden;
-	text-overflow: ellipsis;
 }
 
 .category-farming {
