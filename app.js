@@ -126,17 +126,7 @@ let shapes = [];
 let activeTab = "farming";
 let activeSubcategory = "all";
 
-const categoryEmoji = {
-	farming: "🌾",
-	craftsmanship: "🛠️",
-	decoration: "🌿",
-	education: "📘",
-	fundamentals: "🏛️",
-	infrastructure: "🧱",
-	military: "🛡️",
-	mystic: "🔮",
-	walls: "🧱",
-};
+const defaultEmoji = "❓";
 
 const subcategoryMap = {
 	farming: ["horticulture", "husbandry"],
@@ -277,7 +267,7 @@ function renderShapeTray() {
 	});
 	visibleShapes.forEach((shape) => {
 		const category = shape.category || "farming";
-		const emoji = categoryEmoji[category] || "🏷️";
+		const emoji = shape.emoji || defaultEmoji;
 		const previewWidth = shape.w * cellSize;
 		const previewHeight = shape.h * cellSize;
 		const scale =
@@ -323,18 +313,34 @@ function getSelectedShape() {
 	return shapes.find((shape) => shape.id === selectedShapeId) || null;
 }
 
+function resolveShapeData(shape) {
+	if (!shape) return null;
+	const base = shape.id ? shapes.find((item) => item.id === shape.id) : null;
+	return {
+		id: shape.id || base?.id,
+		label: shape.label || base?.label || "Unknown",
+		w: shape.w ?? base?.w ?? 1,
+		h: shape.h ?? base?.h ?? 1,
+		category: shape.category || base?.category || "farming",
+		emoji: shape.emoji || base?.emoji,
+	};
+}
+
 function placeSquare(x, y, shape) {
+	const resolved = resolveShapeData(shape);
+	if (!resolved) return;
 	const placed = document.createElement("div");
 	placed.className = "placed-square";
-	const category = shape.category || "farming";
+	const category = resolved.category || "farming";
 	placed.classList.add(`category-${category}`);
-	placed.style.width = `${cellSize * shape.w}px`;
-	placed.style.height = `${cellSize * shape.h}px`;
+	placed.style.width = `${cellSize * resolved.w}px`;
+	placed.style.height = `${cellSize * resolved.h}px`;
 	placed.style.left = `${x * cellSize}px`;
 	placed.style.top = `${y * cellSize}px`;
 	const badge = document.createElement("div");
 	badge.className = "placed-badge";
-	badge.textContent = `${categoryEmoji[category] || "🏷️"} ${shape.label}`;
+	const emoji = resolved.emoji || defaultEmoji;
+	badge.textContent = `${emoji} ${resolved.label}`;
 	placed.appendChild(badge);
 	placed.addEventListener("pointerdown", startDrag);
 	placed.addEventListener("click", (event) => {
@@ -347,11 +353,12 @@ function placeSquare(x, y, shape) {
 		el: placed,
 		x,
 		y,
-		w: shape.w,
-		h: shape.h,
-		id: shape.id,
-		label: shape.label,
+		w: resolved.w,
+		h: resolved.h,
+		id: resolved.id,
+		label: resolved.label,
 		category,
+		emoji,
 	});
 }
 
