@@ -338,6 +338,9 @@ const pathPreviewEls = [];
 let pathDrawing = false;
 let pathStartCell = null;
 let selectedPathId = null; // tracks selected path for menu
+let pathDragPending = null; // {pointerId, startCell, pathId, origFrom, origTo}
+let pathDragging = false;
+let suppressPathClick = false;
 
 const defaultEmoji = "❓";
 
@@ -918,6 +921,7 @@ grid.addEventListener("click", (event) => {
 	if (event.target.closest(".action-menu")) return;
 	if (event.target.closest(".path-action-menu")) return;
 	if (event.target.closest(".path-resize-handle")) return;
+	if (suppressPathClick) return;
 	hidePathMenu();
 	if (!pathToolActive) {
 		const pathEl = event.target.closest(".placed-path");
@@ -1364,10 +1368,32 @@ function togglePathTool(on) {
 	}
 }
 
-// Pointer handlers for drawing
+// Pointer handlers for drawing and dragging
 grid.addEventListener("pointerdown", (e) => {
-	if (!pathToolActive) return;
 	if (e.target.classList.contains("path-resize-handle")) return;
+
+	// Path drag: clicking a selected path while NOT in path-draw mode
+	if (!pathToolActive && selectedPathId) {
+		const pathEl = e.target.closest(".placed-path");
+		if (pathEl && pathEl.dataset.pathId === selectedPathId) {
+			const cell = getCellFromPoint(e.clientX, e.clientY);
+			if (!cell) return;
+			const p = paths.find(pt => pt.id === selectedPathId);
+			if (!p) return;
+			pathDragPending = {
+				pointerId: e.pointerId,
+				startCell: { ...cell },
+				pathId: selectedPathId,
+				origFrom: { ...p.from },
+				origTo: { ...p.to },
+			};
+			grid.setPointerCapture(e.pointerId);
+			e.preventDefault();
+			return;
+		}
+	}
+
+	if (!pathToolActive) return;
 	const cell = getCellFromPoint(e.clientX, e.clientY);
 	if (!cell) return;
 	pathDrawing = true;
@@ -1376,6 +1402,29 @@ grid.addEventListener("pointerdown", (e) => {
 });
 
 grid.addEventListener("pointermove", (e) => {
+	// Path drag move
+	if (pathDragPending && e.pointerId === pathDragPending.pointerId) {
+		const cell = getCellFromPoint(e.clientX, e.clientY);
+		if (cell) {
+			const dx = cell.x - pathDragPending.startCell.x;
+			const dy = cell.y - pathDragPending.startCell.y;
+			if (!pathDragging && (Math.abs(dx) >= 1 || Math.abs(dy) >= 1)) {
+				pathDragging = true;
+				suppressPathClick = true;
+			}
+			if (pathDragging) {
+				const p = paths.find(pt => pt.id === pathDragPending.pathId);
+				if (p) {
+					p.from = { x: pathDragPending.origFrom.x + dx, y: pathDragPending.origFrom.y + dy };
+					p.to = { x: pathDragPending.origTo.x + dx, y: pathDragPending.origTo.y + dy };
+					rebuildPathCells(p);
+					rerenderAllPathBorders();
+				}
+			}
+		}
+		return;
+	}
+
 	if (!pathDrawing) return;
 	const cell = getCellFromPoint(e.clientX, e.clientY);
 	if (!cell) {
@@ -1391,6 +1440,25 @@ grid.addEventListener("pointermove", (e) => {
 });
 
 grid.addEventListener("pointerup", (e) => {
+	// Path drag end
+	if (pathDragPending && e.pointerId === pathDragPending.pointerId) {
+		if (pathDragging) {
+			// Update nodes that lived at the original endpoints
+			const p = paths.find(pt => pt.id === pathDragPending.pathId);
+			if (p) {
+				const fromNode = pathNodes.find(n => n.x === pathDragPending.origFrom.x && n.y === pathDragPending.origFrom.y);
+				if (fromNode) { fromNode.x = p.from.x; fromNode.y = p.from.y; }
+				const toNode = pathNodes.find(n => n.x === pathDragPending.origTo.x && n.y === pathDragPending.origTo.y);
+				if (toNode) { toNode.x = p.to.x; toNode.y = p.to.y; }
+			}
+		}
+		try { grid.releasePointerCapture(e.pointerId); } catch {}
+		pathDragPending = null;
+		pathDragging = false;
+		setTimeout(() => { suppressPathClick = false; }, 0);
+		return;
+	}
+
 	if (!pathDrawing) return;
 	const cell = getCellFromPoint(e.clientX, e.clientY);
 	if (cell && (cell.x !== pathStartCell.x || cell.y !== pathStartCell.y)) {
