@@ -516,6 +516,7 @@ function renderShapeTray() {
 }
 
 function selectShape(shapeId) {
+	if (pathToolActive) return;
 	selectedShapeId = selectedShapeId === shapeId ? null : shapeId;
 	updateShapeSelectionUI();
 }
