@@ -1257,6 +1257,35 @@ function isPathOutOfBounds(path) {
 	return minX < 0 || minY < 0 || maxX >= cols || maxY >= rows;
 }
 
+function clampPathToBounds(path) {
+	const r = Math.floor(pathWidth / 2);
+	const minX = Math.min(path.from.x, path.to.x) - r;
+	const maxX = Math.max(path.from.x, path.to.x) + r;
+	const minY = Math.min(path.from.y, path.to.y) - r;
+	const maxY = Math.max(path.from.y, path.to.y) + r;
+	const spanX = maxX - minX + 1;
+	const spanY = maxY - minY + 1;
+
+	if (spanX > cols || spanY > rows) return false;
+
+	let dx = 0;
+	let dy = 0;
+	if (minX < 0) dx = -minX;
+	else if (maxX >= cols) dx = cols - 1 - maxX;
+	if (minY < 0) dy = -minY;
+	else if (maxY >= rows) dy = rows - 1 - maxY;
+
+	if (dx || dy) {
+		path.from.x += dx;
+		path.from.y += dy;
+		path.to.x += dx;
+		path.to.y += dy;
+		rebuildPathCells(path);
+	}
+
+	return true;
+}
+
 function shiftPaths(dx, dy) {
 	if (!dx && !dy) return;
 	for (const path of paths) {
@@ -1278,6 +1307,8 @@ function prunePathsOutOfBounds() {
 	for (let i = paths.length - 1; i >= 0; i -= 1) {
 		const path = paths[i];
 		if (!isPathOutOfBounds(path)) continue;
+		const clamped = clampPathToBounds(path);
+		if (clamped) continue;
 		if (path.id === selectedPathId) removedSelected = true;
 		path.elements.forEach((el) => el.remove());
 		paths.splice(i, 1);
