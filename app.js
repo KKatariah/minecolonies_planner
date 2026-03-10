@@ -154,6 +154,7 @@ function addChunkRowTop() {
 	rows += chunkSize;
 	updateGridSize();
 	shiftPlacedSquares(0, chunkSize);
+	shiftPaths(0, chunkSize);
 	renderGridCells();
 }
 
@@ -162,6 +163,7 @@ function removeChunkRowBottom() {
 	rows -= chunkSize;
 	updateGridSize();
 	pruneOutOfBounds();
+	prunePathsOutOfBounds();
 	renderGridCells();
 }
 
@@ -170,7 +172,9 @@ function removeChunkRowTop() {
 	rows -= chunkSize;
 	updateGridSize();
 	shiftPlacedSquares(0, -chunkSize);
+	shiftPaths(0, -chunkSize);
 	pruneOutOfBounds();
+	prunePathsOutOfBounds();
 	renderGridCells();
 }
 
@@ -184,6 +188,7 @@ function addChunkColumnLeft() {
 	cols += chunkSize;
 	updateGridSize();
 	shiftPlacedSquares(chunkSize, 0);
+	shiftPaths(chunkSize, 0);
 	renderGridCells();
 }
 
@@ -192,6 +197,7 @@ function removeChunkColumnRight() {
 	cols -= chunkSize;
 	updateGridSize();
 	pruneOutOfBounds();
+	prunePathsOutOfBounds();
 	renderGridCells();
 }
 
@@ -200,7 +206,9 @@ function removeChunkColumnLeft() {
 	cols -= chunkSize;
 	updateGridSize();
 	shiftPlacedSquares(-chunkSize, 0);
+	shiftPaths(-chunkSize, 0);
 	pruneOutOfBounds();
+	prunePathsOutOfBounds();
 	renderGridCells();
 }
 
@@ -1223,6 +1231,67 @@ function addNode(x, y) {
 	const node = { id, x, y };
 	pathNodes.push(node);
 	return node;
+}
+
+function syncPathNodesFromPaths() {
+	const unique = new Map();
+	for (const path of paths) {
+		const fromKey = `${path.from.x},${path.from.y}`;
+		if (!unique.has(fromKey)) unique.set(fromKey, { x: path.from.x, y: path.from.y });
+		const toKey = `${path.to.x},${path.to.y}`;
+		if (!unique.has(toKey)) unique.set(toKey, { x: path.to.x, y: path.to.y });
+	}
+	pathNodes.length = 0;
+	let idx = 1;
+	for (const pos of unique.values()) {
+		pathNodes.push({ id: `node_${idx++}`, x: pos.x, y: pos.y });
+	}
+}
+
+function isPathOutOfBounds(path) {
+	const r = Math.floor(pathWidth / 2);
+	const minX = Math.min(path.from.x, path.to.x) - r;
+	const maxX = Math.max(path.from.x, path.to.x) + r;
+	const minY = Math.min(path.from.y, path.to.y) - r;
+	const maxY = Math.max(path.from.y, path.to.y) + r;
+	return minX < 0 || minY < 0 || maxX >= cols || maxY >= rows;
+}
+
+function shiftPaths(dx, dy) {
+	if (!dx && !dy) return;
+	for (const path of paths) {
+		path.from.x += dx;
+		path.from.y += dy;
+		path.to.x += dx;
+		path.to.y += dy;
+		rebuildPathCells(path);
+	}
+	syncPathNodesFromPaths();
+	rerenderAllPathBorders();
+	if (selectedPathId && paths.some((p) => p.id === selectedPathId)) {
+		showPathMenuFor(selectedPathId);
+	}
+}
+
+function prunePathsOutOfBounds() {
+	let removedSelected = false;
+	for (let i = paths.length - 1; i >= 0; i -= 1) {
+		const path = paths[i];
+		if (!isPathOutOfBounds(path)) continue;
+		if (path.id === selectedPathId) removedSelected = true;
+		path.elements.forEach((el) => el.remove());
+		paths.splice(i, 1);
+	}
+	if (removedSelected) {
+		selectedPathId = null;
+		pathActionMenu.style.display = "none";
+		hidePathHandles();
+	}
+	syncPathNodesFromPaths();
+	rerenderAllPathBorders();
+	if (selectedPathId && paths.some((p) => p.id === selectedPathId)) {
+		showPathMenuFor(selectedPathId);
+	}
 }
 
 function createPath(startCell, endCell) {
