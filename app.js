@@ -60,6 +60,13 @@ actionMenu.innerHTML = `
 	<button type="button" data-action="duplicate">Duplicate</button>
 `;
 grid.appendChild(actionMenu);
+
+const pathActionMenu = document.createElement("div");
+pathActionMenu.className = "path-action-menu";
+pathActionMenu.innerHTML = `
+	<button type="button" data-path-action="delete">Delete</button>
+`;
+grid.appendChild(pathActionMenu);
 renderGridCells();
 
 const expandTop = document.createElement("button");
@@ -279,6 +286,12 @@ bottomBottom.className = "bottom-bottom";
 categoryStack.appendChild(tabBar);
 categoryStack.appendChild(subTabBar);
 bottomTop.appendChild(styleSelect);
+const pathToggle = document.createElement("button");
+pathToggle.type = "button";
+pathToggle.className = "path-toggle";
+pathToggle.textContent = "Path Tool";
+pathToggle.addEventListener("click", () => togglePathTool());
+bottomTop.appendChild(pathToggle);
 bottomTop.appendChild(categoryStack);
 bottomBottom.appendChild(shapeTray);
 bottomBar.appendChild(bottomTop);
@@ -315,6 +328,16 @@ let selectedShapeId = null;
 let shapes = [];
 let activeTab = "farming";
 let activeSubcategory = "all";
+
+// Path tool state
+const pathWidth = 5; // in blocks
+let pathToolActive = false;
+const pathNodes = []; // {id,x,y}
+const paths = []; // {id,from,to,cells,elements}
+const pathPreviewEls = [];
+let pathDrawing = false;
+let pathStartCell = null;
+let selectedPathId = null; // tracks selected path for menu
 
 const defaultEmoji = "❓";
 
@@ -794,6 +817,7 @@ function selectPlaced(element, additive = false) {
 function showMenuFor(element) {
 	const item = placedSquares.find((placed) => placed.el === element);
 	if (!item) return;
+	hidePathMenu();
 	actionMenu.style.display = "flex";
 	const menuWidth = actionMenu.offsetWidth;
 	const menuHeight = actionMenu.offsetHeight;
@@ -891,7 +915,21 @@ styleSelect.addEventListener("change", (event) => {
 });
 grid.addEventListener("click", (event) => {
 	if (event.target.closest(".action-menu")) return;
+	if (event.target.closest(".path-action-menu")) return;
+	hidePathMenu();
+	if (!pathToolActive) {
+		const pathEl = event.target.closest(".placed-path");
+		if (pathEl) {
+			const pathId = pathEl.dataset.pathId;
+			if (pathId) {
+				selectPath(pathId);
+				showPathMenuFor(pathId);
+			}
+			return;
+		}
+	}
 	if (!event.target.closest(".placed-square") && !duplicateMode) hideMenu();
+	if (pathToolActive) return;
 	if (duplicateMode) {
 		const cell = event.target.closest(".grid-cell");
 		if (!cell) return;
@@ -974,6 +1012,368 @@ document.addEventListener("click", (event) => {
 	if (event.target.closest(".action-menu")) return;
 	if (event.target.closest(".placed-square")) return;
 	hideMenu();
+});
+
+// ----- Path tool helpers and handlers -----
+function getCellFromPoint(clientX, clientY) {
+	const rect = grid.getBoundingClientRect();
+	const x = Math.floor((clientX - rect.left) / cellSize);
+	const y = Math.floor((clientY - rect.top) / cellSize);
+	if (x < 0 || y < 0 || x >= cols || y >= rows) return null;
+	return { x, y };
+}
+
+function bresenhamLine(x0, y0, x1, y1) {
+	// Orthogonal path: only move in one direction (horizontal OR vertical, not both)
+	const cells = [];
+	const dx = Math.abs(x1 - x0);
+	const dy = Math.abs(y1 - y0);
+	const sx = x0 < x1 ? 1 : -1;
+	const sy = y0 < y1 ? 1 : -1;
+	
+	if (dx >= dy) {
+		// Move horizontally only
+		let x = x0;
+		while (x !== x1) {
+			cells.push({ x, y: y0 });
+			x += sx;
+		}
+		cells.push({ x: x1, y: y0 });
+	} else {
+		// Move vertically only
+		let y = y0;
+		while (y !== y1) {
+			cells.push({ x: x0, y });
+			y += sy;
+		}
+		cells.push({ x: x0, y: y1 });
+	}
+	
+	return cells;
+}
+
+function thickCellsFromLine(lineCells, width) {
+	const r = Math.floor(width / 2);
+	const set = new Set();
+	lineCells.forEach(({ x, y }) => {
+		for (let dx = -r; dx <= r; dx++) {
+			for (let dy = -r; dy <= r; dy++) {
+				const nx = x + dx;
+				const ny = y + dy;
+				if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
+				set.add(`${nx},${ny}`);
+			}
+		}
+	});
+	return Array.from(set).map((s) => {
+		const [x, y] = s.split(",").map(Number);
+		return { x, y };
+	});
+}
+
+function clearPathPreview() {
+	while (pathPreviewEls.length) {
+		const el = pathPreviewEls.pop();
+		el.remove();
+	}
+}
+
+function showPathPreview(cells) {
+	clearPathPreview();
+	if (cells.length === 0) return;
+	
+	// Calculate bounding box
+	const xs = cells.map(c => c.x);
+	const ys = cells.map(c => c.y);
+	const minX = Math.min(...xs);
+	const maxX = Math.max(...xs);
+	const minY = Math.min(...ys);
+	const maxY = Math.max(...ys);
+	
+	const width = (maxX - minX + 1) * cellSize;
+	const height = (maxY - minY + 1) * cellSize;
+	
+	const container = document.createElement("div");
+	container.className = "path-preview";
+	container.style.position = "absolute";
+	container.style.left = `${minX * cellSize}px`;
+	container.style.top = `${minY * cellSize}px`;
+	container.style.width = `${width}px`;
+	container.style.height = `${height}px`;
+	container.style.pointerEvents = "none";
+	
+	// Create set for fast lookup
+	const cellSet = new Set(cells.map(c => `${c.x},${c.y}`));
+	
+	// Draw cells with borders only on perimeter
+	for (const cell of cells) {
+		const relX = cell.x - minX;
+		const relY = cell.y - minY;
+		
+		// Check if neighbors exist in the path
+		const hasLeft = cellSet.has(`${cell.x - 1},${cell.y}`);
+		const hasRight = cellSet.has(`${cell.x + 1},${cell.y}`);
+		const hasTop = cellSet.has(`${cell.x},${cell.y - 1}`);
+		const hasBottom = cellSet.has(`${cell.x},${cell.y + 1}`);
+		
+		const cellEl = document.createElement("div");
+		cellEl.style.position = "absolute";
+		cellEl.style.left = `${relX * cellSize}px`;
+		cellEl.style.top = `${relY * cellSize}px`;
+		cellEl.style.width = `${cellSize}px`;
+		cellEl.style.height = `${cellSize}px`;
+		cellEl.style.background = "rgba(100,180,220,0.3)";
+		cellEl.style.pointerEvents = "none";
+		cellEl.style.boxSizing = "border-box";
+		
+		const border = "1px dashed rgba(60,140,200,0.6)";
+		if (!hasTop) cellEl.style.borderTop = border;
+		if (!hasBottom) cellEl.style.borderBottom = border;
+		if (!hasLeft) cellEl.style.borderLeft = border;
+		if (!hasRight) cellEl.style.borderRight = border;
+		
+		container.appendChild(cellEl);
+	}
+	
+	grid.appendChild(container);
+	pathPreviewEls.push(container);
+}
+
+function findNodeNear(x, y, threshold = 1) {
+	return pathNodes.find((n) => Math.hypot(n.x - x, n.y - y) <= threshold) || null;
+}
+
+function addNode(x, y) {
+	const id = `node_${pathNodes.length + 1}`;
+	const node = { id, x, y };
+	pathNodes.push(node);
+	return node;
+}
+
+function createPath(startCell, endCell) {
+	if (!startCell || !endCell) return;
+	// snap to existing nodes if within threshold
+	const snapThreshold = 1; // cells
+	const sNode = findNodeNear(startCell.x, startCell.y, snapThreshold) || addNode(startCell.x, startCell.y);
+	const eNode = findNodeNear(endCell.x, endCell.y, snapThreshold) || addNode(endCell.x, endCell.y);
+	const line = bresenhamLine(sNode.x, sNode.y, eNode.x, eNode.y);
+	const thick = thickCellsFromLine(line, pathWidth);
+	
+	// Check for overlapping paths
+	const overlappingPathIndices = [];
+	for (let i = 0; i < paths.length; i++) {
+		const existingPath = paths[i];
+		const hasOverlap = thick.some(newCell => 
+			existingPath.cells.some(existCell => existCell.x === newCell.x && existCell.y === newCell.y)
+		);
+		if (hasOverlap) {
+			overlappingPathIndices.push(i);
+		}
+	}
+	
+	let mergedCells = [...thick];
+	let mergedFromNode = sNode.id;
+	let mergedToNode = eNode.id;
+	
+	// Merge overlapping paths
+	for (let i = overlappingPathIndices.length - 1; i >= 0; i--) {
+		const idx = overlappingPathIndices[i];
+		const overlappingPath = paths[idx];
+		mergedCells = mergedCells.concat(overlappingPath.cells);
+		// Remove old path DOM elements
+		overlappingPath.elements.forEach(el => el.remove());
+		paths.splice(idx, 1);
+	}
+	
+	// Remove duplicate cells
+	const uniqueCells = [];
+	const seenCells = new Set();
+	for (const cell of mergedCells) {
+		const key = `${cell.x},${cell.y}`;
+		if (!seenCells.has(key)) {
+			seenCells.add(key);
+			uniqueCells.push(cell);
+		}
+	}
+	
+	// Calculate bounding box
+	const xs = uniqueCells.map(c => c.x);
+	const ys = uniqueCells.map(c => c.y);
+	const minX = Math.min(...xs);
+	const maxX = Math.max(...xs);
+	const minY = Math.min(...ys);
+	const maxY = Math.max(...ys);
+	
+	const width = (maxX - minX + 1) * cellSize;
+	const height = (maxY - minY + 1) * cellSize;
+	
+	const id = `path_${paths.length + 1}`;
+	const elements = [];
+	
+	// Create container
+	const container = document.createElement("div");
+	container.className = "placed-path";
+	container.style.position = "absolute";
+	container.style.left = `${minX * cellSize}px`;
+	container.style.top = `${minY * cellSize}px`;
+	container.style.width = `${width}px`;
+	container.style.height = `${height}px`;
+	container.style.pointerEvents = "auto";
+	container.dataset.pathId = id;
+	
+	// Create set for fast lookup
+	const cellSet = new Set(uniqueCells.map(c => `${c.x},${c.y}`));
+	
+	// Draw cells with borders only on perimeter
+	for (const cell of uniqueCells) {
+		const relX = cell.x - minX;
+		const relY = cell.y - minY;
+		
+		// Check if neighbors exist in the path
+		const hasLeft = cellSet.has(`${cell.x - 1},${cell.y}`);
+		const hasRight = cellSet.has(`${cell.x + 1},${cell.y}`);
+		const hasTop = cellSet.has(`${cell.x},${cell.y - 1}`);
+		const hasBottom = cellSet.has(`${cell.x},${cell.y + 1}`);
+		
+		const cellEl = document.createElement("div");
+		cellEl.style.position = "absolute";
+		cellEl.style.left = `${relX * cellSize}px`;
+		cellEl.style.top = `${relY * cellSize}px`;
+		cellEl.style.width = `${cellSize}px`;
+		cellEl.style.height = `${cellSize}px`;
+		cellEl.style.background = "rgba(100,180,220,0.4)";
+		cellEl.style.pointerEvents = "none";
+		cellEl.style.boxSizing = "border-box";
+		
+		const border = "1px solid rgba(60,140,200,0.8)";
+		if (!hasTop) cellEl.style.borderTop = border;
+		if (!hasBottom) cellEl.style.borderBottom = border;
+		if (!hasLeft) cellEl.style.borderLeft = border;
+		if (!hasRight) cellEl.style.borderRight = border;
+		
+		container.appendChild(cellEl);
+	}
+	
+	grid.appendChild(container);
+	elements.push(container);
+	
+	const path = { id, from: mergedFromNode, to: mergedToNode, cells: uniqueCells, elements };
+	paths.push(path);
+}
+
+function togglePathTool(on) {
+	pathToolActive = typeof on === "boolean" ? on : !pathToolActive;
+	pathToggle.classList.toggle("is-active", pathToolActive);
+	if (!pathToolActive) {
+		clearPathPreview();
+	}
+}
+
+// Pointer handlers for drawing
+grid.addEventListener("pointerdown", (e) => {
+	if (!pathToolActive) return;
+	const cell = getCellFromPoint(e.clientX, e.clientY);
+	if (!cell) return;
+	pathDrawing = true;
+	pathStartCell = cell;
+	e.preventDefault();
+});
+
+grid.addEventListener("pointermove", (e) => {
+	if (!pathDrawing) return;
+	const cell = getCellFromPoint(e.clientX, e.clientY);
+	if (!cell) {
+		clearPathPreview();
+		return;
+	}
+	// Snap to nearby node if close enough
+	const snapThreshold = 2; // cells
+	const nearbyNode = pathNodes.find((n) => Math.hypot(n.x - cell.x, n.y - cell.y) <= snapThreshold);
+	const endCell = nearbyNode ? { x: nearbyNode.x, y: nearbyNode.y } : cell;
+	const line = bresenhamLine(pathStartCell.x, pathStartCell.y, endCell.x, endCell.y);
+	const thick = thickCellsFromLine(line, pathWidth);
+	showPathPreview(thick);
+});
+
+grid.addEventListener("pointerup", (e) => {
+	if (!pathDrawing) return;
+	const cell = getCellFromPoint(e.clientX, e.clientY);
+	// Only create path if we actually moved to a different cell
+	if (cell && (cell.x !== pathStartCell.x || cell.y !== pathStartCell.y)) {
+		createPath(pathStartCell, cell);
+	}
+	pathDrawing = false;
+	pathStartCell = null;
+	clearPathPreview();
+});
+
+// toggle via keyboard key 'p'
+document.addEventListener("keydown", (e) => {
+	if (e.key === "p" || e.key === "P") togglePathTool(true);
+});
+document.addEventListener("keyup", (e) => {
+	if (e.key === "p" || e.key === "P") togglePathTool(false);
+});
+
+// ----- Path menu and selection -----
+function selectPath(pathId) {
+	selectedPathId = pathId;
+	paths.forEach((p) => {
+		p.elements.forEach((el) => {
+			el.classList.toggle("is-selected", p.id === pathId);
+		});
+	});
+}
+
+function showPathMenuFor(pathId) {
+	const path = paths.find((p) => p.id === pathId);
+	if (!path || !path.elements.length) return;
+	hideMenu(true);
+	pathActionMenu.style.display = "flex";
+	const menuWidth = pathActionMenu.offsetWidth;
+	const menuHeight = pathActionMenu.offsetHeight;
+	const firstEl = path.elements[0];
+	const rect = firstEl.getBoundingClientRect();
+	const gridRect = grid.getBoundingClientRect();
+	let left = rect.right - gridRect.left + 8;
+	let top = rect.top - gridRect.top;
+	if (left + menuWidth > gridWidth) {
+		left = rect.left - gridRect.left - menuWidth - 8;
+	}
+	if (left < 0) left = 0;
+	if (top + menuHeight > gridHeight) {
+		top = gridHeight - menuHeight;
+	}
+	if (top < 0) top = 0;
+	pathActionMenu.style.left = `${left}px`;
+	pathActionMenu.style.top = `${top}px`;
+}
+
+function hidePathMenu() {
+	pathActionMenu.style.display = "none";
+	selectedPathId = null;
+	paths.forEach((p) => {
+		p.elements.forEach((el) => {
+			el.classList.remove("is-selected");
+		});
+	});
+}
+
+function deleteSelectedPath() {
+	if (!selectedPathId) return;
+	const pathIdx = paths.findIndex((p) => p.id === selectedPathId);
+	if (pathIdx < 0) return;
+	const path = paths[pathIdx];
+	path.elements.forEach((el) => el.remove());
+	paths.splice(pathIdx, 1);
+	hidePathMenu();
+}
+
+pathActionMenu.addEventListener("click", (event) => {
+	const button = event.target.closest("button");
+	if (!button) return;
+	const action = button.dataset.pathAction;
+	if (action === "delete") deleteSelectedPath();
 });
 
 applyStyle(STYLE_FILES[0].file);
