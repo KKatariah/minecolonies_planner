@@ -468,3 +468,18 @@ body {
 	pointer-events: none;
 }
 
+.path-resize-handle {
+	position: absolute;
+	border-radius: 50%;
+	cursor: grab;
+	z-index: 20;
+	pointer-events: auto;
+	touch-action: none;
+	box-shadow: 0 0 6px rgba(180, 120, 0, 0.8);
+	transition: transform 0.1s;
+}
+
+.path-resize-handle:hover {
+	transform: scale(1.2);
+}
+

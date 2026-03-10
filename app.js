@@ -917,6 +917,7 @@ styleSelect.addEventListener("change", (event) => {
 grid.addEventListener("click", (event) => {
 	if (event.target.closest(".action-menu")) return;
 	if (event.target.closest(".path-action-menu")) return;
+	if (event.target.closest(".path-resize-handle")) return;
 	hidePathMenu();
 	if (!pathToolActive) {
 		const pathEl = event.target.closest(".placed-path");
@@ -1031,25 +1032,16 @@ function bresenhamLine(x0, y0, x1, y1) {
 	const dy = Math.abs(y1 - y0);
 	const sx = x0 < x1 ? 1 : -1;
 	const sy = y0 < y1 ? 1 : -1;
-	
+
 	if (dx >= dy) {
-		// Move horizontally only
 		let x = x0;
-		while (x !== x1) {
-			cells.push({ x, y: y0 });
-			x += sx;
-		}
+		while (x !== x1) { cells.push({ x, y: y0 }); x += sx; }
 		cells.push({ x: x1, y: y0 });
 	} else {
-		// Move vertically only
 		let y = y0;
-		while (y !== y1) {
-			cells.push({ x: x0, y });
-			y += sy;
-		}
+		while (y !== y1) { cells.push({ x: x0, y }); y += sy; }
 		cells.push({ x: x0, y: y1 });
 	}
-	
 	return cells;
 }
 
@@ -1072,51 +1064,129 @@ function thickCellsFromLine(lineCells, width) {
 	});
 }
 
-function clearPathPreview() {
-	while (pathPreviewEls.length) {
-		const el = pathPreviewEls.pop();
-		el.remove();
+function buildGlobalCellSet() {
+	const set = new Set();
+	for (const p of paths) {
+		for (const c of p.cells) set.add(`${c.x},${c.y}`);
 	}
+	return set;
 }
 
-function showPathPreview(cells) {
-	clearPathPreview();
+function rebuildPathCells(path) {
+	const line = bresenhamLine(path.from.x, path.from.y, path.to.x, path.to.y);
+	path.cells = thickCellsFromLine(line, pathWidth);
+}
+
+function renderPathDOM(path, globalCellSet) {
+	path.elements.forEach(el => el.remove());
+	path.elements = [];
+
+	const cells = path.cells;
 	if (cells.length === 0) return;
-	
-	// Calculate bounding box
+
 	const xs = cells.map(c => c.x);
 	const ys = cells.map(c => c.y);
 	const minX = Math.min(...xs);
 	const maxX = Math.max(...xs);
 	const minY = Math.min(...ys);
 	const maxY = Math.max(...ys);
-	
-	const width = (maxX - minX + 1) * cellSize;
-	const height = (maxY - minY + 1) * cellSize;
-	
+
+	const container = document.createElement("div");
+	container.className = "placed-path";
+	if (selectedPathId === path.id) container.classList.add("is-selected");
+	container.style.position = "absolute";
+	container.style.left = `${minX * cellSize}px`;
+	container.style.top = `${minY * cellSize}px`;
+	container.style.width = `${(maxX - minX + 1) * cellSize}px`;
+	container.style.height = `${(maxY - minY + 1) * cellSize}px`;
+	container.style.pointerEvents = "auto";
+	container.dataset.pathId = path.id;
+
+	for (const cell of cells) {
+		const relX = cell.x - minX;
+		const relY = cell.y - minY;
+		const hasLeft = globalCellSet.has(`${cell.x - 1},${cell.y}`);
+		const hasRight = globalCellSet.has(`${cell.x + 1},${cell.y}`);
+		const hasTop = globalCellSet.has(`${cell.x},${cell.y - 1}`);
+		const hasBottom = globalCellSet.has(`${cell.x},${cell.y + 1}`);
+
+		const cellEl = document.createElement("div");
+		cellEl.style.position = "absolute";
+		cellEl.style.left = `${relX * cellSize}px`;
+		cellEl.style.top = `${relY * cellSize}px`;
+		cellEl.style.width = `${cellSize}px`;
+		cellEl.style.height = `${cellSize}px`;
+		cellEl.style.background = selectedPathId === path.id
+			? "rgba(106,172,255,0.45)"
+			: "rgba(100,180,220,0.4)";
+		cellEl.style.pointerEvents = "none";
+		cellEl.style.boxSizing = "border-box";
+
+		const border = "1px solid rgba(60,140,200,0.8)";
+		if (!hasTop) cellEl.style.borderTop = border;
+		if (!hasBottom) cellEl.style.borderBottom = border;
+		if (!hasLeft) cellEl.style.borderLeft = border;
+		if (!hasRight) cellEl.style.borderRight = border;
+
+		container.appendChild(cellEl);
+	}
+
+	grid.appendChild(container);
+	path.elements = [container];
+}
+
+function rerenderAllPathBorders() {
+	const globalCellSet = buildGlobalCellSet();
+	for (const path of paths) renderPathDOM(path, globalCellSet);
+	if (selectedPathId) {
+		const path = paths.find(p => p.id === selectedPathId);
+		if (path) {
+			if (pathResizing) {
+				// Don't recreate handles mid-drag — just move them so pointer capture is preserved
+				updatePathHandlePositions(path);
+			} else {
+				showPathHandles(path);
+			}
+		}
+	}
+}
+
+function clearPathPreview() {
+	while (pathPreviewEls.length) pathPreviewEls.pop().remove();
+}
+
+function showPathPreview(cells) {
+	clearPathPreview();
+	if (cells.length === 0) return;
+
+	const xs = cells.map(c => c.x);
+	const ys = cells.map(c => c.y);
+	const minX = Math.min(...xs);
+	const maxX = Math.max(...xs);
+	const minY = Math.min(...ys);
+	const maxY = Math.max(...ys);
+
 	const container = document.createElement("div");
 	container.className = "path-preview";
 	container.style.position = "absolute";
 	container.style.left = `${minX * cellSize}px`;
 	container.style.top = `${minY * cellSize}px`;
-	container.style.width = `${width}px`;
-	container.style.height = `${height}px`;
+	container.style.width = `${(maxX - minX + 1) * cellSize}px`;
+	container.style.height = `${(maxY - minY + 1) * cellSize}px`;
 	container.style.pointerEvents = "none";
-	
-	// Create set for fast lookup
-	const cellSet = new Set(cells.map(c => `${c.x},${c.y}`));
-	
-	// Draw cells with borders only on perimeter
+
+	// Use global cell set so preview respects existing path borders
+	const globalCellSet = buildGlobalCellSet();
+	const previewSet = new Set(cells.map(c => `${c.x},${c.y}`));
+
 	for (const cell of cells) {
 		const relX = cell.x - minX;
 		const relY = cell.y - minY;
-		
-		// Check if neighbors exist in the path
-		const hasLeft = cellSet.has(`${cell.x - 1},${cell.y}`);
-		const hasRight = cellSet.has(`${cell.x + 1},${cell.y}`);
-		const hasTop = cellSet.has(`${cell.x},${cell.y - 1}`);
-		const hasBottom = cellSet.has(`${cell.x},${cell.y + 1}`);
-		
+		const hasLeft = globalCellSet.has(`${cell.x - 1},${cell.y}`) || previewSet.has(`${cell.x - 1},${cell.y}`);
+		const hasRight = globalCellSet.has(`${cell.x + 1},${cell.y}`) || previewSet.has(`${cell.x + 1},${cell.y}`);
+		const hasTop = globalCellSet.has(`${cell.x},${cell.y - 1}`) || previewSet.has(`${cell.x},${cell.y - 1}`);
+		const hasBottom = globalCellSet.has(`${cell.x},${cell.y + 1}`) || previewSet.has(`${cell.x},${cell.y + 1}`);
+
 		const cellEl = document.createElement("div");
 		cellEl.style.position = "absolute";
 		cellEl.style.left = `${relX * cellSize}px`;
@@ -1126,16 +1196,16 @@ function showPathPreview(cells) {
 		cellEl.style.background = "rgba(100,180,220,0.3)";
 		cellEl.style.pointerEvents = "none";
 		cellEl.style.boxSizing = "border-box";
-		
+
 		const border = "1px dashed rgba(60,140,200,0.6)";
 		if (!hasTop) cellEl.style.borderTop = border;
 		if (!hasBottom) cellEl.style.borderBottom = border;
 		if (!hasLeft) cellEl.style.borderLeft = border;
 		if (!hasRight) cellEl.style.borderRight = border;
-		
+
 		container.appendChild(cellEl);
 	}
-	
+
 	grid.appendChild(container);
 	pathPreviewEls.push(container);
 }
@@ -1153,113 +1223,137 @@ function addNode(x, y) {
 
 function createPath(startCell, endCell) {
 	if (!startCell || !endCell) return;
-	// snap to existing nodes if within threshold
-	const snapThreshold = 1; // cells
-	const sNode = findNodeNear(startCell.x, startCell.y, snapThreshold) || addNode(startCell.x, startCell.y);
-	const eNode = findNodeNear(endCell.x, endCell.y, snapThreshold) || addNode(endCell.x, endCell.y);
-	const line = bresenhamLine(sNode.x, sNode.y, eNode.x, eNode.y);
-	const thick = thickCellsFromLine(line, pathWidth);
-	
-	// Check for overlapping paths
-	const overlappingPathIndices = [];
-	for (let i = 0; i < paths.length; i++) {
-		const existingPath = paths[i];
-		const hasOverlap = thick.some(newCell => 
-			existingPath.cells.some(existCell => existCell.x === newCell.x && existCell.y === newCell.y)
-		);
-		if (hasOverlap) {
-			overlappingPathIndices.push(i);
-		}
-	}
-	
-	let mergedCells = [...thick];
-	let mergedFromNode = sNode.id;
-	let mergedToNode = eNode.id;
-	
-	// Merge overlapping paths
-	for (let i = overlappingPathIndices.length - 1; i >= 0; i--) {
-		const idx = overlappingPathIndices[i];
-		const overlappingPath = paths[idx];
-		mergedCells = mergedCells.concat(overlappingPath.cells);
-		// Remove old path DOM elements
-		overlappingPath.elements.forEach(el => el.remove());
-		paths.splice(idx, 1);
-	}
-	
-	// Remove duplicate cells
-	const uniqueCells = [];
-	const seenCells = new Set();
-	for (const cell of mergedCells) {
-		const key = `${cell.x},${cell.y}`;
-		if (!seenCells.has(key)) {
-			seenCells.add(key);
-			uniqueCells.push(cell);
-		}
-	}
-	
-	// Calculate bounding box
-	const xs = uniqueCells.map(c => c.x);
-	const ys = uniqueCells.map(c => c.y);
-	const minX = Math.min(...xs);
-	const maxX = Math.max(...xs);
-	const minY = Math.min(...ys);
-	const maxY = Math.max(...ys);
-	
-	const width = (maxX - minX + 1) * cellSize;
-	const height = (maxY - minY + 1) * cellSize;
-	
+	const snapThreshold = 1;
+	const nearStart = findNodeNear(startCell.x, startCell.y, snapThreshold);
+	const fromPos = nearStart ? { x: nearStart.x, y: nearStart.y } : { x: startCell.x, y: startCell.y };
+	if (!nearStart) addNode(fromPos.x, fromPos.y);
+
+	// Compute the actual endpoint after direction clamping (bresenhamLine picks H or V only)
+	const line = bresenhamLine(fromPos.x, fromPos.y, endCell.x, endCell.y);
+	const actualEnd = line[line.length - 1];
+
+	// Snap around the clamped endpoint, not the raw mouse position
+	const nearEnd = findNodeNear(actualEnd.x, actualEnd.y, snapThreshold);
+	const toPos = nearEnd ? { x: nearEnd.x, y: nearEnd.y } : { x: actualEnd.x, y: actualEnd.y };
+	if (!nearEnd) addNode(toPos.x, toPos.y);
+
 	const id = `path_${paths.length + 1}`;
-	const elements = [];
-	
-	// Create container
-	const container = document.createElement("div");
-	container.className = "placed-path";
-	container.style.position = "absolute";
-	container.style.left = `${minX * cellSize}px`;
-	container.style.top = `${minY * cellSize}px`;
-	container.style.width = `${width}px`;
-	container.style.height = `${height}px`;
-	container.style.pointerEvents = "auto";
-	container.dataset.pathId = id;
-	
-	// Create set for fast lookup
-	const cellSet = new Set(uniqueCells.map(c => `${c.x},${c.y}`));
-	
-	// Draw cells with borders only on perimeter
-	for (const cell of uniqueCells) {
-		const relX = cell.x - minX;
-		const relY = cell.y - minY;
-		
-		// Check if neighbors exist in the path
-		const hasLeft = cellSet.has(`${cell.x - 1},${cell.y}`);
-		const hasRight = cellSet.has(`${cell.x + 1},${cell.y}`);
-		const hasTop = cellSet.has(`${cell.x},${cell.y - 1}`);
-		const hasBottom = cellSet.has(`${cell.x},${cell.y + 1}`);
-		
-		const cellEl = document.createElement("div");
-		cellEl.style.position = "absolute";
-		cellEl.style.left = `${relX * cellSize}px`;
-		cellEl.style.top = `${relY * cellSize}px`;
-		cellEl.style.width = `${cellSize}px`;
-		cellEl.style.height = `${cellSize}px`;
-		cellEl.style.background = "rgba(100,180,220,0.4)";
-		cellEl.style.pointerEvents = "none";
-		cellEl.style.boxSizing = "border-box";
-		
-		const border = "1px solid rgba(60,140,200,0.8)";
-		if (!hasTop) cellEl.style.borderTop = border;
-		if (!hasBottom) cellEl.style.borderBottom = border;
-		if (!hasLeft) cellEl.style.borderLeft = border;
-		if (!hasRight) cellEl.style.borderRight = border;
-		
-		container.appendChild(cellEl);
-	}
-	
-	grid.appendChild(container);
-	elements.push(container);
-	
-	const path = { id, from: mergedFromNode, to: mergedToNode, cells: uniqueCells, elements };
+	const path = { id, from: { ...fromPos }, to: { ...toPos }, cells: [], elements: [] };
+	rebuildPathCells(path);
 	paths.push(path);
+	rerenderAllPathBorders();
+}
+
+// ----- Path resize handles -----
+let pathResizing = false;
+let pathResizeId = null;
+let pathResizeEnd = null; // 'from' or 'to'
+let pathResizeOriginalPos = null;
+const pathHandleEls = [];
+
+function showPathHandles(path) {
+	hidePathHandles();
+	[{ end: "from", pos: path.from }, { end: "to", pos: path.to }].forEach(({ end, pos }) => {
+		const handle = document.createElement("div");
+		handle.className = "path-resize-handle";
+		const hs = cellSize * 3;
+		handle.style.position = "absolute";
+		handle.style.left = `${pos.x * cellSize - (hs - cellSize) / 2}px`;
+		handle.style.top = `${pos.y * cellSize - (hs - cellSize) / 2}px`;
+		handle.style.width = `${hs}px`;
+		handle.style.height = `${hs}px`;
+		handle.style.background = "rgba(255,200,50,0.9)";
+		handle.style.border = "2px solid rgba(180,120,0,1)";
+		handle.style.borderRadius = "50%";
+		handle.style.cursor = "grab";
+		handle.style.zIndex = "20";
+		handle.style.pointerEvents = "auto";
+		handle.dataset.pathId = path.id;
+		handle.dataset.end = end;
+
+		handle.addEventListener("pointerdown", (e) => {
+			e.stopPropagation();
+			e.preventDefault();
+			pathResizing = true;
+			pathResizeId = path.id;
+			pathResizeEnd = end;
+			pathResizeOriginalPos = end === "from" ? { ...path.from } : { ...path.to };
+			handle.style.cursor = "grabbing";
+			handle.setPointerCapture(e.pointerId);
+		});
+
+		handle.addEventListener("pointermove", (e) => {
+			if (!pathResizing || pathResizeId !== path.id) return;
+			const cell = getCellFromPoint(e.clientX, e.clientY);
+			if (!cell) return;
+			const p = paths.find(pt => pt.id === pathResizeId);
+			if (!p) return;
+
+			// Determine axis from the fixed endpoint vs the original drag start position
+			const fixedPos = pathResizeEnd === "from" ? p.to : p.from;
+			const origPos = pathResizeOriginalPos;
+			const isHorizontal = Math.abs(origPos.x - fixedPos.x) >= Math.abs(origPos.y - fixedPos.y);
+
+			// Constrain cell to the correct axis
+			const constrained = isHorizontal
+				? { x: cell.x, y: fixedPos.y }
+				: { x: fixedPos.x, y: cell.y };
+
+			// Snap to existing node along the same axis
+			const snapThreshold = 2;
+			const nearbyNode = pathNodes.find(n => Math.hypot(n.x - constrained.x, n.y - constrained.y) <= snapThreshold);
+			const snapped = nearbyNode
+				? (isHorizontal ? { x: nearbyNode.x, y: fixedPos.y } : { x: fixedPos.x, y: nearbyNode.y })
+				: constrained;
+
+			if (pathResizeEnd === "from") p.from = { ...snapped };
+			else p.to = { ...snapped };
+
+			rebuildPathCells(p);
+			rerenderAllPathBorders();
+		});
+
+		handle.addEventListener("pointerup", () => {
+			if (!pathResizing) return;
+			pathResizing = false;
+			pathResizeId = null;
+			pathResizeEnd = null;
+			pathResizeOriginalPos = null;
+			handle.style.cursor = "grab";
+		});
+
+		handle.addEventListener("pointercancel", () => {
+			if (!pathResizing) return;
+			const p = paths.find(pt => pt.id === pathResizeId);
+			if (p && pathResizeOriginalPos) {
+				if (pathResizeEnd === "from") p.from = { ...pathResizeOriginalPos };
+				else p.to = { ...pathResizeOriginalPos };
+				rebuildPathCells(p);
+				rerenderAllPathBorders();
+			}
+			pathResizing = false;
+			pathResizeId = null;
+			pathResizeEnd = null;
+			pathResizeOriginalPos = null;
+		});
+
+		grid.appendChild(handle);
+		pathHandleEls.push(handle);
+	});
+}
+
+function hidePathHandles() {
+	while (pathHandleEls.length) pathHandleEls.pop().remove();
+}
+
+function updatePathHandlePositions(path) {
+	const hs = cellSize * 3;
+	for (const handle of pathHandleEls) {
+		if (handle.dataset.pathId !== path.id) continue;
+		const pos = handle.dataset.end === "from" ? path.from : path.to;
+		handle.style.left = `${pos.x * cellSize - (hs - cellSize) / 2}px`;
+		handle.style.top = `${pos.y * cellSize - (hs - cellSize) / 2}px`;
+	}
 }
 
 function togglePathTool(on) {
@@ -1273,6 +1367,7 @@ function togglePathTool(on) {
 // Pointer handlers for drawing
 grid.addEventListener("pointerdown", (e) => {
 	if (!pathToolActive) return;
+	if (e.target.classList.contains("path-resize-handle")) return;
 	const cell = getCellFromPoint(e.clientX, e.clientY);
 	if (!cell) return;
 	pathDrawing = true;
@@ -1287,8 +1382,7 @@ grid.addEventListener("pointermove", (e) => {
 		clearPathPreview();
 		return;
 	}
-	// Snap to nearby node if close enough
-	const snapThreshold = 2; // cells
+	const snapThreshold = 2;
 	const nearbyNode = pathNodes.find((n) => Math.hypot(n.x - cell.x, n.y - cell.y) <= snapThreshold);
 	const endCell = nearbyNode ? { x: nearbyNode.x, y: nearbyNode.y } : cell;
 	const line = bresenhamLine(pathStartCell.x, pathStartCell.y, endCell.x, endCell.y);
@@ -1299,7 +1393,6 @@ grid.addEventListener("pointermove", (e) => {
 grid.addEventListener("pointerup", (e) => {
 	if (!pathDrawing) return;
 	const cell = getCellFromPoint(e.clientX, e.clientY);
-	// Only create path if we actually moved to a different cell
 	if (cell && (cell.x !== pathStartCell.x || cell.y !== pathStartCell.y)) {
 		createPath(pathStartCell, cell);
 	}
@@ -1319,11 +1412,7 @@ document.addEventListener("keyup", (e) => {
 // ----- Path menu and selection -----
 function selectPath(pathId) {
 	selectedPathId = pathId;
-	paths.forEach((p) => {
-		p.elements.forEach((el) => {
-			el.classList.toggle("is-selected", p.id === pathId);
-		});
-	});
+	rerenderAllPathBorders();
 }
 
 function showPathMenuFor(pathId) {
@@ -1342,9 +1431,7 @@ function showPathMenuFor(pathId) {
 		left = rect.left - gridRect.left - menuWidth - 8;
 	}
 	if (left < 0) left = 0;
-	if (top + menuHeight > gridHeight) {
-		top = gridHeight - menuHeight;
-	}
+	if (top + menuHeight > gridHeight) top = gridHeight - menuHeight;
 	if (top < 0) top = 0;
 	pathActionMenu.style.left = `${left}px`;
 	pathActionMenu.style.top = `${top}px`;
@@ -1353,11 +1440,8 @@ function showPathMenuFor(pathId) {
 function hidePathMenu() {
 	pathActionMenu.style.display = "none";
 	selectedPathId = null;
-	paths.forEach((p) => {
-		p.elements.forEach((el) => {
-			el.classList.remove("is-selected");
-		});
-	});
+	hidePathHandles();
+	rerenderAllPathBorders();
 }
 
 function deleteSelectedPath() {
@@ -1367,7 +1451,10 @@ function deleteSelectedPath() {
 	const path = paths[pathIdx];
 	path.elements.forEach((el) => el.remove());
 	paths.splice(pathIdx, 1);
-	hidePathMenu();
+	hidePathHandles();
+	selectedPathId = null;
+	pathActionMenu.style.display = "none";
+	rerenderAllPathBorders();
 }
 
 pathActionMenu.addEventListener("click", (event) => {
