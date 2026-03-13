@@ -14,6 +14,27 @@ grid.className = "grid";
 gridShell.appendChild(grid);
 root.appendChild(gridShell);
 
+const previewSidebar = document.createElement("aside");
+previewSidebar.className = "preview-sidebar";
+previewSidebar.innerHTML = `
+	<h2 class="preview-sidebar__title">Building Preview</h2>
+	<div class="preview-card">
+		<div class="preview-card__name" data-preview-name>Select a building</div>
+		<div class="preview-card__image-wrap">
+			<img class="preview-card__image" data-preview-image alt="Selected building preview" />
+			<div class="preview-card__empty" data-preview-empty>
+				Select a building from the tray to see its front view.
+			</div>
+		</div>
+	</div>
+`;
+document.body.appendChild(previewSidebar);
+
+const previewName = previewSidebar.querySelector("[data-preview-name]");
+const previewImage = previewSidebar.querySelector("[data-preview-image]");
+const previewEmpty = previewSidebar.querySelector("[data-preview-empty]");
+let previewRequestId = 0;
+
 let gridWidth = 0;
 let gridHeight = 0;
 
@@ -539,6 +560,73 @@ function updateShapeSelectionUI() {
 			button.dataset.shapeId === selectedShapeId,
 		);
 	});
+	updatePreviewSidebar();
+}
+
+function getPreviewImageCandidates(shape) {
+	const normalizedLabel = (shape.label || "")
+		.trim()
+		.toLowerCase()
+		.replace(/\s+/g, "_");
+	const id = String(shape.id || "")
+		.trim()
+		.toLowerCase();
+	const idTokens = id.split("_").filter(Boolean);
+	const lastToken = idTokens[idTokens.length - 1] || "";
+	const names = [id, lastToken, normalizedLabel].filter(Boolean);
+	const uniqueNames = [...new Set(names)];
+	return uniqueNames.map((name) => `images/${name}_front.jpg`);
+}
+
+function updatePreviewSidebar() {
+	const shape = getSelectedShape();
+	previewRequestId += 1;
+	const requestId = previewRequestId;
+
+	if (!shape) {
+		previewName.textContent = "Select a building";
+		previewImage.removeAttribute("src");
+		previewImage.style.display = "none";
+		previewEmpty.textContent =
+			"Select a building from the tray to see its front view.";
+		previewEmpty.style.display = "flex";
+		return;
+	}
+
+	previewName.textContent = shape.label || "Selected Building";
+	previewImage.style.display = "none";
+	previewEmpty.style.display = "flex";
+	previewEmpty.textContent = "Loading preview...";
+
+	const candidates = getPreviewImageCandidates(shape);
+	let index = 0;
+
+	const tryNext = () => {
+		if (requestId !== previewRequestId) return;
+		if (index >= candidates.length) {
+			previewImage.removeAttribute("src");
+			previewImage.style.display = "none";
+			previewEmpty.style.display = "flex";
+			previewEmpty.textContent =
+				"No preview image found. Expected: images/<building>_front.jpg";
+			return;
+		}
+		previewImage.src = candidates[index];
+		index += 1;
+	};
+
+	previewImage.onload = () => {
+		if (requestId !== previewRequestId) return;
+		previewEmpty.style.display = "none";
+		previewImage.style.display = "block";
+	};
+
+	previewImage.onerror = () => {
+		if (requestId !== previewRequestId) return;
+		tryNext();
+	};
+
+	tryNext();
 }
 
 function getSelectedShape() {
@@ -1047,11 +1135,17 @@ function bresenhamLine(x0, y0, x1, y1) {
 
 	if (dx >= dy) {
 		let x = x0;
-		while (x !== x1) { cells.push({ x, y: y0 }); x += sx; }
+		while (x !== x1) {
+			cells.push({ x, y: y0 });
+			x += sx;
+		}
 		cells.push({ x: x1, y: y0 });
 	} else {
 		let y = y0;
-		while (y !== y1) { cells.push({ x: x0, y }); y += sy; }
+		while (y !== y1) {
+			cells.push({ x: x0, y });
+			y += sy;
+		}
 		cells.push({ x: x0, y: y1 });
 	}
 	return cells;
@@ -1090,14 +1184,14 @@ function rebuildPathCells(path) {
 }
 
 function renderPathDOM(path, globalCellSet) {
-	path.elements.forEach(el => el.remove());
+	path.elements.forEach((el) => el.remove());
 	path.elements = [];
 
 	const cells = path.cells;
 	if (cells.length === 0) return;
 
-	const xs = cells.map(c => c.x);
-	const ys = cells.map(c => c.y);
+	const xs = cells.map((c) => c.x);
+	const ys = cells.map((c) => c.y);
 	const minX = Math.min(...xs);
 	const maxX = Math.max(...xs);
 	const minY = Math.min(...ys);
@@ -1128,9 +1222,10 @@ function renderPathDOM(path, globalCellSet) {
 		cellEl.style.top = `${relY * cellSize}px`;
 		cellEl.style.width = `${cellSize}px`;
 		cellEl.style.height = `${cellSize}px`;
-		cellEl.style.background = selectedPathId === path.id
-			? "rgba(106,172,255,0.45)"
-			: "rgba(100,180,220,0.4)";
+		cellEl.style.background =
+			selectedPathId === path.id
+				? "rgba(106,172,255,0.45)"
+				: "rgba(100,180,220,0.4)";
 		cellEl.style.pointerEvents = "none";
 		cellEl.style.boxSizing = "border-box";
 
@@ -1151,7 +1246,7 @@ function rerenderAllPathBorders() {
 	const globalCellSet = buildGlobalCellSet();
 	for (const path of paths) renderPathDOM(path, globalCellSet);
 	if (selectedPathId) {
-		const path = paths.find(p => p.id === selectedPathId);
+		const path = paths.find((p) => p.id === selectedPathId);
 		if (path) {
 			if (pathResizing) {
 				// Don't recreate handles mid-drag — just move them so pointer capture is preserved
@@ -1171,8 +1266,8 @@ function showPathPreview(cells) {
 	clearPathPreview();
 	if (cells.length === 0) return;
 
-	const xs = cells.map(c => c.x);
-	const ys = cells.map(c => c.y);
+	const xs = cells.map((c) => c.x);
+	const ys = cells.map((c) => c.y);
 	const minX = Math.min(...xs);
 	const maxX = Math.max(...xs);
 	const minY = Math.min(...ys);
@@ -1189,15 +1284,23 @@ function showPathPreview(cells) {
 
 	// Use global cell set so preview respects existing path borders
 	const globalCellSet = buildGlobalCellSet();
-	const previewSet = new Set(cells.map(c => `${c.x},${c.y}`));
+	const previewSet = new Set(cells.map((c) => `${c.x},${c.y}`));
 
 	for (const cell of cells) {
 		const relX = cell.x - minX;
 		const relY = cell.y - minY;
-		const hasLeft = globalCellSet.has(`${cell.x - 1},${cell.y}`) || previewSet.has(`${cell.x - 1},${cell.y}`);
-		const hasRight = globalCellSet.has(`${cell.x + 1},${cell.y}`) || previewSet.has(`${cell.x + 1},${cell.y}`);
-		const hasTop = globalCellSet.has(`${cell.x},${cell.y - 1}`) || previewSet.has(`${cell.x},${cell.y - 1}`);
-		const hasBottom = globalCellSet.has(`${cell.x},${cell.y + 1}`) || previewSet.has(`${cell.x},${cell.y + 1}`);
+		const hasLeft =
+			globalCellSet.has(`${cell.x - 1},${cell.y}`) ||
+			previewSet.has(`${cell.x - 1},${cell.y}`);
+		const hasRight =
+			globalCellSet.has(`${cell.x + 1},${cell.y}`) ||
+			previewSet.has(`${cell.x + 1},${cell.y}`);
+		const hasTop =
+			globalCellSet.has(`${cell.x},${cell.y - 1}`) ||
+			previewSet.has(`${cell.x},${cell.y - 1}`);
+		const hasBottom =
+			globalCellSet.has(`${cell.x},${cell.y + 1}`) ||
+			previewSet.has(`${cell.x},${cell.y + 1}`);
 
 		const cellEl = document.createElement("div");
 		cellEl.style.position = "absolute";
@@ -1223,7 +1326,9 @@ function showPathPreview(cells) {
 }
 
 function findNodeNear(x, y, threshold = 1) {
-	return pathNodes.find((n) => Math.hypot(n.x - x, n.y - y) <= threshold) || null;
+	return (
+		pathNodes.find((n) => Math.hypot(n.x - x, n.y - y) <= threshold) || null
+	);
 }
 
 function addNode(x, y) {
@@ -1237,7 +1342,8 @@ function syncPathNodesFromPaths() {
 	const unique = new Map();
 	for (const path of paths) {
 		const fromKey = `${path.from.x},${path.from.y}`;
-		if (!unique.has(fromKey)) unique.set(fromKey, { x: path.from.x, y: path.from.y });
+		if (!unique.has(fromKey))
+			unique.set(fromKey, { x: path.from.x, y: path.from.y });
 		const toKey = `${path.to.x},${path.to.y}`;
 		if (!unique.has(toKey)) unique.set(toKey, { x: path.to.x, y: path.to.y });
 	}
@@ -1329,7 +1435,9 @@ function createPath(startCell, endCell) {
 	if (!startCell || !endCell) return;
 	const snapThreshold = 1;
 	const nearStart = findNodeNear(startCell.x, startCell.y, snapThreshold);
-	const fromPos = nearStart ? { x: nearStart.x, y: nearStart.y } : { x: startCell.x, y: startCell.y };
+	const fromPos = nearStart
+		? { x: nearStart.x, y: nearStart.y }
+		: { x: startCell.x, y: startCell.y };
 	if (!nearStart) addNode(fromPos.x, fromPos.y);
 
 	// Compute the actual endpoint after direction clamping (bresenhamLine picks H or V only)
@@ -1338,11 +1446,19 @@ function createPath(startCell, endCell) {
 
 	// Snap around the clamped endpoint, not the raw mouse position
 	const nearEnd = findNodeNear(actualEnd.x, actualEnd.y, snapThreshold);
-	const toPos = nearEnd ? { x: nearEnd.x, y: nearEnd.y } : { x: actualEnd.x, y: actualEnd.y };
+	const toPos = nearEnd
+		? { x: nearEnd.x, y: nearEnd.y }
+		: { x: actualEnd.x, y: actualEnd.y };
 	if (!nearEnd) addNode(toPos.x, toPos.y);
 
 	const id = `path_${paths.length + 1}`;
-	const path = { id, from: { ...fromPos }, to: { ...toPos }, cells: [], elements: [] };
+	const path = {
+		id,
+		from: { ...fromPos },
+		to: { ...toPos },
+		cells: [],
+		elements: [],
+	};
 	rebuildPathCells(path);
 	paths.push(path);
 	rerenderAllPathBorders();
@@ -1357,7 +1473,10 @@ const pathHandleEls = [];
 
 function showPathHandles(path) {
 	hidePathHandles();
-	[{ end: "from", pos: path.from }, { end: "to", pos: path.to }].forEach(({ end, pos }) => {
+	[
+		{ end: "from", pos: path.from },
+		{ end: "to", pos: path.to },
+	].forEach(({ end, pos }) => {
 		const handle = document.createElement("div");
 		handle.className = "path-resize-handle";
 		const hs = cellSize * 3;
@@ -1381,7 +1500,8 @@ function showPathHandles(path) {
 			pathResizing = true;
 			pathResizeId = path.id;
 			pathResizeEnd = end;
-			pathResizeOriginalPos = end === "from" ? { ...path.from } : { ...path.to };
+			pathResizeOriginalPos =
+				end === "from" ? { ...path.from } : { ...path.to };
 			handle.style.cursor = "grabbing";
 			handle.setPointerCapture(e.pointerId);
 		});
@@ -1390,13 +1510,14 @@ function showPathHandles(path) {
 			if (!pathResizing || pathResizeId !== path.id) return;
 			const cell = getCellFromPoint(e.clientX, e.clientY);
 			if (!cell) return;
-			const p = paths.find(pt => pt.id === pathResizeId);
+			const p = paths.find((pt) => pt.id === pathResizeId);
 			if (!p) return;
 
 			// Determine axis from the fixed endpoint vs the original drag start position
 			const fixedPos = pathResizeEnd === "from" ? p.to : p.from;
 			const origPos = pathResizeOriginalPos;
-			const isHorizontal = Math.abs(origPos.x - fixedPos.x) >= Math.abs(origPos.y - fixedPos.y);
+			const isHorizontal =
+				Math.abs(origPos.x - fixedPos.x) >= Math.abs(origPos.y - fixedPos.y);
 
 			// Constrain cell to the correct axis
 			const constrained = isHorizontal
@@ -1405,9 +1526,14 @@ function showPathHandles(path) {
 
 			// Snap to existing node along the same axis
 			const snapThreshold = 2;
-			const nearbyNode = pathNodes.find(n => Math.hypot(n.x - constrained.x, n.y - constrained.y) <= snapThreshold);
+			const nearbyNode = pathNodes.find(
+				(n) =>
+					Math.hypot(n.x - constrained.x, n.y - constrained.y) <= snapThreshold,
+			);
 			const snapped = nearbyNode
-				? (isHorizontal ? { x: nearbyNode.x, y: fixedPos.y } : { x: fixedPos.x, y: nearbyNode.y })
+				? isHorizontal
+					? { x: nearbyNode.x, y: fixedPos.y }
+					: { x: fixedPos.x, y: nearbyNode.y }
 				: constrained;
 
 			if (pathResizeEnd === "from") p.from = { ...snapped };
@@ -1428,7 +1554,7 @@ function showPathHandles(path) {
 
 		handle.addEventListener("pointercancel", () => {
 			if (!pathResizing) return;
-			const p = paths.find(pt => pt.id === pathResizeId);
+			const p = paths.find((pt) => pt.id === pathResizeId);
 			if (p && pathResizeOriginalPos) {
 				if (pathResizeEnd === "from") p.from = { ...pathResizeOriginalPos };
 				else p.to = { ...pathResizeOriginalPos };
@@ -1478,7 +1604,7 @@ grid.addEventListener("pointerdown", (e) => {
 		if (pathEl && pathEl.dataset.pathId === selectedPathId) {
 			const cell = getCellFromPoint(e.clientX, e.clientY);
 			if (!cell) return;
-			const p = paths.find(pt => pt.id === selectedPathId);
+			const p = paths.find((pt) => pt.id === selectedPathId);
 			if (!p) return;
 			pathDragPending = {
 				pointerId: e.pointerId,
@@ -1513,10 +1639,16 @@ grid.addEventListener("pointermove", (e) => {
 				suppressPathClick = true;
 			}
 			if (pathDragging) {
-				const p = paths.find(pt => pt.id === pathDragPending.pathId);
+				const p = paths.find((pt) => pt.id === pathDragPending.pathId);
 				if (p) {
-					p.from = { x: pathDragPending.origFrom.x + dx, y: pathDragPending.origFrom.y + dy };
-					p.to = { x: pathDragPending.origTo.x + dx, y: pathDragPending.origTo.y + dy };
+					p.from = {
+						x: pathDragPending.origFrom.x + dx,
+						y: pathDragPending.origFrom.y + dy,
+					};
+					p.to = {
+						x: pathDragPending.origTo.x + dx,
+						y: pathDragPending.origTo.y + dy,
+					};
 					rebuildPathCells(p);
 					rerenderAllPathBorders();
 				}
@@ -1532,9 +1664,16 @@ grid.addEventListener("pointermove", (e) => {
 		return;
 	}
 	const snapThreshold = 2;
-	const nearbyNode = pathNodes.find((n) => Math.hypot(n.x - cell.x, n.y - cell.y) <= snapThreshold);
+	const nearbyNode = pathNodes.find(
+		(n) => Math.hypot(n.x - cell.x, n.y - cell.y) <= snapThreshold,
+	);
 	const endCell = nearbyNode ? { x: nearbyNode.x, y: nearbyNode.y } : cell;
-	const line = bresenhamLine(pathStartCell.x, pathStartCell.y, endCell.x, endCell.y);
+	const line = bresenhamLine(
+		pathStartCell.x,
+		pathStartCell.y,
+		endCell.x,
+		endCell.y,
+	);
 	const thick = thickCellsFromLine(line, pathWidth);
 	showPathPreview(thick);
 });
@@ -1544,18 +1683,36 @@ grid.addEventListener("pointerup", (e) => {
 	if (pathDragPending && e.pointerId === pathDragPending.pointerId) {
 		if (pathDragging) {
 			// Update nodes that lived at the original endpoints
-			const p = paths.find(pt => pt.id === pathDragPending.pathId);
+			const p = paths.find((pt) => pt.id === pathDragPending.pathId);
 			if (p) {
-				const fromNode = pathNodes.find(n => n.x === pathDragPending.origFrom.x && n.y === pathDragPending.origFrom.y);
-				if (fromNode) { fromNode.x = p.from.x; fromNode.y = p.from.y; }
-				const toNode = pathNodes.find(n => n.x === pathDragPending.origTo.x && n.y === pathDragPending.origTo.y);
-				if (toNode) { toNode.x = p.to.x; toNode.y = p.to.y; }
+				const fromNode = pathNodes.find(
+					(n) =>
+						n.x === pathDragPending.origFrom.x &&
+						n.y === pathDragPending.origFrom.y,
+				);
+				if (fromNode) {
+					fromNode.x = p.from.x;
+					fromNode.y = p.from.y;
+				}
+				const toNode = pathNodes.find(
+					(n) =>
+						n.x === pathDragPending.origTo.x &&
+						n.y === pathDragPending.origTo.y,
+				);
+				if (toNode) {
+					toNode.x = p.to.x;
+					toNode.y = p.to.y;
+				}
 			}
 		}
-		try { grid.releasePointerCapture(e.pointerId); } catch {}
+		try {
+			grid.releasePointerCapture(e.pointerId);
+		} catch {}
 		pathDragPending = null;
 		pathDragging = false;
-		setTimeout(() => { suppressPathClick = false; }, 0);
+		setTimeout(() => {
+			suppressPathClick = false;
+		}, 0);
 		return;
 	}
 

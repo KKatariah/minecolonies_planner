@@ -20,7 +20,77 @@ body {
 
 #root {
 	padding: 32px;
+	padding-right: 344px;
 	padding-bottom: calc(var(--bottom-bar-height) + 24px);
+}
+
+.preview-sidebar {
+	position: fixed;
+	top: 0;
+	right: 0;
+	bottom: var(--bottom-bar-height);
+	width: 320px;
+	padding: 18px;
+	background: #1f2234;
+	border-left: 2px solid var(--grid-line);
+	box-shadow: -10px 0 24px rgba(0, 0, 0, 0.35);
+	overflow-y: auto;
+	z-index: 8;
+}
+
+.preview-sidebar__title {
+	margin: 0 0 12px;
+	font-size: 16px;
+	font-weight: 700;
+}
+
+.preview-card {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	background: #2a2e45;
+	border: 1px solid #8087a2;
+	border-radius: 10px;
+	padding: 12px;
+}
+
+.preview-card__name {
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--ink);
+	word-break: break-word;
+}
+
+.preview-card__image-wrap {
+	position: relative;
+	aspect-ratio: 4 / 3;
+	background: #171927;
+	border: 1px solid #6e738d;
+	border-radius: 8px;
+	overflow: hidden;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.preview-card__image {
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
+	display: none;
+}
+
+.preview-card__empty {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 12px;
+	text-align: center;
+	font-size: 12px;
+	line-height: 1.4;
+	color: #b8bfd8;
 }
 
 .grid-shell {
@@ -483,3 +553,42 @@ body {
 	transform: scale(1.2);
 }
 
+@media (max-width: 1024px) {
+	#root {
+		padding-right: 20px;
+		padding-bottom: calc(var(--bottom-bar-height) + 212px);
+	}
+
+	.preview-sidebar {
+		left: 0;
+		right: 0;
+		top: auto;
+		bottom: var(--bottom-bar-height);
+		width: auto;
+		height: 188px;
+		border-left: none;
+		border-top: 2px solid var(--grid-line);
+		box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.35);
+	}
+
+	.preview-sidebar__title {
+		font-size: 14px;
+		margin-bottom: 8px;
+	}
+
+	.preview-card {
+		flex-direction: row;
+		align-items: stretch;
+		height: calc(100% - 22px);
+	}
+
+	.preview-card__name {
+		width: 130px;
+		font-size: 13px;
+	}
+
+	.preview-card__image-wrap {
+		flex: 1;
+		aspect-ratio: auto;
+	}
+}
