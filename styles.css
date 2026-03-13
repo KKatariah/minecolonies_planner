@@ -27,6 +27,9 @@ body {
 }
 
 #root {
+	display: flex;
+	justify-content: center;
+	align-items: flex-start;
 	padding: 32px;
 	padding-left: calc(var(--left-sidebar-width) + 24px);
 	padding-right: calc(var(--preview-sidebar-width) + 24px);
