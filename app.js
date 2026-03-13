@@ -14,10 +14,62 @@ grid.className = "grid";
 gridShell.appendChild(grid);
 root.appendChild(gridShell);
 
+const leftSidebar = document.createElement("aside");
+leftSidebar.className = "left-sidebar";
+leftSidebar.innerHTML = `
+	<div class="left-sidebar__header">
+		<h2 class="left-sidebar__title">Left Pane</h2>
+		<button type="button" class="left-sidebar__toggle" data-left-toggle aria-expanded="true" aria-label="Collapse left pane">Collapse</button>
+	</div>
+	<div class="left-sidebar__content">
+		Use this space for future tools, notes, or filters.
+	</div>
+`;
+document.body.appendChild(leftSidebar);
+
+const leftToggleButton = leftSidebar.querySelector("[data-left-toggle]");
+const LEFT_COLLAPSE_STORAGE_KEY = "minecolonies.left.collapsed";
+
+function applyLeftCollapsedState(collapsed, persist = true) {
+	const isCollapsed = Boolean(collapsed);
+	leftSidebar.classList.toggle("is-collapsed", isCollapsed);
+	document.body.classList.toggle("left-pane-collapsed", isCollapsed);
+	leftToggleButton.setAttribute("aria-expanded", String(!isCollapsed));
+	leftToggleButton.setAttribute(
+		"aria-label",
+		isCollapsed ? "Expand left pane" : "Collapse left pane",
+	);
+	leftToggleButton.textContent = isCollapsed ? ">" : "Collapse";
+	if (!persist) return;
+	try {
+		window.localStorage.setItem(
+			LEFT_COLLAPSE_STORAGE_KEY,
+			isCollapsed ? "1" : "0",
+		);
+	} catch {
+		// localStorage may be unavailable in some contexts.
+	}
+}
+
+leftToggleButton.addEventListener("click", () => {
+	const isCollapsed = leftSidebar.classList.contains("is-collapsed");
+	applyLeftCollapsedState(!isCollapsed);
+});
+
+try {
+	const savedLeft = window.localStorage.getItem(LEFT_COLLAPSE_STORAGE_KEY);
+	applyLeftCollapsedState(savedLeft === "1", false);
+} catch {
+	applyLeftCollapsedState(false, false);
+}
+
 const previewSidebar = document.createElement("aside");
 previewSidebar.className = "preview-sidebar";
 previewSidebar.innerHTML = `
-	<h2 class="preview-sidebar__title">Building Preview</h2>
+	<div class="preview-sidebar__header">
+		<h2 class="preview-sidebar__title">Building Preview</h2>
+		<button type="button" class="preview-sidebar__toggle" data-preview-toggle aria-expanded="true" aria-label="Collapse preview pane">Collapse</button>
+	</div>
 	<div class="preview-card">
 		<div class="preview-card__name" data-preview-name>Select a building</div>
 		<div class="preview-card__image-wrap">
@@ -33,7 +85,44 @@ document.body.appendChild(previewSidebar);
 const previewName = previewSidebar.querySelector("[data-preview-name]");
 const previewImage = previewSidebar.querySelector("[data-preview-image]");
 const previewEmpty = previewSidebar.querySelector("[data-preview-empty]");
+const previewToggleButton = previewSidebar.querySelector(
+	"[data-preview-toggle]",
+);
 let previewRequestId = 0;
+const PREVIEW_COLLAPSE_STORAGE_KEY = "minecolonies.preview.collapsed";
+
+function applyPreviewCollapsedState(collapsed, persist = true) {
+	const isCollapsed = Boolean(collapsed);
+	previewSidebar.classList.toggle("is-collapsed", isCollapsed);
+	document.body.classList.toggle("preview-collapsed", isCollapsed);
+	previewToggleButton.setAttribute("aria-expanded", String(!isCollapsed));
+	previewToggleButton.setAttribute(
+		"aria-label",
+		isCollapsed ? "Expand preview pane" : "Collapse preview pane",
+	);
+	previewToggleButton.textContent = isCollapsed ? ">" : "Collapse";
+	if (!persist) return;
+	try {
+		window.localStorage.setItem(
+			PREVIEW_COLLAPSE_STORAGE_KEY,
+			isCollapsed ? "1" : "0",
+		);
+	} catch {
+		// localStorage may be unavailable in some contexts.
+	}
+}
+
+previewToggleButton.addEventListener("click", () => {
+	const isCollapsed = previewSidebar.classList.contains("is-collapsed");
+	applyPreviewCollapsedState(!isCollapsed);
+});
+
+try {
+	const saved = window.localStorage.getItem(PREVIEW_COLLAPSE_STORAGE_KEY);
+	applyPreviewCollapsedState(saved === "1", false);
+} catch {
+	applyPreviewCollapsedState(false, false);
+}
 
 let gridWidth = 0;
 let gridHeight = 0;
