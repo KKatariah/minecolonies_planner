@@ -4,7 +4,13 @@ const cellSize = 5;
 const chunkSize = 16;
 const STYLE_FILES = [
 	{ id: "caledonia", label: "Caledonia", file: "styles/caledonia.json" },
+	{
+		id: "medievalspruce",
+		label: "Medieval Spruce",
+		file: "styles/medievalspruce.json",
+	},
 ];
+let activeStyleId = STYLE_FILES[0].id;
 
 const root = document.getElementById("root");
 const gridShell = document.createElement("div");
@@ -19,15 +25,51 @@ leftSidebar.className = "left-sidebar";
 leftSidebar.innerHTML = `
 	<div class="left-sidebar__header">
 		<h2 class="left-sidebar__title">Left Pane</h2>
+		<button type="button" class="left-sidebar__theme-toggle" data-theme-toggle aria-label="Toggle light/dark theme">🌙</button>
 		<button type="button" class="left-sidebar__toggle" data-left-toggle aria-expanded="true" aria-label="Collapse left pane">Collapse</button>
 	</div>
 	<div class="left-sidebar__content">
-		Use this space for future tools, notes, or filters.
+		<div class="left-sidebar__section">
+			<h3 class="left-sidebar__section-title">Edit History</h3>
+			<div class="left-sidebar__button-row">
+				<button type="button" class="left-sidebar__button" data-undo disabled>Undo</button>
+				<button type="button" class="left-sidebar__button" data-redo disabled>Redo</button>
+			</div>
+		</div>
+		<div class="left-sidebar__section">
+			<h3 class="left-sidebar__section-title">Save / Load</h3>
+			<button type="button" class="left-sidebar__button" data-export-json>Export JSON</button>
+			<button type="button" class="left-sidebar__button" data-import-json-trigger>Import JSON</button>
+			<input type="file" accept="application/json" data-import-json hidden />
+			<button type="button" class="left-sidebar__button" data-export-png>Export PNG</button>
+		</div>
+		<div class="left-sidebar__section">
+			<h3 class="left-sidebar__section-title">My Plans</h3>
+			<div class="left-sidebar__button-row">
+				<input type="text" class="left-sidebar__text-input" data-plan-name-input placeholder="Plan name" maxlength="60" />
+				<button type="button" class="left-sidebar__button" data-save-named-plan>Save As</button>
+			</div>
+			<div class="left-sidebar__plans-list" data-named-plans-list>
+				<div class="left-sidebar__plans-empty" data-named-plans-empty>No saved plans yet.</div>
+			</div>
+		</div>
 	</div>
 `;
 document.body.appendChild(leftSidebar);
 
 const leftToggleButton = leftSidebar.querySelector("[data-left-toggle]");
+const undoButton = leftSidebar.querySelector("[data-undo]");
+const redoButton = leftSidebar.querySelector("[data-redo]");
+const exportJsonButton = leftSidebar.querySelector("[data-export-json]");
+const importJsonTriggerButton = leftSidebar.querySelector(
+	"[data-import-json-trigger]",
+);
+const importJsonInput = leftSidebar.querySelector("[data-import-json]");
+const exportPngButton = leftSidebar.querySelector("[data-export-png]");
+const planNameInput = leftSidebar.querySelector("[data-plan-name-input]");
+const saveNamedPlanButton = leftSidebar.querySelector("[data-save-named-plan]");
+const namedPlansListEl = leftSidebar.querySelector("[data-named-plans-list]");
+const namedPlansEmptyEl = leftSidebar.querySelector("[data-named-plans-empty]");
 const LEFT_COLLAPSE_STORAGE_KEY = "minecolonies.left.collapsed";
 
 function applyLeftCollapsedState(collapsed, persist = true) {
@@ -61,6 +103,47 @@ try {
 	applyLeftCollapsedState(savedLeft === "1", false);
 } catch {
 	applyLeftCollapsedState(false, false);
+}
+
+const themeToggleButton = leftSidebar.querySelector("[data-theme-toggle]");
+const THEME_STORAGE_KEY = "minecolonies.theme";
+
+function applyTheme(theme, persist = true) {
+	const resolved = theme === "light" ? "light" : "dark";
+	document.documentElement.setAttribute("data-theme", resolved);
+	themeToggleButton.textContent = resolved === "light" ? "🌙" : "☀️";
+	themeToggleButton.setAttribute(
+		"aria-label",
+		resolved === "light" ? "Switch to dark theme" : "Switch to light theme",
+	);
+	if (!persist) return;
+	try {
+		window.localStorage.setItem(THEME_STORAGE_KEY, resolved);
+	} catch {
+		// localStorage may be unavailable in some contexts.
+	}
+}
+
+themeToggleButton.addEventListener("click", () => {
+	const current =
+		document.documentElement.getAttribute("data-theme") === "light"
+			? "light"
+			: "dark";
+	applyTheme(current === "light" ? "dark" : "light");
+});
+
+try {
+	const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+	if (savedTheme === "light" || savedTheme === "dark") {
+		applyTheme(savedTheme, false);
+	} else {
+		const prefersLight = window.matchMedia?.(
+			"(prefers-color-scheme: light)",
+		).matches;
+		applyTheme(prefersLight ? "light" : "dark", false);
+	}
+} catch {
+	applyTheme("dark", false);
 }
 
 const previewSidebar = document.createElement("aside");
@@ -258,6 +341,7 @@ function addChunkRowBottom() {
 	rows += chunkSize;
 	updateGridSize();
 	renderGridCells();
+	scheduleAutoSave();
 }
 
 function addChunkRowTop() {
@@ -266,6 +350,7 @@ function addChunkRowTop() {
 	shiftPlacedSquares(0, chunkSize);
 	shiftPaths(0, chunkSize);
 	renderGridCells();
+	scheduleAutoSave();
 }
 
 function removeChunkRowBottom() {
@@ -275,6 +360,7 @@ function removeChunkRowBottom() {
 	pruneOutOfBounds();
 	prunePathsOutOfBounds();
 	renderGridCells();
+	scheduleAutoSave();
 }
 
 function removeChunkRowTop() {
@@ -286,12 +372,14 @@ function removeChunkRowTop() {
 	pruneOutOfBounds();
 	prunePathsOutOfBounds();
 	renderGridCells();
+	scheduleAutoSave();
 }
 
 function addChunkColumnRight() {
 	cols += chunkSize;
 	updateGridSize();
 	renderGridCells();
+	scheduleAutoSave();
 }
 
 function addChunkColumnLeft() {
@@ -300,6 +388,7 @@ function addChunkColumnLeft() {
 	shiftPlacedSquares(chunkSize, 0);
 	shiftPaths(chunkSize, 0);
 	renderGridCells();
+	scheduleAutoSave();
 }
 
 function removeChunkColumnRight() {
@@ -309,6 +398,7 @@ function removeChunkColumnRight() {
 	pruneOutOfBounds();
 	prunePathsOutOfBounds();
 	renderGridCells();
+	scheduleAutoSave();
 }
 
 function removeChunkColumnLeft() {
@@ -320,6 +410,7 @@ function removeChunkColumnLeft() {
 	pruneOutOfBounds();
 	prunePathsOutOfBounds();
 	renderGridCells();
+	scheduleAutoSave();
 }
 
 expandTop.addEventListener("click", (event) => {
@@ -351,8 +442,63 @@ expandRight.addEventListener("click", (event) => {
 	addChunkColumnRight();
 });
 
+const ARROW_KEY_DELTAS = {
+	ArrowUp: [0, -1],
+	ArrowDown: [0, 1],
+	ArrowLeft: [-1, 0],
+	ArrowRight: [1, 0],
+};
+
 document.addEventListener("keydown", (event) => {
 	if (event.key === "Shift") updateExpandLabels(true);
+
+	const target = event.target;
+	const isEditable =
+		target &&
+		(target.tagName === "INPUT" ||
+			target.tagName === "TEXTAREA" ||
+			target.tagName === "SELECT" ||
+			target.isContentEditable);
+	if (isEditable) return;
+
+	if (event.key === "Delete" || event.key === "Backspace") {
+		if (selectedPlaced.size) {
+			event.preventDefault();
+			deleteSelected();
+		} else if (selectedPathId) {
+			event.preventDefault();
+			deleteSelectedPath();
+		}
+		return;
+	}
+
+	if ((event.ctrlKey || event.metaKey) && !event.altKey) {
+		const key = event.key.toLowerCase();
+		if (key === "z" && !event.shiftKey) {
+			event.preventDefault();
+			undo();
+			return;
+		}
+		if ((key === "z" && event.shiftKey) || key === "y") {
+			event.preventDefault();
+			redo();
+			return;
+		}
+	}
+
+	if (event.key === "r" || event.key === "R") {
+		if (selectedShapeId && !pathToolActive) {
+			event.preventDefault();
+			toggleShapeRotation();
+		}
+		return;
+	}
+
+	const delta = ARROW_KEY_DELTAS[event.key];
+	if (delta && selectedPlaced.size) {
+		event.preventDefault();
+		moveSelectedBy(delta[0], delta[1]);
+	}
 });
 
 document.addEventListener("keyup", (event) => {
@@ -443,6 +589,7 @@ let selectedPrimary = null;
 let duplicateMode = false;
 let duplicateGroup = null;
 let selectedShapeId = null;
+let pendingRotated = false;
 let shapes = [];
 let activeTab = "farming";
 let activeSubcategory = "all";
@@ -450,6 +597,8 @@ let activeSubcategory = "all";
 // Path tool state
 const pathWidth = 5; // in blocks
 let pathToolActive = false;
+let nextPathId = 1;
+let nextNodeId = 1;
 const pathNodes = []; // {id,x,y}
 const paths = []; // {id,from,to,cells,elements}
 const pathPreviewEls = [];
@@ -472,6 +621,7 @@ const subcategoryMap = {
 		"plaza",
 		"supplies",
 		"utility",
+		"misc",
 	],
 	infrastructure: [
 		"alleys",
@@ -481,8 +631,9 @@ const subcategoryMap = {
 		"monorail",
 		"plaza",
 		"roads",
+		"canal",
 	],
-	walls: ["corners", "gates", "misc", "stairs", "walls"],
+	walls: ["corners", "gates", "misc", "stairs", "walls", "corner", "gate", "segment", "tower"],
 };
 
 function renderTabs() {
@@ -608,9 +759,12 @@ function renderShapeTray() {
 	visibleShapes.forEach((shape) => {
 		const category = shape.category || "farming";
 		const emoji = shape.emoji || defaultEmoji;
-		const previewWidth = shape.w * cellSize;
-		const previewHeight = shape.h * cellSize;
-		const badgeSize = getBadgeFontSize(shape.w, shape.h);
+		const isRotatedSelection = shape.id === selectedShapeId && pendingRotated;
+		const effW = isRotatedSelection ? shape.h : shape.w;
+		const effH = isRotatedSelection ? shape.w : shape.h;
+		const previewWidth = effW * cellSize;
+		const previewHeight = effH * cellSize;
+		const badgeSize = getBadgeFontSize(effW, effH);
 		const scale =
 			previewHeight > maxPreviewHeight ? maxPreviewHeight / previewHeight : 1;
 		const scaledWidth = Math.round(previewWidth * scale);
@@ -620,6 +774,7 @@ function renderShapeTray() {
 		button.dataset.shapeId = shape.id;
 		button.innerHTML = `
 			<div class="shape-label">${shape.label}</div>
+			<div class="shape-dimensions">${effW}×${effH}${isRotatedSelection ? " ↻" : ""}</div>
 			<div class="shape-preview-wrap" style="width:${scaledWidth}px;">
 				<div
 					class="shape-preview category-${category}"
@@ -639,7 +794,19 @@ function renderShapeTray() {
 function selectShape(shapeId) {
 	if (pathToolActive) return;
 	selectedShapeId = selectedShapeId === shapeId ? null : shapeId;
-	updateShapeSelectionUI();
+	pendingRotated = false;
+	renderShapeTray();
+}
+
+function toggleShapeRotation() {
+	if (!selectedShapeId || pathToolActive) return;
+	pendingRotated = !pendingRotated;
+	renderShapeTray();
+}
+
+function getSelectedShapeDimensions(shape) {
+	if (!pendingRotated) return { w: shape.w, h: shape.h };
+	return { w: shape.h, h: shape.w };
 }
 
 function updateShapeSelectionUI() {
@@ -664,7 +831,7 @@ function getPreviewImageCandidates(shape) {
 	const lastToken = idTokens[idTokens.length - 1] || "";
 	const names = [id, lastToken, normalizedLabel].filter(Boolean);
 	const uniqueNames = [...new Set(names)];
-	return uniqueNames.map((name) => `images/${name}_front.jpg`);
+	return uniqueNames.map((name) => `images/${activeStyleId}/${name}_front.jpg`);
 }
 
 function updatePreviewSidebar() {
@@ -770,6 +937,7 @@ function placeSquare(x, y, shape) {
 		category,
 		emoji,
 	});
+	scheduleAutoSave();
 }
 
 function rectanglesOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
@@ -872,6 +1040,7 @@ function beginDrag(event) {
 	const item = pendingDrag.anchor;
 	pendingDrag = null;
 	event.preventDefault();
+	pushUndoState();
 	isDragging = true;
 	dragItem = item;
 	suppressClick = true;
@@ -957,6 +1126,7 @@ function finishDrag(event) {
 	isDragging = false;
 	dragItem = null;
 	dragGroup = null;
+	scheduleAutoSave();
 	if (selectedPrimary) showMenuFor(selectedPrimary);
 	if (event && element.releasePointerCapture) {
 		try {
@@ -1033,6 +1203,7 @@ function hideMenu(preserveSelection = false) {
 
 function deleteSelected() {
 	if (!selectedPlaced.size) return;
+	pushUndoState();
 	const toDelete = Array.from(selectedPlaced);
 	for (let i = placedSquares.length - 1; i >= 0; i -= 1) {
 		if (selectedPlaced.has(placedSquares[i].el)) {
@@ -1042,8 +1213,8 @@ function deleteSelected() {
 	toDelete.forEach((el) => el.remove());
 	clearSelection();
 	duplicateMode = false;
-	duplicateSource = null;
 	hideMenu();
+	scheduleAutoSave();
 }
 
 function rotateSelected() {
@@ -1058,6 +1229,7 @@ function rotateSelected() {
 	const desiredY = Math.round(centerY - nextH / 2);
 	const clamped = clampToBounds(desiredX, desiredY, nextW, nextH);
 	if (!canPlaceAt(clamped.x, clamped.y, nextW, nextH, item.el)) return;
+	pushUndoState();
 	item.w = nextW;
 	item.h = nextH;
 	item.x = clamped.x;
@@ -1067,6 +1239,33 @@ function rotateSelected() {
 	item.el.style.left = `${item.x * cellSize}px`;
 	item.el.style.top = `${item.y * cellSize}px`;
 	showMenuFor(item.el);
+	scheduleAutoSave();
+}
+
+function moveSelectedBy(dx, dy) {
+	if (!selectedPlaced.size) return false;
+	const items = Array.from(selectedPlaced)
+		.map((el) => placedSquares.find((placed) => placed.el === el))
+		.filter(Boolean);
+	if (!items.length) return false;
+	const canMove = items.every((item) => {
+		const nextX = item.x + dx;
+		const nextY = item.y + dy;
+		if (nextX < 0 || nextY < 0 || nextX + item.w > cols || nextY + item.h > rows)
+			return false;
+		return canPlaceAt(nextX, nextY, item.w, item.h, selectedPlaced);
+	});
+	if (!canMove) return false;
+	pushUndoState();
+	items.forEach((item) => {
+		item.x += dx;
+		item.y += dy;
+		item.el.style.left = `${item.x * cellSize}px`;
+		item.el.style.top = `${item.y * cellSize}px`;
+	});
+	if (selectedPrimary) showMenuFor(selectedPrimary);
+	scheduleAutoSave();
+	return true;
 }
 
 async function loadStyle(file) {
@@ -1076,6 +1275,8 @@ async function loadStyle(file) {
 }
 
 async function applyStyle(file) {
+	const styleEntry = STYLE_FILES.find((entry) => entry.file === file);
+	activeStyleId = styleEntry ? styleEntry.id : activeStyleId;
 	try {
 		const data = await loadStyle(file);
 		shapes = Array.isArray(data.shapes) ? data.shapes : [];
@@ -1144,6 +1345,7 @@ grid.addEventListener("click", (event) => {
 			return canPlaceAt(nextX, nextY, entry.item.w, entry.item.h);
 		});
 		if (!fits) return;
+		pushUndoState();
 		nextPositions.forEach(({ entry, x: nextX, y: nextY }) => {
 			placeSquare(nextX, nextY, entry.item);
 		});
@@ -1154,19 +1356,21 @@ grid.addEventListener("click", (event) => {
 	if (suppressClick) return;
 	const selectedShape = getSelectedShape();
 	if (!selectedShape) return;
+	const { w: shapeW, h: shapeH } = getSelectedShapeDimensions(selectedShape);
 	const cell = event.target.closest(".grid-cell");
 	if (!cell) return;
 	const x = Number(cell.dataset.x);
 	const y = Number(cell.dataset.y);
 	const step = event.ctrlKey ? chunkSize : 1;
-	const snap = snapToGrid(x, y, selectedShape.w, selectedShape.h, step);
+	const snap = snapToGrid(x, y, shapeW, shapeH, step);
 	if (!snap) return;
-	if (snap.x + selectedShape.w > cols || snap.y + selectedShape.h > rows)
-		return;
-	if (!canPlaceAt(snap.x, snap.y, selectedShape.w, selectedShape.h)) return;
-	placeSquare(snap.x, snap.y, selectedShape);
+	if (snap.x + shapeW > cols || snap.y + shapeH > rows) return;
+	if (!canPlaceAt(snap.x, snap.y, shapeW, shapeH)) return;
+	pushUndoState();
+	placeSquare(snap.x, snap.y, { ...selectedShape, w: shapeW, h: shapeH });
 	selectedShapeId = null;
-	updateShapeSelectionUI();
+	pendingRotated = false;
+	renderShapeTray();
 });
 
 document.addEventListener("pointermove", handleMove);
@@ -1313,12 +1517,12 @@ function renderPathDOM(path, globalCellSet) {
 		cellEl.style.height = `${cellSize}px`;
 		cellEl.style.background =
 			selectedPathId === path.id
-				? "rgba(106,172,255,0.45)"
-				: "rgba(100,180,220,0.4)";
+				? "var(--path-cell-bg-selected)"
+				: "var(--path-cell-bg)";
 		cellEl.style.pointerEvents = "none";
 		cellEl.style.boxSizing = "border-box";
 
-		const border = "1px solid rgba(60,140,200,0.8)";
+		const border = "1px solid var(--path-cell-border)";
 		if (!hasTop) cellEl.style.borderTop = border;
 		if (!hasBottom) cellEl.style.borderBottom = border;
 		if (!hasLeft) cellEl.style.borderLeft = border;
@@ -1397,11 +1601,11 @@ function showPathPreview(cells) {
 		cellEl.style.top = `${relY * cellSize}px`;
 		cellEl.style.width = `${cellSize}px`;
 		cellEl.style.height = `${cellSize}px`;
-		cellEl.style.background = "rgba(100,180,220,0.3)";
+		cellEl.style.background = "var(--path-preview-bg)";
 		cellEl.style.pointerEvents = "none";
 		cellEl.style.boxSizing = "border-box";
 
-		const border = "1px dashed rgba(60,140,200,0.6)";
+		const border = "1px dashed var(--path-preview-border)";
 		if (!hasTop) cellEl.style.borderTop = border;
 		if (!hasBottom) cellEl.style.borderBottom = border;
 		if (!hasLeft) cellEl.style.borderLeft = border;
@@ -1420,8 +1624,24 @@ function findNodeNear(x, y, threshold = 1) {
 	);
 }
 
+function findBuildingEdgeSnapValue(coord, axis, threshold) {
+	let best = null;
+	let bestDist = Infinity;
+	placedSquares.forEach((b) => {
+		const edges = axis === "x" ? [b.x, b.x + b.w] : [b.y, b.y + b.h];
+		edges.forEach((edge) => {
+			const dist = Math.abs(edge - coord);
+			if (dist <= threshold && dist < bestDist) {
+				bestDist = dist;
+				best = edge;
+			}
+		});
+	});
+	return best;
+}
+
 function addNode(x, y) {
-	const id = `node_${pathNodes.length + 1}`;
+	const id = `node_${nextNodeId++}`;
 	const node = { id, x, y };
 	pathNodes.push(node);
 	return node;
@@ -1441,6 +1661,7 @@ function syncPathNodesFromPaths() {
 	for (const pos of unique.values()) {
 		pathNodes.push({ id: `node_${idx++}`, x: pos.x, y: pos.y });
 	}
+	nextNodeId = Math.max(nextNodeId, idx);
 }
 
 function isPathOutOfBounds(path) {
@@ -1522,12 +1743,19 @@ function prunePathsOutOfBounds() {
 
 function createPath(startCell, endCell) {
 	if (!startCell || !endCell) return;
+	pushUndoState();
 	const snapThreshold = 1;
 	const nearStart = findNodeNear(startCell.x, startCell.y, snapThreshold);
 	const fromPos = nearStart
 		? { x: nearStart.x, y: nearStart.y }
 		: { x: startCell.x, y: startCell.y };
-	if (!nearStart) addNode(fromPos.x, fromPos.y);
+	if (!nearStart) {
+		const edgeX = findBuildingEdgeSnapValue(fromPos.x, "x", snapThreshold);
+		const edgeY = findBuildingEdgeSnapValue(fromPos.y, "y", snapThreshold);
+		if (edgeX !== null) fromPos.x = edgeX;
+		if (edgeY !== null) fromPos.y = edgeY;
+		addNode(fromPos.x, fromPos.y);
+	}
 
 	// Compute the actual endpoint after direction clamping (bresenhamLine picks H or V only)
 	const line = bresenhamLine(fromPos.x, fromPos.y, endCell.x, endCell.y);
@@ -1538,9 +1766,21 @@ function createPath(startCell, endCell) {
 	const toPos = nearEnd
 		? { x: nearEnd.x, y: nearEnd.y }
 		: { x: actualEnd.x, y: actualEnd.y };
-	if (!nearEnd) addNode(toPos.x, toPos.y);
+	if (!nearEnd) {
+		const freeAxis = actualEnd.y === fromPos.y ? "x" : "y";
+		const edgeValue = findBuildingEdgeSnapValue(
+			freeAxis === "x" ? toPos.x : toPos.y,
+			freeAxis,
+			snapThreshold,
+		);
+		if (edgeValue !== null) {
+			if (freeAxis === "x") toPos.x = edgeValue;
+			else toPos.y = edgeValue;
+		}
+		addNode(toPos.x, toPos.y);
+	}
 
-	const id = `path_${paths.length + 1}`;
+	const id = `path_${nextPathId++}`;
 	const path = {
 		id,
 		from: { ...fromPos },
@@ -1551,6 +1791,7 @@ function createPath(startCell, endCell) {
 	rebuildPathCells(path);
 	paths.push(path);
 	rerenderAllPathBorders();
+	scheduleAutoSave();
 }
 
 // ----- Path resize handles -----
@@ -1558,6 +1799,7 @@ let pathResizing = false;
 let pathResizeId = null;
 let pathResizeEnd = null; // 'from' or 'to'
 let pathResizeOriginalPos = null;
+let pathResizeChanged = false;
 const pathHandleEls = [];
 
 function showPathHandles(path) {
@@ -1574,8 +1816,8 @@ function showPathHandles(path) {
 		handle.style.top = `${pos.y * cellSize - (hs - cellSize) / 2}px`;
 		handle.style.width = `${hs}px`;
 		handle.style.height = `${hs}px`;
-		handle.style.background = "rgba(255,200,50,0.9)";
-		handle.style.border = "2px solid rgba(180,120,0,1)";
+		handle.style.background = "var(--path-resize-handle-bg)";
+		handle.style.border = "2px solid var(--path-resize-handle-border)";
 		handle.style.borderRadius = "50%";
 		handle.style.cursor = "grab";
 		handle.style.zIndex = "20";
@@ -1591,6 +1833,7 @@ function showPathHandles(path) {
 			pathResizeEnd = end;
 			pathResizeOriginalPos =
 				end === "from" ? { ...path.from } : { ...path.to };
+			pathResizeChanged = false;
 			handle.style.cursor = "grabbing";
 			handle.setPointerCapture(e.pointerId);
 		});
@@ -1619,12 +1862,27 @@ function showPathHandles(path) {
 				(n) =>
 					Math.hypot(n.x - constrained.x, n.y - constrained.y) <= snapThreshold,
 			);
-			const snapped = nearbyNode
-				? isHorizontal
+			let snapped;
+			if (nearbyNode) {
+				snapped = isHorizontal
 					? { x: nearbyNode.x, y: fixedPos.y }
-					: { x: fixedPos.x, y: nearbyNode.y }
-				: constrained;
+					: { x: fixedPos.x, y: nearbyNode.y };
+			} else {
+				const axis = isHorizontal ? "x" : "y";
+				const coord = isHorizontal ? constrained.x : constrained.y;
+				const edgeSnap = findBuildingEdgeSnapValue(coord, axis, snapThreshold);
+				snapped =
+					edgeSnap !== null
+						? isHorizontal
+							? { x: edgeSnap, y: fixedPos.y }
+							: { x: fixedPos.x, y: edgeSnap }
+						: constrained;
+			}
 
+			if (!pathResizeChanged) {
+				pushUndoState();
+				pathResizeChanged = true;
+			}
 			if (pathResizeEnd === "from") p.from = { ...snapped };
 			else p.to = { ...snapped };
 
@@ -1639,6 +1897,7 @@ function showPathHandles(path) {
 			pathResizeEnd = null;
 			pathResizeOriginalPos = null;
 			handle.style.cursor = "grab";
+			scheduleAutoSave();
 		});
 
 		handle.addEventListener("pointercancel", () => {
@@ -1726,6 +1985,7 @@ grid.addEventListener("pointermove", (e) => {
 			if (!pathDragging && (Math.abs(dx) >= 1 || Math.abs(dy) >= 1)) {
 				pathDragging = true;
 				suppressPathClick = true;
+				pushUndoState();
 			}
 			if (pathDragging) {
 				const p = paths.find((pt) => pt.id === pathDragPending.pathId);
@@ -1756,7 +2016,27 @@ grid.addEventListener("pointermove", (e) => {
 	const nearbyNode = pathNodes.find(
 		(n) => Math.hypot(n.x - cell.x, n.y - cell.y) <= snapThreshold,
 	);
-	const endCell = nearbyNode ? { x: nearbyNode.x, y: nearbyNode.y } : cell;
+	let endCell = nearbyNode ? { x: nearbyNode.x, y: nearbyNode.y } : { ...cell };
+	if (!nearbyNode) {
+		const previewLine = bresenhamLine(
+			pathStartCell.x,
+			pathStartCell.y,
+			cell.x,
+			cell.y,
+		);
+		const previewEnd = previewLine[previewLine.length - 1];
+		const freeAxis = previewEnd.y === pathStartCell.y ? "x" : "y";
+		const edgeValue = findBuildingEdgeSnapValue(
+			freeAxis === "x" ? previewEnd.x : previewEnd.y,
+			freeAxis,
+			snapThreshold,
+		);
+		endCell = { ...previewEnd };
+		if (edgeValue !== null) {
+			if (freeAxis === "x") endCell.x = edgeValue;
+			else endCell.y = edgeValue;
+		}
+	}
 	const line = bresenhamLine(
 		pathStartCell.x,
 		pathStartCell.y,
@@ -1793,6 +2073,7 @@ grid.addEventListener("pointerup", (e) => {
 					toNode.y = p.to.y;
 				}
 			}
+			scheduleAutoSave();
 		}
 		try {
 			grid.releasePointerCapture(e.pointerId);
@@ -1862,6 +2143,7 @@ function deleteSelectedPath() {
 	if (!selectedPathId) return;
 	const pathIdx = paths.findIndex((p) => p.id === selectedPathId);
 	if (pathIdx < 0) return;
+	pushUndoState();
 	const path = paths[pathIdx];
 	path.elements.forEach((el) => el.remove());
 	paths.splice(pathIdx, 1);
@@ -1869,6 +2151,7 @@ function deleteSelectedPath() {
 	selectedPathId = null;
 	pathActionMenu.style.display = "none";
 	rerenderAllPathBorders();
+	scheduleAutoSave();
 }
 
 pathActionMenu.addEventListener("click", (event) => {
@@ -1878,4 +2161,444 @@ pathActionMenu.addEventListener("click", (event) => {
 	if (action === "delete") deleteSelectedPath();
 });
 
-applyStyle(STYLE_FILES[0].file);
+// ----- Image export -----
+const CATEGORY_LIST = [
+	"farming",
+	"craftsmanship",
+	"decoration",
+	"education",
+	"fundamentals",
+	"infrastructure",
+	"military",
+	"mystic",
+	"walls",
+];
+const categorySwatches = {};
+CATEGORY_LIST.forEach((category) => {
+	const swatch = document.createElement("div");
+	swatch.className = `category-${category}`;
+	swatch.style.position = "absolute";
+	swatch.style.width = "0";
+	swatch.style.height = "0";
+	swatch.style.overflow = "hidden";
+	swatch.style.opacity = "0";
+	swatch.style.pointerEvents = "none";
+	document.body.appendChild(swatch);
+	categorySwatches[category] = swatch;
+});
+
+function getCategoryColors(category) {
+	const swatch = categorySwatches[category] || categorySwatches.farming;
+	const style = getComputedStyle(swatch);
+	return {
+		fill: style.getPropertyValue("--category-color").trim() || "#d8c4a8",
+		border: style.getPropertyValue("--category-border").trim() || "#b59a7a",
+	};
+}
+
+function exportPlanAsPNG() {
+	const width = cols * cellSize;
+	const height = rows * cellSize;
+	if (width > 8000 || height > 8000) {
+		console.warn("Plan is very large; PNG export may be slow or fail.");
+	}
+	const canvas = document.createElement("canvas");
+	canvas.width = width;
+	canvas.height = height;
+	const ctx = canvas.getContext("2d");
+
+	const rootStyle = getComputedStyle(document.documentElement);
+	const gridBg = rootStyle.getPropertyValue("--grid-bg").trim() || "#1e1e1e";
+	const gridLine =
+		rootStyle.getPropertyValue("--grid-line").trim() || "#3a3a3a";
+	const pathBg =
+		rootStyle.getPropertyValue("--path-cell-bg").trim() ||
+		"rgba(100,180,220,0.4)";
+	const badgeInk =
+		rootStyle.getPropertyValue("--accent-ink").trim() || "#0f1115";
+
+	ctx.fillStyle = gridBg;
+	ctx.fillRect(0, 0, width, height);
+
+	ctx.strokeStyle = gridLine;
+	ctx.lineWidth = 1;
+	for (let x = 0; x <= cols; x += chunkSize) {
+		ctx.beginPath();
+		ctx.moveTo(x * cellSize, 0);
+		ctx.lineTo(x * cellSize, height);
+		ctx.stroke();
+	}
+	for (let y = 0; y <= rows; y += chunkSize) {
+		ctx.beginPath();
+		ctx.moveTo(0, y * cellSize);
+		ctx.lineTo(width, y * cellSize);
+		ctx.stroke();
+	}
+
+	ctx.fillStyle = pathBg;
+	paths.forEach((path) => {
+		path.cells.forEach((cell) => {
+			ctx.fillRect(cell.x * cellSize, cell.y * cellSize, cellSize, cellSize);
+		});
+	});
+
+	placedSquares.forEach((placed) => {
+		const colors = getCategoryColors(placed.category);
+		const x = placed.x * cellSize;
+		const y = placed.y * cellSize;
+		const w = placed.w * cellSize;
+		const h = placed.h * cellSize;
+		ctx.fillStyle = colors.fill;
+		ctx.fillRect(x, y, w, h);
+		ctx.strokeStyle = colors.border;
+		ctx.lineWidth = 2;
+		ctx.strokeRect(x, y, w, h);
+
+		const fontSize = getBadgeFontSize(placed.w, placed.h);
+		ctx.fillStyle = badgeInk;
+		ctx.font = `700 ${fontSize}px "Segoe UI", sans-serif`;
+		ctx.textAlign = "center";
+		ctx.textBaseline = "middle";
+		const label = `${placed.emoji || defaultEmoji} ${placed.label}`;
+		ctx.fillText(label, x + w / 2, y + h / 2, Math.max(w - 8, 4));
+	});
+
+	canvas.toBlob((blob) => {
+		if (!blob) return;
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement("a");
+		link.href = url;
+		link.download = `minecolonies-plan-${Date.now()}.png`;
+		link.click();
+		URL.revokeObjectURL(url);
+	}, "image/png");
+}
+
+// ----- Save / Load -----
+const SAVE_FORMAT_VERSION = 1;
+const AUTOSAVE_STORAGE_KEY = "minecolonies.autosave.v1";
+let autoSaveTimer = null;
+let autoSaveSuppressed = false;
+
+function scheduleAutoSave() {
+	if (autoSaveSuppressed) return;
+	if (autoSaveTimer) clearTimeout(autoSaveTimer);
+	autoSaveTimer = setTimeout(() => {
+		autoSaveTimer = null;
+		try {
+			window.localStorage.setItem(
+				AUTOSAVE_STORAGE_KEY,
+				JSON.stringify(serializePlan()),
+			);
+		} catch {
+			// localStorage may be unavailable or full.
+		}
+	}, 500);
+}
+
+function serializePlan() {
+	return {
+		formatVersion: SAVE_FORMAT_VERSION,
+		styleFile: styleSelect.value,
+		savedAt: new Date().toISOString(),
+		grid: { rows, cols },
+		buildings: placedSquares.map((placed) => ({
+			id: placed.id,
+			x: placed.x,
+			y: placed.y,
+			w: placed.w,
+			h: placed.h,
+		})),
+		roads: {
+			paths: paths.map((path) => ({
+				id: path.id,
+				from: { x: path.from.x, y: path.from.y },
+				to: { x: path.to.x, y: path.to.y },
+			})),
+		},
+	};
+}
+
+function downloadPlanAsJSON() {
+	const json = JSON.stringify(serializePlan(), null, 2);
+	const blob = new Blob([json], { type: "application/json" });
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement("a");
+	link.href = url;
+	link.download = `minecolonies-plan-${Date.now()}.json`;
+	link.click();
+	URL.revokeObjectURL(url);
+}
+
+function clearPlan() {
+	placedSquares.forEach((placed) => placed.el.remove());
+	placedSquares.length = 0;
+	paths.forEach((path) => path.elements.forEach((el) => el.remove()));
+	paths.length = 0;
+	pathNodes.length = 0;
+	clearSelection();
+	hideMenu();
+	hidePathMenu();
+}
+
+function restoreBuildingsFromSaved(buildings) {
+	if (!Array.isArray(buildings)) return;
+	buildings.forEach((building) => {
+		if (!building || !building.id) return;
+		placeSquare(building.x, building.y, {
+			id: building.id,
+			w: building.w,
+			h: building.h,
+		});
+	});
+}
+
+function restorePathsFromSaved(savedPaths) {
+	if (!Array.isArray(savedPaths)) return;
+	let maxId = 0;
+	savedPaths.forEach((saved) => {
+		if (!saved || !saved.from || !saved.to) return;
+		const path = {
+			id: saved.id,
+			from: { x: saved.from.x, y: saved.from.y },
+			to: { x: saved.to.x, y: saved.to.y },
+			cells: [],
+			elements: [],
+		};
+		rebuildPathCells(path);
+		paths.push(path);
+		const match = /_(\d+)$/.exec(String(saved.id || ""));
+		if (match) maxId = Math.max(maxId, Number(match[1]));
+	});
+	nextPathId = Math.max(nextPathId, maxId + 1);
+	syncPathNodesFromPaths();
+	rerenderAllPathBorders();
+}
+
+async function applyPlanData(data) {
+	if (!data || data.formatVersion !== SAVE_FORMAT_VERSION) {
+		console.error("Unsupported or missing plan format version.");
+		return;
+	}
+	undoStack.length = 0;
+	redoStack.length = 0;
+	updateUndoRedoButtons();
+	autoSaveSuppressed = true;
+	try {
+		if (data.styleFile && data.styleFile !== styleSelect.value) {
+			const match = STYLE_FILES.find(
+				(styleFile) => styleFile.file === data.styleFile,
+			);
+			if (match) {
+				styleSelect.value = match.file;
+				await applyStyle(match.file);
+			}
+		}
+		clearPlan();
+		if (data.grid) {
+			rows = data.grid.rows || rows;
+			cols = data.grid.cols || cols;
+			updateGridSize();
+			renderGridCells();
+		}
+		restoreBuildingsFromSaved(data.buildings);
+		restorePathsFromSaved(data.roads && data.roads.paths);
+	} finally {
+		autoSaveSuppressed = false;
+	}
+	scheduleAutoSave();
+}
+
+function readPlanFile(file) {
+	if (!file) return;
+	const reader = new FileReader();
+	reader.onload = () => {
+		try {
+			const data = JSON.parse(reader.result);
+			applyPlanData(data);
+		} catch (error) {
+			console.error("Failed to read plan file.", error);
+		}
+	};
+	reader.readAsText(file);
+}
+
+// ----- My Plans (named, multi-slot saves) -----
+const NAMED_PLANS_STORAGE_KEY = "minecolonies.namedPlans.v1";
+
+function loadNamedPlans() {
+	try {
+		const raw = window.localStorage.getItem(NAMED_PLANS_STORAGE_KEY);
+		const parsed = raw ? JSON.parse(raw) : {};
+		return parsed && typeof parsed === "object" ? parsed : {};
+	} catch {
+		return {};
+	}
+}
+
+function saveNamedPlans(plans) {
+	try {
+		window.localStorage.setItem(NAMED_PLANS_STORAGE_KEY, JSON.stringify(plans));
+	} catch {
+		// localStorage may be unavailable or full.
+	}
+}
+
+function saveCurrentPlanAs(name) {
+	const trimmed = name.trim();
+	if (!trimmed) return;
+	const plans = loadNamedPlans();
+	if (plans[trimmed]) {
+		const confirmed = window.confirm(
+			`A plan named "${trimmed}" already exists. Overwrite it?`,
+		);
+		if (!confirmed) return;
+	}
+	plans[trimmed] = { plan: serializePlan(), savedAt: new Date().toISOString() };
+	saveNamedPlans(plans);
+	renderNamedPlansList();
+}
+
+async function loadNamedPlan(name) {
+	const plans = loadNamedPlans();
+	const entry = plans[name];
+	if (!entry) return;
+	await applyPlanData(entry.plan);
+}
+
+function deleteNamedPlan(name) {
+	const confirmed = window.confirm(`Delete the saved plan "${name}"?`);
+	if (!confirmed) return;
+	const plans = loadNamedPlans();
+	delete plans[name];
+	saveNamedPlans(plans);
+	renderNamedPlansList();
+}
+
+function renderNamedPlansList() {
+	const plans = loadNamedPlans();
+	const names = Object.keys(plans).sort((a, b) =>
+		(plans[b].savedAt || "").localeCompare(plans[a].savedAt || ""),
+	);
+	namedPlansListEl
+		.querySelectorAll(".left-sidebar__plan-row")
+		.forEach((row) => row.remove());
+	namedPlansEmptyEl.style.display = names.length ? "none" : "block";
+	names.forEach((name) => {
+		const row = document.createElement("div");
+		row.className = "left-sidebar__plan-row";
+		const nameSpan = document.createElement("span");
+		nameSpan.className = "left-sidebar__plan-name";
+		nameSpan.textContent = name;
+		nameSpan.title = name;
+		const loadBtn = document.createElement("button");
+		loadBtn.type = "button";
+		loadBtn.className = "left-sidebar__plan-action";
+		loadBtn.textContent = "Load";
+		loadBtn.addEventListener("click", () => loadNamedPlan(name));
+		const deleteBtn = document.createElement("button");
+		deleteBtn.type = "button";
+		deleteBtn.className = "left-sidebar__plan-action left-sidebar__plan-action--danger";
+		deleteBtn.textContent = "Delete";
+		deleteBtn.addEventListener("click", () => deleteNamedPlan(name));
+		row.appendChild(nameSpan);
+		row.appendChild(loadBtn);
+		row.appendChild(deleteBtn);
+		namedPlansListEl.appendChild(row);
+	});
+}
+
+// ----- Undo / Redo -----
+const MAX_UNDO_STATES = 50;
+const undoStack = [];
+const redoStack = [];
+let isRestoringHistory = false;
+
+function updateUndoRedoButtons() {
+	undoButton.disabled = undoStack.length === 0;
+	redoButton.disabled = redoStack.length === 0;
+}
+
+function pushUndoState() {
+	if (isRestoringHistory) return;
+	undoStack.push(JSON.stringify(serializePlan()));
+	if (undoStack.length > MAX_UNDO_STATES) undoStack.shift();
+	redoStack.length = 0;
+	updateUndoRedoButtons();
+}
+
+async function restoreHistoryState(json) {
+	const data = JSON.parse(json);
+	isRestoringHistory = true;
+	autoSaveSuppressed = true;
+	try {
+		clearPlan();
+		if (data.grid) {
+			rows = data.grid.rows || rows;
+			cols = data.grid.cols || cols;
+			updateGridSize();
+			renderGridCells();
+		}
+		restoreBuildingsFromSaved(data.buildings);
+		restorePathsFromSaved(data.roads && data.roads.paths);
+	} finally {
+		autoSaveSuppressed = false;
+		isRestoringHistory = false;
+	}
+	scheduleAutoSave();
+}
+
+async function undo() {
+	if (!undoStack.length) return;
+	const current = JSON.stringify(serializePlan());
+	const previous = undoStack.pop();
+	redoStack.push(current);
+	updateUndoRedoButtons();
+	await restoreHistoryState(previous);
+}
+
+async function redo() {
+	if (!redoStack.length) return;
+	const current = JSON.stringify(serializePlan());
+	const next = redoStack.pop();
+	undoStack.push(current);
+	updateUndoRedoButtons();
+	await restoreHistoryState(next);
+}
+
+undoButton.addEventListener("click", () => undo());
+redoButton.addEventListener("click", () => redo());
+updateUndoRedoButtons();
+
+exportJsonButton.addEventListener("click", downloadPlanAsJSON);
+importJsonTriggerButton.addEventListener("click", () => {
+	importJsonInput.click();
+});
+importJsonInput.addEventListener("change", (event) => {
+	const file = event.target.files && event.target.files[0];
+	readPlanFile(file);
+	importJsonInput.value = "";
+});
+exportPngButton.addEventListener("click", () => exportPlanAsPNG());
+
+saveNamedPlanButton.addEventListener("click", () => {
+	saveCurrentPlanAs(planNameInput.value);
+	planNameInput.value = "";
+});
+planNameInput.addEventListener("keydown", (event) => {
+	if (event.key === "Enter") {
+		event.preventDefault();
+		saveCurrentPlanAs(planNameInput.value);
+		planNameInput.value = "";
+	}
+});
+renderNamedPlansList();
+
+applyStyle(STYLE_FILES[0].file).then(() => {
+	try {
+		const raw = window.localStorage.getItem(AUTOSAVE_STORAGE_KEY);
+		if (raw) applyPlanData(JSON.parse(raw));
+	} catch (error) {
+		console.error("Failed to restore autosave", error);
+	}
+});

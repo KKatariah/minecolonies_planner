@@ -1,0 +1,729 @@
+{
+	"name": "Medieval Spruce",
+	"shapes": [
+		{
+			"id": "horticulture_altfarmer",
+			"label": "Alt Farmer",
+			"w": 15,
+			"h": 18,
+			"category": "farming",
+			"emoji": "🌾",
+			"subcategory": "horticulture"
+		},
+		{
+			"id": "horticulture_composter",
+			"label": "Composter",
+			"w": 25,
+			"h": 25,
+			"category": "farming",
+			"emoji": "♻️",
+			"subcategory": "horticulture"
+		},
+		{
+			"id": "horticulture_farmer",
+			"label": "Farmer",
+			"w": 21,
+			"h": 23,
+			"category": "farming",
+			"emoji": "🌾",
+			"subcategory": "horticulture"
+		},
+		{
+			"id": "horticulture_florist",
+			"label": "Florist",
+			"w": 16,
+			"h": 20,
+			"category": "farming",
+			"emoji": "🌸",
+			"subcategory": "horticulture"
+		},
+		{
+			"id": "horticulture_plantation",
+			"label": "Plantation",
+			"w": 32,
+			"h": 24,
+			"category": "farming",
+			"emoji": "🌴",
+			"subcategory": "horticulture"
+		},
+		{
+			"id": "husbandry_altchickenherder",
+			"label": "Alt Chicken Herder",
+			"w": 18,
+			"h": 15,
+			"category": "farming",
+			"emoji": "🐔",
+			"subcategory": "husbandry"
+		},
+		{
+			"id": "husbandry_altcowboy",
+			"label": "Alt Cowboy",
+			"w": 17,
+			"h": 21,
+			"category": "farming",
+			"emoji": "🐄",
+			"subcategory": "husbandry"
+		},
+		{
+			"id": "husbandry_altfisherman",
+			"label": "Alt Fisherman",
+			"w": 17,
+			"h": 20,
+			"category": "farming",
+			"emoji": "🎣",
+			"subcategory": "husbandry"
+		},
+		{
+			"id": "husbandry_altswineherder",
+			"label": "Alt Swineherder",
+			"w": 18,
+			"h": 16,
+			"category": "farming",
+			"emoji": "🐖",
+			"subcategory": "husbandry"
+		},
+		{
+			"id": "husbandry_beekeeper",
+			"label": "Beekeeper",
+			"w": 19,
+			"h": 10,
+			"category": "farming",
+			"emoji": "🐝",
+			"subcategory": "husbandry"
+		},
+		{
+			"id": "husbandry_chickenherder",
+			"label": "Chicken Herder",
+			"w": 16,
+			"h": 18,
+			"category": "farming",
+			"emoji": "🐔",
+			"subcategory": "husbandry"
+		},
+		{
+			"id": "husbandry_cowboy",
+			"label": "Cowboy",
+			"w": 18,
+			"h": 20,
+			"category": "farming",
+			"emoji": "🐄",
+			"subcategory": "husbandry"
+		},
+		{
+			"id": "husbandry_fisherman",
+			"label": "Fisherman",
+			"w": 18,
+			"h": 26,
+			"category": "farming",
+			"emoji": "🎣",
+			"subcategory": "husbandry"
+		},
+		{
+			"id": "husbandry_rabbithutch",
+			"label": "Rabbit Hutch",
+			"w": 16,
+			"h": 14,
+			"category": "farming",
+			"emoji": "🐇",
+			"subcategory": "husbandry"
+		},
+		{
+			"id": "husbandry_shepherd",
+			"label": "Shepherd",
+			"w": 17,
+			"h": 23,
+			"category": "farming",
+			"emoji": "🐑",
+			"subcategory": "husbandry"
+		},
+		{
+			"id": "husbandry_swineherder",
+			"label": "Swineherder",
+			"w": 15,
+			"h": 15,
+			"category": "farming",
+			"emoji": "🐖",
+			"subcategory": "husbandry"
+		},
+		{
+			"id": "carpentry_altsawmill",
+			"label": "Alt Sawmill",
+			"w": 17,
+			"h": 11,
+			"category": "craftsmanship",
+			"emoji": "🪓",
+			"subcategory": "carpentry"
+		},
+		{
+			"id": "carpentry_fletcher",
+			"label": "Fletcher",
+			"w": 11,
+			"h": 13,
+			"category": "craftsmanship",
+			"emoji": "🏹",
+			"subcategory": "carpentry"
+		},
+		{
+			"id": "carpentry_sawmill",
+			"label": "Sawmill",
+			"w": 18,
+			"h": 22,
+			"category": "craftsmanship",
+			"emoji": "🪓",
+			"subcategory": "carpentry"
+		},
+		{
+			"id": "luxury_alchemist",
+			"label": "Alchemist",
+			"w": 18,
+			"h": 19,
+			"category": "craftsmanship",
+			"emoji": "⚗️",
+			"subcategory": "luxury"
+		},
+		{
+			"id": "luxury_altbaker",
+			"label": "Alt Baker",
+			"w": 20,
+			"h": 13,
+			"category": "craftsmanship",
+			"emoji": "🥖",
+			"subcategory": "luxury"
+		},
+		{
+			"id": "luxury_baker",
+			"label": "Baker",
+			"w": 13,
+			"h": 17,
+			"category": "craftsmanship",
+			"emoji": "🥖",
+			"subcategory": "luxury"
+		},
+		{
+			"id": "luxury_concretemixer",
+			"label": "Concrete Mixer",
+			"w": 13,
+			"h": 11,
+			"category": "craftsmanship",
+			"emoji": "🧱",
+			"subcategory": "luxury"
+		},
+		{
+			"id": "luxury_cookery",
+			"label": "Cookery",
+			"w": 13,
+			"h": 13,
+			"category": "craftsmanship",
+			"emoji": "🍳",
+			"subcategory": "luxury"
+		},
+		{
+			"id": "luxury_dyer",
+			"label": "Dyer",
+			"w": 9,
+			"h": 19,
+			"category": "craftsmanship",
+			"emoji": "🎨",
+			"subcategory": "luxury"
+		},
+		{
+			"id": "luxury_glassblower",
+			"label": "Glassblower",
+			"w": 19,
+			"h": 15,
+			"category": "craftsmanship",
+			"emoji": "🧪",
+			"subcategory": "luxury"
+		},
+		{
+			"id": "masonry_crusher",
+			"label": "Crusher",
+			"w": 16,
+			"h": 14,
+			"category": "craftsmanship",
+			"emoji": "🪨",
+			"subcategory": "masonry"
+		},
+		{
+			"id": "masonry_sifter",
+			"label": "Sifter",
+			"w": 11,
+			"h": 18,
+			"category": "craftsmanship",
+			"emoji": "🧺",
+			"subcategory": "masonry"
+		},
+		{
+			"id": "masonry_stonemason",
+			"label": "Stone Mason",
+			"w": 16,
+			"h": 20,
+			"category": "craftsmanship",
+			"emoji": "🪨",
+			"subcategory": "masonry"
+		},
+		{
+			"id": "masonry_stonesmeltery",
+			"label": "Stone Smeltery",
+			"w": 21,
+			"h": 12,
+			"category": "craftsmanship",
+			"emoji": "🔥",
+			"subcategory": "masonry"
+		},
+		{
+			"id": "metallurgy_blacksmith",
+			"label": "Blacksmith",
+			"w": 20,
+			"h": 11,
+			"category": "craftsmanship",
+			"emoji": "⚒️",
+			"subcategory": "metallurgy"
+		},
+		{
+			"id": "metallurgy_mechanic",
+			"label": "Mechanic",
+			"w": 12,
+			"h": 15,
+			"category": "craftsmanship",
+			"emoji": "🛠️",
+			"subcategory": "metallurgy"
+		},
+		{
+			"id": "metallurgy_smeltery",
+			"label": "Smeltery",
+			"w": 17,
+			"h": 15,
+			"category": "craftsmanship",
+			"emoji": "🔥",
+			"subcategory": "metallurgy"
+		},
+		{
+			"id": "storage_altdeliveryman",
+			"label": "Alt Deliveryman",
+			"w": 17,
+			"h": 13,
+			"category": "craftsmanship",
+			"emoji": "📦",
+			"subcategory": "storage"
+		},
+		{
+			"id": "storage_altwarehouse",
+			"label": "Alt Warehouse",
+			"w": 21,
+			"h": 29,
+			"category": "craftsmanship",
+			"emoji": "📦",
+			"subcategory": "storage"
+		},
+		{
+			"id": "storage_deliveryman",
+			"label": "Deliveryman",
+			"w": 13,
+			"h": 9,
+			"category": "craftsmanship",
+			"emoji": "📦",
+			"subcategory": "storage"
+		},
+		{
+			"id": "storage_warehouse",
+			"label": "Warehouse",
+			"w": 25,
+			"h": 23,
+			"category": "craftsmanship",
+			"emoji": "📦",
+			"subcategory": "storage"
+		},
+		{
+			"id": "misc_bigwell",
+			"label": "Big Well",
+			"w": 9,
+			"h": 9,
+			"category": "decoration",
+			"emoji": "💧",
+			"subcategory": "misc"
+		},
+		{
+			"id": "misc_small_stable",
+			"label": "Small Stable",
+			"w": 13,
+			"h": 13,
+			"category": "decoration",
+			"emoji": "🐴",
+			"subcategory": "misc"
+		},
+		{
+			"id": "misc_smallwell",
+			"label": "Small Well",
+			"w": 8,
+			"h": 8,
+			"category": "decoration",
+			"emoji": "💧",
+			"subcategory": "misc"
+		},
+		{
+			"id": "supplies_camp",
+			"label": "Camp",
+			"w": 11,
+			"h": 12,
+			"category": "decoration",
+			"emoji": "⛺",
+			"subcategory": "supplies"
+		},
+		{
+			"id": "supplies_ship",
+			"label": "Ship",
+			"w": 17,
+			"h": 32,
+			"category": "decoration",
+			"emoji": "⚓",
+			"subcategory": "supplies"
+		},
+		{
+			"id": "education_altlibrary",
+			"label": "Alt Library",
+			"w": 41,
+			"h": 36,
+			"category": "education",
+			"emoji": "📚"
+		},
+		{
+			"id": "education_library",
+			"label": "Library",
+			"w": 41,
+			"h": 17,
+			"category": "education",
+			"emoji": "📚"
+		},
+		{
+			"id": "education_school",
+			"label": "School",
+			"w": 20,
+			"h": 25,
+			"category": "education",
+			"emoji": "🏫"
+		},
+		{
+			"id": "education_university",
+			"label": "University",
+			"w": 41,
+			"h": 24,
+			"category": "education",
+			"emoji": "🎓"
+		},
+		{
+			"id": "education_universityfull",
+			"label": "University Full",
+			"w": 41,
+			"h": 24,
+			"category": "education",
+			"emoji": "🎓"
+		},
+		{
+			"id": "fundamentals_altbuilder",
+			"label": "Alt Builder",
+			"w": 17,
+			"h": 16,
+			"category": "fundamentals",
+			"emoji": "🏗️"
+		},
+		{
+			"id": "fundamentals_altcook",
+			"label": "Alt Cook",
+			"w": 19,
+			"h": 17,
+			"category": "fundamentals",
+			"emoji": "🍳"
+		},
+		{
+			"id": "fundamentals_altlumberjack",
+			"label": "Alt Lumberjack",
+			"w": 17,
+			"h": 11,
+			"category": "fundamentals",
+			"emoji": "🪓"
+		},
+		{
+			"id": "fundamentals_altminer",
+			"label": "Alt Miner",
+			"w": 17,
+			"h": 18,
+			"category": "fundamentals",
+			"emoji": "⛏️"
+		},
+		{
+			"id": "fundamentals_altresidence",
+			"label": "Alt Residence",
+			"w": 14,
+			"h": 15,
+			"category": "fundamentals",
+			"emoji": "🏛️"
+		},
+		{
+			"id": "fundamentals_alttownhall",
+			"label": "Alt Town Hall",
+			"w": 35,
+			"h": 36,
+			"category": "fundamentals",
+			"emoji": "🏛️"
+		},
+		{
+			"id": "fundamentals_builder",
+			"label": "Builder",
+			"w": 11,
+			"h": 14,
+			"category": "fundamentals",
+			"emoji": "🏗️"
+		},
+		{
+			"id": "fundamentals_cook",
+			"label": "Cook",
+			"w": 25,
+			"h": 25,
+			"category": "fundamentals",
+			"emoji": "🍳"
+		},
+		{
+			"id": "fundamentals_highlander",
+			"label": "Highlander",
+			"w": 15,
+			"h": 18,
+			"category": "fundamentals",
+			"emoji": "🏠"
+		},
+		{
+			"id": "fundamentals_hospital",
+			"label": "Hospital",
+			"w": 21,
+			"h": 22,
+			"category": "fundamentals",
+			"emoji": "🏥"
+		},
+		{
+			"id": "fundamentals_lumberjack",
+			"label": "Lumberjack",
+			"w": 14,
+			"h": 14,
+			"category": "fundamentals",
+			"emoji": "🪓"
+		},
+		{
+			"id": "fundamentals_miner",
+			"label": "Miner",
+			"w": 17,
+			"h": 18,
+			"category": "fundamentals",
+			"emoji": "⛏️"
+		},
+		{
+			"id": "fundamentals_residence",
+			"label": "Residence",
+			"w": 14,
+			"h": 15,
+			"category": "fundamentals",
+			"emoji": "🏛️"
+		},
+		{
+			"id": "fundamentals_tavern",
+			"label": "Tavern",
+			"w": 13,
+			"h": 15,
+			"category": "fundamentals",
+			"emoji": "🍺"
+		},
+		{
+			"id": "fundamentals_townhall",
+			"label": "Town Hall",
+			"w": 15,
+			"h": 22,
+			"category": "fundamentals",
+			"emoji": "🏛️"
+		},
+		{
+			"id": "canal_bridge",
+			"label": "Canal Bridge",
+			"w": 9,
+			"h": 16,
+			"category": "infrastructure",
+			"emoji": "🌉",
+			"subcategory": "canal"
+		},
+		{
+			"id": "canal_corner",
+			"label": "Canal Corner",
+			"w": 9,
+			"h": 9,
+			"category": "infrastructure",
+			"emoji": "💧",
+			"subcategory": "canal"
+		},
+		{
+			"id": "canal_innercorner",
+			"label": "Canal Inner Corner",
+			"w": 8,
+			"h": 8,
+			"category": "infrastructure",
+			"emoji": "💧",
+			"subcategory": "canal"
+		},
+		{
+			"id": "canal_straight",
+			"label": "Canal Straight",
+			"w": 8,
+			"h": 9,
+			"category": "infrastructure",
+			"emoji": "💧",
+			"subcategory": "canal"
+		},
+		{
+			"id": "military_altarchery",
+			"label": "Alt Archery",
+			"w": 15,
+			"h": 25,
+			"category": "military",
+			"emoji": "🏹"
+		},
+		{
+			"id": "military_altbarracks",
+			"label": "Alt Barracks",
+			"w": 27,
+			"h": 27,
+			"category": "military",
+			"emoji": "🪖"
+		},
+		{
+			"id": "military_altcombatacademy",
+			"label": "Alt Combat Academy",
+			"w": 13,
+			"h": 25,
+			"category": "military",
+			"emoji": "🎓"
+		},
+		{
+			"id": "military_altguardtower",
+			"label": "Alt Guard Tower",
+			"w": 11,
+			"h": 11,
+			"category": "military",
+			"emoji": "🛡️"
+		},
+		{
+			"id": "military_archery",
+			"label": "Archery",
+			"w": 23,
+			"h": 15,
+			"category": "military",
+			"emoji": "🏹"
+		},
+		{
+			"id": "military_barracks",
+			"label": "Barracks",
+			"w": 21,
+			"h": 20,
+			"category": "military",
+			"emoji": "🪖"
+		},
+		{
+			"id": "military_combatacademy",
+			"label": "Combat Academy",
+			"w": 18,
+			"h": 14,
+			"category": "military",
+			"emoji": "🎓"
+		},
+		{
+			"id": "military_guardtower",
+			"label": "Guard Tower",
+			"w": 7,
+			"h": 7,
+			"category": "military",
+			"emoji": "🛡️"
+		},
+		{
+			"id": "mystic_enchanter",
+			"label": "Enchanter",
+			"w": 16,
+			"h": 23,
+			"category": "mystic",
+			"emoji": "🔮"
+		},
+		{
+			"id": "mystic_graveyard",
+			"label": "Graveyard",
+			"w": 21,
+			"h": 21,
+			"category": "mystic",
+			"emoji": "🔮"
+		},
+		{
+			"id": "mystic_mysticalsite",
+			"label": "Mystical Site",
+			"w": 20,
+			"h": 20,
+			"category": "mystic",
+			"emoji": "🔮"
+		},
+		{
+			"id": "mystic_netherworker",
+			"label": "Nether Worker",
+			"w": 25,
+			"h": 22,
+			"category": "mystic",
+			"emoji": "🔮"
+		},
+		{
+			"id": "walls_corner",
+			"label": "Corner",
+			"w": 7,
+			"h": 7,
+			"category": "walls",
+			"emoji": "🧱",
+			"subcategory": "corner"
+		},
+		{
+			"id": "walls_innercorner",
+			"label": "Inner Corner",
+			"w": 7,
+			"h": 7,
+			"category": "walls",
+			"emoji": "🧱",
+			"subcategory": "corner"
+		},
+		{
+			"id": "walls_tcorner",
+			"label": "T-Corner",
+			"w": 9,
+			"h": 9,
+			"category": "walls",
+			"emoji": "🧱",
+			"subcategory": "corner"
+		},
+		{
+			"id": "walls_gate",
+			"label": "Gate",
+			"w": 7,
+			"h": 7,
+			"category": "walls",
+			"emoji": "🧱",
+			"subcategory": "gate"
+		},
+		{
+			"id": "walls_segment",
+			"label": "Wall Segment",
+			"w": 6,
+			"h": 9,
+			"category": "walls",
+			"emoji": "🧱",
+			"subcategory": "segment"
+		},
+		{
+			"id": "walls_tower",
+			"label": "Tower",
+			"w": 7,
+			"h": 7,
+			"category": "walls",
+			"emoji": "🧱",
+			"subcategory": "tower"
+		}
+	]
+}
