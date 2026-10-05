@@ -4312,7 +4312,7 @@ function exportPlanAsPNG() {
 		rootStyle.getPropertyValue("--path-cell-bg").trim() ||
 		"rgba(100,180,220,0.4)";
 	const badgeInk =
-		rootStyle.getPropertyValue("--accent-ink").trim() || "#0f1115";
+		rootStyle.getPropertyValue("--badge-ink").trim() || "#0f1115";
 
 	ctx.fillStyle = gridBg;
 	ctx.fillRect(0, 0, width, height);

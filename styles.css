@@ -1,32 +1,73 @@
-:root,
-[data-theme="dark"] {
-	--bg: #121212;
-	--surface: #1a1a1a;
-	--surface-alt: #232323;
-	--surface-hover: #2e2e2e;
-	--surface-sunken: #0d0d0d;
-	--border: #3a3a3a;
-	--grid-line: #3a3a3a;
-	--grid-line-light: rgba(255, 255, 255, 0.08);
-	--grid-bg: #1e1e1e;
-	/* Map-only grid overlay, decoupled from --grid-line/-light above (those
-	   stay solid/subtle for UI chrome borders elsewhere) - the world
-	   background is always fully opaque now, so a solid chunk line reads as
-	   a harsh dark bar over varied terrain colors (translucent instead), and
-	   the old 0.08 cell-line alpha was barely visible against it (bumped up
-	   noticeably). */
-	--map-grid-major: rgba(255, 255, 255, 0.3);
-	--map-grid-minor: rgba(255, 255, 255, 0.18);
-	--ink: #e8e8e8;
-	--ink-muted: #a0a0a0;
-	--accent: #6aa6ff;
-	--accent-ink: #0f1115;
-	--accent-selected: #b7bdf8;
-	--path-cell-bg: rgba(100, 180, 220, 0.4);
-	--path-cell-border: rgba(60, 140, 200, 0.8);
-	--path-selected-outline: rgba(180, 120, 0, 1);
-	--path-bevel-light: rgba(255, 255, 255, 0.45);
-	--path-bevel-dark: rgba(0, 0, 0, 0.4);
+/* ====================================================================== */
+/* Minecraft UI kit                                                       */
+/* ====================================================================== */
+/* The site's chrome mimics Minecraft Java's container screens (inventory,
+   chest, creative tabs, title-screen buttons). UI_STYLE.md is the written
+   spec for everything in this section - palette sources, which component
+   uses which primitive, and why. Short version: no rounded corners, no
+   blurred shadows, no color transitions; depth comes only from hard 2px
+   (one texel at GUI scale 2) light/dark edges drawn with inset box-shadow.
+   Component rules further down this file deliberately set no background/
+   border/box-shadow/color of their own for anything listed here - the kit
+   owns the look, components own layout and sizing. */
+
+:root {
+	/* Fixed Minecraft colors - identical in both themes. */
+	--mc-outline: #000000;
+	--btn: #6f6f6f;
+	--btn-hi: #a8a8a8;
+	--btn-lo: #464646;
+	--btn-hover-fill: #7a7a7a;
+	--btn-pressed: #4a4a4a;
+	--btn-disabled: #2c2c2c;
+	--btn-ink: #ffffff;
+	--btn-ink-hover: #ffffa0;
+	--btn-ink-active: #ffff55;
+	--btn-ink-disabled: #a0a0a0;
+	--danger-btn: #7a2b2b;
+	--danger-btn-hi: #b24a4a;
+	--danger-btn-lo: #4a1515;
+	--text-shadow-color: #3f3f3f;
+	--field-bg: #000000;
+	--field-border: #a0a0a0;
+	--field-ink: #e0e0e0;
+	--field-placeholder: #8a8a8a;
+	--tooltip-bg: rgba(16, 0, 16, 0.94);
+	--tooltip-border-top: rgba(80, 0, 255, 0.8);
+	--tooltip-border-bottom: rgba(40, 0, 127, 0.8);
+	--tooltip-ink: #ffffff;
+	--tooltip-ink-muted: #aaaaaa;
+	--xp-green: #80ff20;
+	--xp-green-shade: #3f8f10;
+	--warn-gold: #ffaa00;
+	/* White page-level text on the dirt background, same in both themes -
+	   like the game's screen titles drawn straight over the menu backdrop. */
+	--ink-on-bg: #ffffff;
+	--ink-on-bg-muted: #aaaaaa;
+	/* Text on flat building badges (pale category tint over white) - the
+	   PNG export (app.js exportPlanAsPNG) reads this too. */
+	--badge-ink: #1a1a1a;
+	--font-pixel: "Pixelify Sans", "Courier New", monospace;
+	--font-body: "Inter", "Segoe UI", system-ui, sans-serif;
+	/* Minecraft's panels have one texel clipped off each corner. Outlines
+	   get clipped along with it, which is why focus styling in the kit
+	   recolors the border instead of drawing an outline. */
+	--mc-notch: polygon(
+		2px 0,
+		calc(100% - 2px) 0,
+		100% 2px,
+		100% calc(100% - 2px),
+		calc(100% - 2px) 100%,
+		2px 100%,
+		0 calc(100% - 2px),
+		0 2px
+	);
+	--raised: inset 2px 2px 0 var(--panel-hi), inset -2px -2px 0 var(--panel-lo);
+	--raised-thick: inset 4px 4px 0 var(--panel-hi),
+		inset -4px -4px 0 var(--panel-lo);
+	--sunken-well: inset 2px 2px 0 var(--well-lo), inset -2px -2px 0 var(--well-hi);
+	--sunken-slot: inset 2px 2px 0 var(--slot-lo), inset -2px -2px 0 var(--slot-hi);
+
 	--bottom-bar-height: 0px;
 	--topbar-height: 52px;
 	--left-sidebar-width: 240px;
@@ -40,23 +81,69 @@
 	--bottom-tray-height: 170px;
 }
 
+/* Dark theme: "deepslate" - the same bevel rules built from darker stone. */
+:root,
+[data-theme="dark"] {
+	--page-texture: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'><path fill='%23211810' d='M0 0h1v1h-1zM1 0h1v1h-1zM3 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM8 0h1v1h-1zM9 0h1v1h-1zM10 0h1v1h-1zM11 0h1v1h-1zM12 0h1v1h-1zM14 0h1v1h-1zM15 0h1v1h-1zM3 1h1v1h-1zM5 1h1v1h-1zM7 1h1v1h-1zM8 1h1v1h-1zM9 1h1v1h-1zM10 1h1v1h-1zM12 1h1v1h-1zM15 1h1v1h-1zM1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM5 2h1v1h-1zM6 2h1v1h-1zM9 2h1v1h-1zM12 2h1v1h-1zM1 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM8 3h1v1h-1zM13 3h1v1h-1zM6 4h1v1h-1zM11 4h1v1h-1zM12 4h1v1h-1zM14 4h1v1h-1zM0 5h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM9 5h1v1h-1zM14 5h1v1h-1zM15 5h1v1h-1zM0 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM9 6h1v1h-1zM10 6h1v1h-1zM11 6h1v1h-1zM12 6h1v1h-1zM3 7h1v1h-1zM8 7h1v1h-1zM9 7h1v1h-1zM10 7h1v1h-1zM12 7h1v1h-1zM13 7h1v1h-1zM14 7h1v1h-1zM15 7h1v1h-1zM0 8h1v1h-1zM1 8h1v1h-1zM2 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM9 8h1v1h-1zM10 8h1v1h-1zM11 8h1v1h-1zM12 8h1v1h-1zM13 8h1v1h-1zM2 9h1v1h-1zM3 9h1v1h-1zM4 9h1v1h-1zM5 9h1v1h-1zM7 9h1v1h-1zM8 9h1v1h-1zM11 9h1v1h-1zM13 9h1v1h-1zM2 10h1v1h-1zM3 10h1v1h-1zM4 10h1v1h-1zM8 10h1v1h-1zM9 10h1v1h-1zM0 11h1v1h-1zM2 11h1v1h-1zM3 11h1v1h-1zM4 11h1v1h-1zM5 11h1v1h-1zM6 11h1v1h-1zM9 11h1v1h-1zM13 11h1v1h-1zM14 11h1v1h-1zM15 11h1v1h-1zM0 12h1v1h-1zM1 12h1v1h-1zM8 12h1v1h-1zM14 12h1v1h-1zM0 13h1v1h-1zM3 13h1v1h-1zM4 13h1v1h-1zM7 13h1v1h-1zM8 13h1v1h-1zM9 13h1v1h-1zM12 13h1v1h-1zM0 14h1v1h-1zM2 14h1v1h-1zM3 14h1v1h-1zM8 14h1v1h-1zM11 14h1v1h-1zM12 14h1v1h-1zM13 14h1v1h-1zM14 14h1v1h-1zM0 15h1v1h-1zM1 15h1v1h-1zM2 15h1v1h-1zM4 15h1v1h-1zM8 15h1v1h-1zM13 15h1v1h-1zM14 15h1v1h-1zM15 15h1v1h-1z'/><path fill='%231e150e' d='M2 0h1v1h-1zM4 0h1v1h-1zM7 0h1v1h-1zM0 1h1v1h-1zM2 1h1v1h-1zM13 1h1v1h-1zM14 1h1v1h-1zM0 2h1v1h-1zM4 2h1v1h-1zM7 2h1v1h-1zM8 2h1v1h-1zM11 2h1v1h-1zM13 2h1v1h-1zM14 2h1v1h-1zM7 3h1v1h-1zM9 3h1v1h-1zM11 3h1v1h-1zM14 3h1v1h-1zM15 3h1v1h-1zM0 4h1v1h-1zM1 4h1v1h-1zM4 4h1v1h-1zM5 4h1v1h-1zM8 4h1v1h-1zM13 4h1v1h-1zM15 4h1v1h-1zM10 5h1v1h-1zM7 6h1v1h-1zM8 6h1v1h-1zM13 6h1v1h-1zM15 6h1v1h-1zM0 7h1v1h-1zM1 7h1v1h-1zM2 7h1v1h-1zM11 7h1v1h-1zM8 8h1v1h-1zM0 9h1v1h-1zM1 9h1v1h-1zM10 9h1v1h-1zM12 9h1v1h-1zM14 9h1v1h-1zM1 10h1v1h-1zM6 10h1v1h-1zM1 11h1v1h-1zM7 11h1v1h-1zM2 12h1v1h-1zM5 12h1v1h-1zM6 12h1v1h-1zM9 12h1v1h-1zM13 12h1v1h-1zM15 13h1v1h-1zM1 14h1v1h-1zM5 14h1v1h-1zM6 14h1v1h-1zM15 14h1v1h-1zM5 15h1v1h-1zM6 15h1v1h-1zM10 15h1v1h-1zM11 15h1v1h-1zM12 15h1v1h-1z'/><path fill='%23251b12' d='M13 0h1v1h-1zM11 1h1v1h-1zM10 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM10 3h1v1h-1zM2 4h1v1h-1zM7 4h1v1h-1zM10 4h1v1h-1zM3 5h1v1h-1zM12 5h1v1h-1zM5 7h1v1h-1zM7 7h1v1h-1zM14 8h1v1h-1zM6 9h1v1h-1zM5 10h1v1h-1zM7 10h1v1h-1zM10 10h1v1h-1zM13 10h1v1h-1zM14 10h1v1h-1zM15 10h1v1h-1zM4 12h1v1h-1zM7 12h1v1h-1zM11 12h1v1h-1zM12 12h1v1h-1zM15 12h1v1h-1zM1 13h1v1h-1zM6 13h1v1h-1zM11 13h1v1h-1zM13 13h1v1h-1zM10 14h1v1h-1z'/><path fill='%23160f0a' d='M1 1h1v1h-1zM6 1h1v1h-1zM15 2h1v1h-1zM12 3h1v1h-1zM3 4h1v1h-1zM7 5h1v1h-1zM11 5h1v1h-1zM13 5h1v1h-1zM1 6h1v1h-1zM4 7h1v1h-1zM6 7h1v1h-1zM7 8h1v1h-1zM0 10h1v1h-1zM12 10h1v1h-1zM10 11h1v1h-1zM3 12h1v1h-1zM10 12h1v1h-1zM5 13h1v1h-1zM10 13h1v1h-1zM7 14h1v1h-1zM9 14h1v1h-1zM3 15h1v1h-1zM7 15h1v1h-1zM9 15h1v1h-1z'/><path fill='%232e2117' d='M4 1h1v1h-1zM2 3h1v1h-1zM9 4h1v1h-1zM2 6h1v1h-1zM14 6h1v1h-1zM15 8h1v1h-1zM9 9h1v1h-1zM15 9h1v1h-1zM11 10h1v1h-1zM8 11h1v1h-1zM11 11h1v1h-1zM12 11h1v1h-1zM2 13h1v1h-1zM14 13h1v1h-1zM4 14h1v1h-1z'/></svg>");
+	--page-bg: #150f0a;
+	--panel: #3a3a3a;
+	--panel-hi: #5a5a5a;
+	--panel-lo: #1e1e1e;
+	--well: #2c2c2c;
+	--well-hi: #4a4a4a;
+	--well-lo: #151515;
+	--slot: #232323;
+	--slot-hover: #2f2f2f;
+	--slot-hi: #4a4a4a;
+	--slot-lo: #0a0a0a;
+	--tab-off: #2a2a2a;
+	--ink: #e6e6e6;
+	--ink-muted: #a8a8a8;
+	--ink-title: #e6e6e6;
+	--link: #55ffff;
+	--accent-selected: #ffff55;
+	/* Map-only tokens (planner grid + PNG export). */
+	--grid-bg: #1e1e1e;
+	--grid-line: #3a3a3a;
+	--grid-line-light: rgba(255, 255, 255, 0.08);
+	/* The world background is always fully opaque, so chunk lines are
+	   translucent (a solid line reads as a harsh bar over varied terrain)
+	   and cell lines are stronger than the old 0.08 so they stay visible. */
+	--map-grid-major: rgba(255, 255, 255, 0.3);
+	--map-grid-minor: rgba(255, 255, 255, 0.18);
+	--path-cell-bg: rgba(100, 180, 220, 0.4);
+	--path-cell-border: rgba(60, 140, 200, 0.8);
+	--path-selected-outline: rgba(180, 120, 0, 1);
+	--path-bevel-light: rgba(255, 255, 255, 0.45);
+	--path-bevel-dark: rgba(0, 0, 0, 0.4);
+}
+
+/* Light theme: the classic container gray. Duplicated below for
+   prefers-color-scheme before nav.js has set data-theme - keep in sync. */
 [data-theme="light"] {
-	--bg: #f5f5f7;
-	--surface: #ffffff;
-	--surface-alt: #ececed;
-	--surface-hover: #e2e2e5;
-	--surface-sunken: #e9e9eb;
-	--border: #c8c8cf;
+	--page-texture: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'><path fill='%2338281c' d='M0 0h1v1h-1zM1 0h1v1h-1zM3 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM8 0h1v1h-1zM9 0h1v1h-1zM10 0h1v1h-1zM11 0h1v1h-1zM12 0h1v1h-1zM14 0h1v1h-1zM15 0h1v1h-1zM3 1h1v1h-1zM5 1h1v1h-1zM7 1h1v1h-1zM8 1h1v1h-1zM9 1h1v1h-1zM10 1h1v1h-1zM12 1h1v1h-1zM15 1h1v1h-1zM1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM5 2h1v1h-1zM6 2h1v1h-1zM9 2h1v1h-1zM12 2h1v1h-1zM1 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM8 3h1v1h-1zM13 3h1v1h-1zM6 4h1v1h-1zM11 4h1v1h-1zM12 4h1v1h-1zM14 4h1v1h-1zM0 5h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM9 5h1v1h-1zM14 5h1v1h-1zM15 5h1v1h-1zM0 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM9 6h1v1h-1zM10 6h1v1h-1zM11 6h1v1h-1zM12 6h1v1h-1zM3 7h1v1h-1zM8 7h1v1h-1zM9 7h1v1h-1zM10 7h1v1h-1zM12 7h1v1h-1zM13 7h1v1h-1zM14 7h1v1h-1zM15 7h1v1h-1zM0 8h1v1h-1zM1 8h1v1h-1zM2 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM9 8h1v1h-1zM10 8h1v1h-1zM11 8h1v1h-1zM12 8h1v1h-1zM13 8h1v1h-1zM2 9h1v1h-1zM3 9h1v1h-1zM4 9h1v1h-1zM5 9h1v1h-1zM7 9h1v1h-1zM8 9h1v1h-1zM11 9h1v1h-1zM13 9h1v1h-1zM2 10h1v1h-1zM3 10h1v1h-1zM4 10h1v1h-1zM8 10h1v1h-1zM9 10h1v1h-1zM0 11h1v1h-1zM2 11h1v1h-1zM3 11h1v1h-1zM4 11h1v1h-1zM5 11h1v1h-1zM6 11h1v1h-1zM9 11h1v1h-1zM13 11h1v1h-1zM14 11h1v1h-1zM15 11h1v1h-1zM0 12h1v1h-1zM1 12h1v1h-1zM8 12h1v1h-1zM14 12h1v1h-1zM0 13h1v1h-1zM3 13h1v1h-1zM4 13h1v1h-1zM7 13h1v1h-1zM8 13h1v1h-1zM9 13h1v1h-1zM12 13h1v1h-1zM0 14h1v1h-1zM2 14h1v1h-1zM3 14h1v1h-1zM8 14h1v1h-1zM11 14h1v1h-1zM12 14h1v1h-1zM13 14h1v1h-1zM14 14h1v1h-1zM0 15h1v1h-1zM1 15h1v1h-1zM2 15h1v1h-1zM4 15h1v1h-1zM8 15h1v1h-1zM13 15h1v1h-1zM14 15h1v1h-1zM15 15h1v1h-1z'/><path fill='%23322318' d='M2 0h1v1h-1zM4 0h1v1h-1zM7 0h1v1h-1zM0 1h1v1h-1zM2 1h1v1h-1zM13 1h1v1h-1zM14 1h1v1h-1zM0 2h1v1h-1zM4 2h1v1h-1zM7 2h1v1h-1zM8 2h1v1h-1zM11 2h1v1h-1zM13 2h1v1h-1zM14 2h1v1h-1zM7 3h1v1h-1zM9 3h1v1h-1zM11 3h1v1h-1zM14 3h1v1h-1zM15 3h1v1h-1zM0 4h1v1h-1zM1 4h1v1h-1zM4 4h1v1h-1zM5 4h1v1h-1zM8 4h1v1h-1zM13 4h1v1h-1zM15 4h1v1h-1zM10 5h1v1h-1zM7 6h1v1h-1zM8 6h1v1h-1zM13 6h1v1h-1zM15 6h1v1h-1zM0 7h1v1h-1zM1 7h1v1h-1zM2 7h1v1h-1zM11 7h1v1h-1zM8 8h1v1h-1zM0 9h1v1h-1zM1 9h1v1h-1zM10 9h1v1h-1zM12 9h1v1h-1zM14 9h1v1h-1zM1 10h1v1h-1zM6 10h1v1h-1zM1 11h1v1h-1zM7 11h1v1h-1zM2 12h1v1h-1zM5 12h1v1h-1zM6 12h1v1h-1zM9 12h1v1h-1zM13 12h1v1h-1zM15 13h1v1h-1zM1 14h1v1h-1zM5 14h1v1h-1zM6 14h1v1h-1zM15 14h1v1h-1zM5 15h1v1h-1zM6 15h1v1h-1zM10 15h1v1h-1zM11 15h1v1h-1zM12 15h1v1h-1z'/><path fill='%233f2d1f' d='M13 0h1v1h-1zM11 1h1v1h-1zM10 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM10 3h1v1h-1zM2 4h1v1h-1zM7 4h1v1h-1zM10 4h1v1h-1zM3 5h1v1h-1zM12 5h1v1h-1zM5 7h1v1h-1zM7 7h1v1h-1zM14 8h1v1h-1zM6 9h1v1h-1zM5 10h1v1h-1zM7 10h1v1h-1zM10 10h1v1h-1zM13 10h1v1h-1zM14 10h1v1h-1zM15 10h1v1h-1zM4 12h1v1h-1zM7 12h1v1h-1zM11 12h1v1h-1zM12 12h1v1h-1zM15 12h1v1h-1zM1 13h1v1h-1zM6 13h1v1h-1zM11 13h1v1h-1zM13 13h1v1h-1zM10 14h1v1h-1z'/><path fill='%23251911' d='M1 1h1v1h-1zM6 1h1v1h-1zM15 2h1v1h-1zM12 3h1v1h-1zM3 4h1v1h-1zM7 5h1v1h-1zM11 5h1v1h-1zM13 5h1v1h-1zM1 6h1v1h-1zM4 7h1v1h-1zM6 7h1v1h-1zM7 8h1v1h-1zM0 10h1v1h-1zM12 10h1v1h-1zM10 11h1v1h-1zM3 12h1v1h-1zM10 12h1v1h-1zM5 13h1v1h-1zM10 13h1v1h-1zM7 14h1v1h-1zM9 14h1v1h-1zM3 15h1v1h-1zM7 15h1v1h-1zM9 15h1v1h-1z'/><path fill='%234d3726' d='M4 1h1v1h-1zM2 3h1v1h-1zM9 4h1v1h-1zM2 6h1v1h-1zM14 6h1v1h-1zM15 8h1v1h-1zM9 9h1v1h-1zM15 9h1v1h-1zM11 10h1v1h-1zM8 11h1v1h-1zM11 11h1v1h-1zM12 11h1v1h-1zM2 13h1v1h-1zM14 13h1v1h-1zM4 14h1v1h-1z'/></svg>");
+	--page-bg: #241a11;
+	--panel: #c6c6c6;
+	--panel-hi: #ffffff;
+	--panel-lo: #555555;
+	--well: #b8b8b8;
+	--well-hi: #ffffff;
+	--well-lo: #555555;
+	--slot: #8b8b8b;
+	--slot-hover: #9c9c9c;
+	--slot-hi: #ffffff;
+	--slot-lo: #373737;
+	--tab-off: #a4a4a4;
+	--ink: #262626;
+	--ink-muted: #4a4a4a;
+	--ink-title: #404040;
+	--link: #0000aa;
+	--accent-selected: #d98e00;
+	--grid-bg: #f2f2f2;
 	--grid-line: #c8c8cf;
 	--grid-line-light: rgba(0, 0, 0, 0.08);
-	--grid-bg: #ffffff;
 	--map-grid-major: rgba(0, 0, 0, 0.28);
 	--map-grid-minor: rgba(0, 0, 0, 0.16);
-	--ink: #1c1c1e;
-	--ink-muted: #55555c;
-	--accent: #3a72e0;
-	--accent-ink: #ffffff;
-	--accent-selected: #5b6bd8;
 	--path-cell-bg: rgba(58, 140, 190, 0.28);
 	--path-cell-border: rgba(30, 100, 150, 0.7);
 	--path-selected-outline: rgba(150, 90, 0, 1);
@@ -66,22 +153,29 @@
 
 @media (prefers-color-scheme: light) {
 	:root:not([data-theme]) {
-		--bg: #f5f5f7;
-		--surface: #ffffff;
-		--surface-alt: #ececed;
-		--surface-hover: #e2e2e5;
-		--surface-sunken: #e9e9eb;
-		--border: #c8c8cf;
+		--page-texture: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'><path fill='%2338281c' d='M0 0h1v1h-1zM1 0h1v1h-1zM3 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM8 0h1v1h-1zM9 0h1v1h-1zM10 0h1v1h-1zM11 0h1v1h-1zM12 0h1v1h-1zM14 0h1v1h-1zM15 0h1v1h-1zM3 1h1v1h-1zM5 1h1v1h-1zM7 1h1v1h-1zM8 1h1v1h-1zM9 1h1v1h-1zM10 1h1v1h-1zM12 1h1v1h-1zM15 1h1v1h-1zM1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM5 2h1v1h-1zM6 2h1v1h-1zM9 2h1v1h-1zM12 2h1v1h-1zM1 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM8 3h1v1h-1zM13 3h1v1h-1zM6 4h1v1h-1zM11 4h1v1h-1zM12 4h1v1h-1zM14 4h1v1h-1zM0 5h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM9 5h1v1h-1zM14 5h1v1h-1zM15 5h1v1h-1zM0 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM9 6h1v1h-1zM10 6h1v1h-1zM11 6h1v1h-1zM12 6h1v1h-1zM3 7h1v1h-1zM8 7h1v1h-1zM9 7h1v1h-1zM10 7h1v1h-1zM12 7h1v1h-1zM13 7h1v1h-1zM14 7h1v1h-1zM15 7h1v1h-1zM0 8h1v1h-1zM1 8h1v1h-1zM2 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM9 8h1v1h-1zM10 8h1v1h-1zM11 8h1v1h-1zM12 8h1v1h-1zM13 8h1v1h-1zM2 9h1v1h-1zM3 9h1v1h-1zM4 9h1v1h-1zM5 9h1v1h-1zM7 9h1v1h-1zM8 9h1v1h-1zM11 9h1v1h-1zM13 9h1v1h-1zM2 10h1v1h-1zM3 10h1v1h-1zM4 10h1v1h-1zM8 10h1v1h-1zM9 10h1v1h-1zM0 11h1v1h-1zM2 11h1v1h-1zM3 11h1v1h-1zM4 11h1v1h-1zM5 11h1v1h-1zM6 11h1v1h-1zM9 11h1v1h-1zM13 11h1v1h-1zM14 11h1v1h-1zM15 11h1v1h-1zM0 12h1v1h-1zM1 12h1v1h-1zM8 12h1v1h-1zM14 12h1v1h-1zM0 13h1v1h-1zM3 13h1v1h-1zM4 13h1v1h-1zM7 13h1v1h-1zM8 13h1v1h-1zM9 13h1v1h-1zM12 13h1v1h-1zM0 14h1v1h-1zM2 14h1v1h-1zM3 14h1v1h-1zM8 14h1v1h-1zM11 14h1v1h-1zM12 14h1v1h-1zM13 14h1v1h-1zM14 14h1v1h-1zM0 15h1v1h-1zM1 15h1v1h-1zM2 15h1v1h-1zM4 15h1v1h-1zM8 15h1v1h-1zM13 15h1v1h-1zM14 15h1v1h-1zM15 15h1v1h-1z'/><path fill='%23322318' d='M2 0h1v1h-1zM4 0h1v1h-1zM7 0h1v1h-1zM0 1h1v1h-1zM2 1h1v1h-1zM13 1h1v1h-1zM14 1h1v1h-1zM0 2h1v1h-1zM4 2h1v1h-1zM7 2h1v1h-1zM8 2h1v1h-1zM11 2h1v1h-1zM13 2h1v1h-1zM14 2h1v1h-1zM7 3h1v1h-1zM9 3h1v1h-1zM11 3h1v1h-1zM14 3h1v1h-1zM15 3h1v1h-1zM0 4h1v1h-1zM1 4h1v1h-1zM4 4h1v1h-1zM5 4h1v1h-1zM8 4h1v1h-1zM13 4h1v1h-1zM15 4h1v1h-1zM10 5h1v1h-1zM7 6h1v1h-1zM8 6h1v1h-1zM13 6h1v1h-1zM15 6h1v1h-1zM0 7h1v1h-1zM1 7h1v1h-1zM2 7h1v1h-1zM11 7h1v1h-1zM8 8h1v1h-1zM0 9h1v1h-1zM1 9h1v1h-1zM10 9h1v1h-1zM12 9h1v1h-1zM14 9h1v1h-1zM1 10h1v1h-1zM6 10h1v1h-1zM1 11h1v1h-1zM7 11h1v1h-1zM2 12h1v1h-1zM5 12h1v1h-1zM6 12h1v1h-1zM9 12h1v1h-1zM13 12h1v1h-1zM15 13h1v1h-1zM1 14h1v1h-1zM5 14h1v1h-1zM6 14h1v1h-1zM15 14h1v1h-1zM5 15h1v1h-1zM6 15h1v1h-1zM10 15h1v1h-1zM11 15h1v1h-1zM12 15h1v1h-1z'/><path fill='%233f2d1f' d='M13 0h1v1h-1zM11 1h1v1h-1zM10 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM10 3h1v1h-1zM2 4h1v1h-1zM7 4h1v1h-1zM10 4h1v1h-1zM3 5h1v1h-1zM12 5h1v1h-1zM5 7h1v1h-1zM7 7h1v1h-1zM14 8h1v1h-1zM6 9h1v1h-1zM5 10h1v1h-1zM7 10h1v1h-1zM10 10h1v1h-1zM13 10h1v1h-1zM14 10h1v1h-1zM15 10h1v1h-1zM4 12h1v1h-1zM7 12h1v1h-1zM11 12h1v1h-1zM12 12h1v1h-1zM15 12h1v1h-1zM1 13h1v1h-1zM6 13h1v1h-1zM11 13h1v1h-1zM13 13h1v1h-1zM10 14h1v1h-1z'/><path fill='%23251911' d='M1 1h1v1h-1zM6 1h1v1h-1zM15 2h1v1h-1zM12 3h1v1h-1zM3 4h1v1h-1zM7 5h1v1h-1zM11 5h1v1h-1zM13 5h1v1h-1zM1 6h1v1h-1zM4 7h1v1h-1zM6 7h1v1h-1zM7 8h1v1h-1zM0 10h1v1h-1zM12 10h1v1h-1zM10 11h1v1h-1zM3 12h1v1h-1zM10 12h1v1h-1zM5 13h1v1h-1zM10 13h1v1h-1zM7 14h1v1h-1zM9 14h1v1h-1zM3 15h1v1h-1zM7 15h1v1h-1zM9 15h1v1h-1z'/><path fill='%234d3726' d='M4 1h1v1h-1zM2 3h1v1h-1zM9 4h1v1h-1zM2 6h1v1h-1zM14 6h1v1h-1zM15 8h1v1h-1zM9 9h1v1h-1zM15 9h1v1h-1zM11 10h1v1h-1zM8 11h1v1h-1zM11 11h1v1h-1zM12 11h1v1h-1zM2 13h1v1h-1zM14 13h1v1h-1zM4 14h1v1h-1z'/></svg>");
+		--page-bg: #241a11;
+		--panel: #c6c6c6;
+		--panel-hi: #ffffff;
+		--panel-lo: #555555;
+		--well: #b8b8b8;
+		--well-hi: #ffffff;
+		--well-lo: #555555;
+		--slot: #8b8b8b;
+		--slot-hover: #9c9c9c;
+		--slot-hi: #ffffff;
+		--slot-lo: #373737;
+		--tab-off: #a4a4a4;
+		--ink: #262626;
+		--ink-muted: #4a4a4a;
+		--ink-title: #404040;
+		--link: #0000aa;
+		--accent-selected: #d98e00;
+		--grid-bg: #f2f2f2;
 		--grid-line: #c8c8cf;
 		--grid-line-light: rgba(0, 0, 0, 0.08);
-		--grid-bg: #ffffff;
 		--map-grid-major: rgba(0, 0, 0, 0.28);
 		--map-grid-minor: rgba(0, 0, 0, 0.16);
-		--ink: #1c1c1e;
-		--ink-muted: #55555c;
-		--accent: #3a72e0;
-		--accent-ink: #ffffff;
-		--accent-selected: #5b6bd8;
 		--path-cell-bg: rgba(58, 140, 190, 0.28);
 		--path-cell-border: rgba(30, 100, 150, 0.7);
 		--path-selected-outline: rgba(150, 90, 0, 1);
@@ -94,12 +188,450 @@
 	box-sizing: border-box;
 }
 
+/* Tiled dirt, darkened the way the game darkens it behind menus. 16 texels
+   drawn at 4px each - the SVG is crispEdges so it stays blocky at any size. */
 body {
 	margin: 0;
-	font-family: "Inter", "Segoe UI", Tahoma, sans-serif;
-	background: var(--bg);
-	color: var(--ink);
+	font-family: var(--font-body);
+	background: var(--page-bg) var(--page-texture) 0 0 / 64px 64px;
+	color: var(--ink-on-bg);
 }
+
+/* --- Panel: raised gray container with a black outline ----------------- */
+/* Screen-edge panels: thick bevel, no corner notch (they meet the edges). */
+.app-nav,
+.left-sidebar,
+.preview-sidebar,
+.bottom-bar {
+	background: var(--panel);
+	color: var(--ink);
+	border: 2px solid var(--mc-outline);
+	box-shadow: var(--raised-thick);
+}
+
+/* Floating panels: thinner bevel, notched corners. */
+.shortcuts-modal,
+.action-menu,
+.path-action-menu,
+.inspector-card,
+.inspector-citizen-card,
+.world-viewer-goto,
+.debug-material-item,
+.debug-biome-item,
+.inspector-upload__zone,
+.inspector-help,
+.inspector-notice,
+.inspector-raw,
+.inspector-table {
+	background: var(--panel);
+	color: var(--ink);
+	border: 2px solid var(--mc-outline);
+	box-shadow: var(--raised);
+	clip-path: var(--mc-notch);
+}
+
+/* Panel titles are flat dark gray with no shadow, like "Crafting". */
+.app-nav__brand,
+.left-sidebar__title,
+.preview-sidebar__title,
+.preview-card__name,
+.inspector-card__title,
+.inspector-citizen-card__name,
+.shortcuts-modal__header h2 {
+	font-family: var(--font-pixel);
+	color: var(--ink-title);
+}
+
+/* Smaller pixel-font chrome labels. Long-form text (hints, details, tables)
+   stays in --font-body on purpose - see UI_STYLE.md "Typography". */
+.left-sidebar__section-title,
+.plan-check__group-title,
+.plan-check__title,
+.cost-card__section-title,
+.shortcuts-modal__group h3,
+.world-bg-controls__row,
+.left-sidebar__plan-name,
+.inspector-stat-tile__label,
+.inspector-stat-tile__value,
+.inspector-chip,
+.shape-label,
+.shape-dimensions,
+.placed-badge,
+.preview-badge,
+.preview-card__topdown-label {
+	font-family: var(--font-pixel);
+}
+
+/* --- Well: sunken group inside a panel --------------------------------- */
+.left-sidebar__content,
+.preview-card,
+.cost-card,
+.grid-goto-controls,
+.inspector-stat-tile {
+	background: var(--well);
+	color: var(--ink);
+	border: none;
+	box-shadow: var(--sunken-well);
+}
+
+.inspector-upload__zone.is-dragover {
+	border-color: var(--btn-ink);
+}
+
+/* --- Raised piece: a small bevelled block sitting inside a well -------- */
+.plan-check__item,
+.left-sidebar__plan-row,
+.cost-card__material,
+.inspector-chip {
+	background: var(--panel);
+	color: var(--ink);
+	border: none;
+	box-shadow: var(--raised);
+}
+
+/* Warnings get a gold edge (§6) down the left side. */
+.plan-check__item--warn {
+	box-shadow:
+		inset 4px 0 0 var(--warn-gold),
+		var(--raised);
+}
+
+/* --- Slot: sunken item slot -------------------------------------------- */
+.shape-option,
+.preview-card__image-wrap,
+.world-viewer-canvas-wrap,
+.debug-material-item__icon-wrap,
+.cost-card__material-icon--placeholder {
+	background: var(--slot);
+	border: none;
+	box-shadow: var(--sunken-slot);
+}
+
+/* Hovering a slot lightens it, like the game's white hover overlay. */
+.shape-option:hover {
+	background: var(--slot-hover);
+}
+
+/* Hotbar selection: a white frame inside a black one. */
+.shape-option.is-selected {
+	box-shadow:
+		inset 0 0 0 2px var(--mc-outline),
+		inset 0 0 0 4px var(--btn-ink),
+		var(--sunken-slot);
+}
+
+/* Names in a slot are white with a drop shadow, like item stack counts. */
+.shape-label,
+.shape-dimensions {
+	color: var(--btn-ink);
+	text-shadow: 1px 1px 0 var(--text-shadow-color);
+}
+
+/* --- Button: stone, black outline, white shadowed label ---------------- */
+/* :where() keeps this at zero specificity so each component's own sizing
+   (padding, font-size) still applies on top of it. */
+:where(
+		.app-nav__theme-toggle,
+		.app-nav__shortcuts-toggle,
+		.app-nav__link,
+		.shortcuts-modal__close,
+		.left-sidebar__toggle,
+		.left-sidebar__button,
+		.left-sidebar__plan-action,
+		.preview-sidebar__toggle,
+		.preview-card__view-btn,
+		.cost-card__level-button,
+		.grid-zoom-controls button,
+		.grid-goto-controls button,
+		.subtab,
+		.path-type-swatch,
+		.path-controls__erase-toggle,
+		.action-menu button,
+		.path-action-menu button,
+		.inspector-upload__button,
+		.world-viewer-goto button,
+		.world-viewer-zoom-controls button,
+		.shortcuts-modal kbd
+	) {
+	font: inherit;
+	font-family: var(--font-pixel);
+	background: var(--btn);
+	color: var(--btn-ink);
+	border: 2px solid var(--mc-outline);
+	box-shadow: inset 2px 2px 0 var(--btn-hi), inset -2px -2px 0 var(--btn-lo);
+	text-shadow: 1px 1px 0 var(--text-shadow-color);
+	clip-path: var(--mc-notch);
+}
+
+/* Hover/focus: the fill stays put - only the outline goes white and the
+   label pale yellow. Focus reuses it because the notch clips outlines. */
+:is(
+		.app-nav__theme-toggle,
+		.app-nav__shortcuts-toggle,
+		.app-nav__link,
+		.shortcuts-modal__close,
+		.left-sidebar__toggle,
+		.left-sidebar__button,
+		.left-sidebar__plan-action,
+		.preview-sidebar__toggle,
+		.preview-card__view-btn,
+		.cost-card__level-button,
+		.grid-zoom-controls button,
+		.grid-goto-controls button,
+		.subtab,
+		.path-type-swatch,
+		.path-controls__erase-toggle,
+		.action-menu button,
+		.path-action-menu button,
+		.inspector-upload__button,
+		.world-viewer-goto button,
+		.world-viewer-zoom-controls button
+	):is(:hover, :focus-visible):not(:disabled) {
+	border-color: var(--btn-ink);
+	color: var(--btn-ink-hover);
+	outline: none;
+}
+
+/* Pressed (mouse down) and toggled-on (.is-active): the bevel flips. */
+:is(
+		.app-nav__theme-toggle,
+		.app-nav__shortcuts-toggle,
+		.app-nav__link,
+		.shortcuts-modal__close,
+		.left-sidebar__toggle,
+		.left-sidebar__button,
+		.left-sidebar__plan-action,
+		.preview-sidebar__toggle,
+		.preview-card__view-btn,
+		.cost-card__level-button,
+		.grid-zoom-controls button,
+		.grid-goto-controls button,
+		.subtab,
+		.path-type-swatch,
+		.path-controls__erase-toggle,
+		.action-menu button,
+		.path-action-menu button,
+		.inspector-upload__button,
+		.world-viewer-goto button,
+		.world-viewer-zoom-controls button
+	):is(:active, .is-active):not(:disabled) {
+	background: var(--btn-pressed);
+	box-shadow: inset 2px 2px 0 var(--btn-lo), inset -2px -2px 0 var(--btn-pressed);
+}
+
+/* Toggled on: pressed in, with a yellow (§e) label. */
+:is(
+		.app-nav__link,
+		.preview-card__view-btn,
+		.cost-card__level-button,
+		.subtab,
+		.path-type-swatch,
+		.path-controls__erase-toggle
+	).is-active {
+	color: var(--btn-ink-active);
+}
+
+:is(.left-sidebar__button, .left-sidebar__plan-action):disabled {
+	background: var(--btn-disabled);
+	color: var(--btn-ink-disabled);
+	box-shadow: none;
+	text-shadow: none;
+	cursor: not-allowed;
+}
+
+/* Destructive actions turn the whole button red - red text on the gray
+   stone fill has almost no contrast. */
+:is(
+		.left-sidebar__button--danger,
+		.left-sidebar__plan-action--danger,
+		.action-menu button[data-action="delete"],
+		.path-action-menu button[data-path-action="delete"]
+	) {
+	background: var(--danger-btn);
+	box-shadow:
+		inset 2px 2px 0 var(--danger-btn-hi),
+		inset -2px -2px 0 var(--danger-btn-lo);
+}
+
+/* --- Tab: creative-inventory tabs -------------------------------------- */
+/* Unselected tabs are darker and sit lower; the selected tab is panel-
+   colored and stands 4px taller, over the line the row sits on. */
+.tab-bar {
+	align-items: flex-end;
+	gap: 2px;
+	box-shadow: inset 0 -2px 0 var(--mc-outline);
+}
+
+.tab {
+	font: inherit;
+	font-family: var(--font-pixel);
+	background: var(--tab-off);
+	color: var(--ink-title);
+	border: 2px solid var(--mc-outline);
+	border-bottom: none;
+	box-shadow:
+		inset 2px 2px 0 var(--panel-hi),
+		inset -2px 0 0 var(--panel-lo);
+}
+
+.tab:hover,
+.tab:focus-visible {
+	color: var(--ink);
+	outline: none;
+}
+
+.tab.is-active {
+	background: var(--panel);
+	color: var(--ink);
+	padding-bottom: 11px;
+}
+
+/* --- Text field / select: black box, gray border, white on focus ------- */
+:where(
+		.left-sidebar__text-input,
+		.world-bg-controls__offsets input[type="number"],
+		.grid-goto-controls input[type="number"],
+		.shape-search-input,
+		.path-controls__field select,
+		.path-controls__field input[type="number"],
+		.style-select,
+		.inspector-picker__select,
+		.world-viewer-goto input[type="number"],
+		.debug-search
+	) {
+	font: inherit;
+	font-family: var(--font-pixel);
+	background: var(--field-bg);
+	color: var(--field-ink);
+	border: 2px solid var(--field-border);
+	/* Native select arrows/number spinners render light-on-dark. */
+	color-scheme: dark;
+}
+
+:is(
+		.left-sidebar__text-input,
+		.world-bg-controls__offsets input[type="number"],
+		.grid-goto-controls input[type="number"],
+		.shape-search-input,
+		.path-controls__field select,
+		.path-controls__field input[type="number"],
+		.style-select,
+		.inspector-picker__select,
+		.world-viewer-goto input[type="number"],
+		.debug-search
+	):focus {
+	border-color: var(--btn-ink);
+	outline: none;
+}
+
+:is(.left-sidebar__text-input, .shape-search-input, .debug-search)::placeholder {
+	color: var(--field-placeholder);
+}
+
+/* --- Checkbox: a small slot with a white pixel tick -------------------- */
+input[type="checkbox"] {
+	appearance: none;
+	-webkit-appearance: none;
+	flex-shrink: 0;
+	width: 18px;
+	height: 18px;
+	margin: 0;
+	background: var(--slot);
+	box-shadow: var(--sunken-slot);
+	cursor: pointer;
+}
+
+input[type="checkbox"]:checked {
+	background:
+		url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 7' shape-rendering='crispEdges'><path fill='%23fff' d='M5 1h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM3 3h1v1h-1zM2 4h1v1h-1z'/></svg>")
+			center / 14px 14px no-repeat,
+		var(--slot);
+}
+
+input[type="checkbox"]:focus-visible {
+	outline: 2px solid var(--btn-ink);
+	outline-offset: 1px;
+}
+
+/* --- Tooltip: the purple-framed item tooltip --------------------------- */
+.world-viewer-tooltip,
+.hover-coords,
+.map-compass {
+	font-family: var(--font-pixel);
+	color: var(--tooltip-ink);
+	border: 2px solid transparent;
+	background:
+		linear-gradient(var(--tooltip-bg), var(--tooltip-bg)) padding-box,
+		linear-gradient(var(--tooltip-border-top), var(--tooltip-border-bottom))
+			border-box;
+	box-shadow: 0 0 0 2px var(--tooltip-bg);
+	text-shadow: 1px 1px 0 var(--text-shadow-color);
+}
+
+.hover-coords__biome {
+	color: var(--tooltip-ink-muted);
+}
+
+/* --- Meter: the XP bar ------------------------------------------------- */
+.inspector-meter {
+	background: #1a1a1a;
+	border: 2px solid var(--mc-outline);
+	box-sizing: content-box;
+}
+
+.inspector-meter__fill {
+	background: var(--xp-green);
+	box-shadow: inset 0 -2px 0 var(--xp-green-shade);
+}
+
+/* --- Scrollbar: slot track, raised panel thumb ------------------------- */
+::-webkit-scrollbar {
+	width: 14px;
+	height: 14px;
+}
+
+::-webkit-scrollbar-track {
+	background: var(--slot);
+	box-shadow: var(--sunken-slot);
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--panel);
+	border: 2px solid var(--mc-outline);
+	box-shadow: var(--raised);
+}
+
+::-webkit-scrollbar-corner {
+	background: var(--panel);
+}
+
+/* Firefox has no ::-webkit-scrollbar; Chrome ignores those rules entirely
+   once scrollbar-color is set, hence the @supports guard. */
+@supports not selector(::-webkit-scrollbar) {
+	* {
+		scrollbar-color: var(--panel) var(--slot);
+	}
+}
+
+/* --- Text straight on the dirt background ------------------------------ */
+.inspector-intro__title,
+.inspector-section__title,
+.debug-section__title {
+	font-family: var(--font-pixel);
+	color: var(--ink-on-bg);
+	text-shadow: 2px 2px 0 var(--text-shadow-color);
+}
+
+.inspector-intro__subtitle,
+.debug-section__count,
+.world-viewer-legend {
+	color: var(--ink-on-bg-muted);
+	text-shadow: 1px 1px 0 var(--text-shadow-color);
+}
+
+/* ====================================================================== */
+/* End of Minecraft UI kit                                                */
+/* ====================================================================== */
 
 /* Every icon from icons.js carries this class. Sized in em by default so it
    tracks whatever dynamic/computed font-size surrounds it (badge text that
@@ -149,9 +681,6 @@ body.preview-collapsed #root {
 	align-items: center;
 	gap: 20px;
 	padding: 0 20px;
-	background: var(--surface);
-	border-bottom: 2px solid var(--grid-line);
-	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 	z-index: 30;
 }
 
@@ -191,21 +720,12 @@ body.preview-collapsed #root {
 .app-nav__link {
 	font-size: 13px;
 	padding: 6px 14px;
-	border-radius: 8px;
-	color: var(--ink-muted);
 	text-decoration: none;
 	white-space: nowrap;
 	flex-shrink: 0;
 }
 
-.app-nav__link:hover {
-	background: var(--surface-hover);
-	color: var(--ink);
-}
-
 .app-nav__link.is-active {
-	background: var(--accent);
-	color: var(--accent-ink);
 	font-weight: 600;
 }
 
@@ -215,19 +735,10 @@ body.preview-collapsed #root {
 	font-size: 16px;
 	line-height: 1;
 	padding: 8px 10px;
-	border-radius: 8px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
 	cursor: pointer;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-}
-
-.app-nav__theme-toggle:hover,
-.app-nav__shortcuts-toggle:hover {
-	background: var(--surface-hover);
 }
 
 .app-nav__shortcuts-toggle {
@@ -250,10 +761,6 @@ body.preview-collapsed #root {
 }
 
 .shortcuts-modal {
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: 12px;
-	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
 	width: min(560px, 100%);
 	max-height: 80vh;
 	overflow-y: auto;
@@ -267,10 +774,10 @@ body.preview-collapsed #root {
 	justify-content: space-between;
 	gap: 12px;
 	padding: 16px 20px;
-	border-bottom: 1px solid var(--border);
 	position: sticky;
 	top: 0;
-	background: var(--surface);
+	background: var(--panel);
+	border-bottom: 2px solid var(--panel-lo);
 }
 
 .shortcuts-modal__header h2 {
@@ -279,19 +786,10 @@ body.preview-collapsed #root {
 }
 
 .shortcuts-modal__close {
-	font: inherit;
 	font-size: 20px;
 	line-height: 1;
 	padding: 4px 9px;
-	border-radius: 6px;
-	border: 1px solid var(--border);
-	background: var(--surface-alt);
-	color: var(--ink);
 	cursor: pointer;
-}
-
-.shortcuts-modal__close:hover {
-	background: var(--surface-hover);
 }
 
 .shortcuts-modal__body {
@@ -336,14 +834,9 @@ body.preview-collapsed #root {
 }
 
 .shortcuts-modal kbd {
-	font: inherit;
 	font-size: 12px;
 	font-family: ui-monospace, "SF Mono", Consolas, monospace;
 	padding: 2px 6px;
-	border-radius: 5px;
-	border: 1px solid var(--border);
-	background: var(--surface-alt);
-	color: var(--ink);
 }
 
 @media (max-width: 560px) {
@@ -368,9 +861,6 @@ body.preview-collapsed #root {
 	bottom: var(--bottom-bar-height);
 	width: var(--left-sidebar-width);
 	padding: 18px;
-	background: var(--surface);
-	border-right: 2px solid var(--grid-line);
-	box-shadow: 10px 0 24px rgba(0, 0, 0, 0.35);
 	overflow-y: auto;
 	z-index: 8;
 	transition:
@@ -394,24 +884,12 @@ body.preview-collapsed #root {
 }
 
 .left-sidebar__toggle {
-	font: inherit;
 	font-size: 12px;
 	padding: 6px 10px;
-	border-radius: 8px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
 	cursor: pointer;
 }
 
-.left-sidebar__toggle:hover {
-	background: var(--surface-hover);
-}
-
 .left-sidebar__content {
-	background: var(--surface-alt);
-	border: 1px solid var(--border);
-	border-radius: 10px;
 	padding: 12px;
 	font-size: 13px;
 	line-height: 1.45;
@@ -470,13 +948,6 @@ body.preview-collapsed #root {
 	align-items: flex-start;
 	gap: 8px;
 	padding: 8px 10px;
-	border-radius: 8px;
-	background: var(--surface-alt);
-	border: 1px solid var(--border);
-}
-
-.plan-check__item--warn {
-	border-color: color-mix(in srgb, var(--border) 50%, #d9822b 50%);
 }
 
 .plan-check__icon {
@@ -510,52 +981,23 @@ body.preview-collapsed #root {
 
 .left-sidebar__button {
 	display: block;
-	font: inherit;
 	font-size: 13px;
 	padding: 8px 12px;
-	border-radius: 8px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
 	cursor: pointer;
 	text-align: left;
 	text-decoration: none;
 	box-sizing: border-box;
 }
 
-.left-sidebar__button:hover {
-	background: var(--surface-hover);
-}
-
-.left-sidebar__button:disabled {
-	opacity: 0.45;
-	cursor: not-allowed;
-}
-
-.left-sidebar__button:disabled:hover {
-	background: var(--surface);
-}
 
 .left-sidebar__button--danger {
 	text-align: center;
-	color: #e05656;
-	border-color: color-mix(in srgb, var(--border) 50%, #e05656 50%);
-}
-
-.left-sidebar__button--danger:hover {
-	background: color-mix(in srgb, #e05656 18%, var(--surface));
-	border-color: #e05656;
 }
 
 .left-sidebar__text-input {
 	flex: 1;
-	font: inherit;
 	font-size: 13px;
 	padding: 8px 10px;
-	border-radius: 8px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
 	min-width: 0;
 }
 
@@ -609,13 +1051,8 @@ body.preview-collapsed #root {
 }
 
 .world-bg-controls__offsets input[type="number"] {
-	font: inherit;
 	font-size: 13px;
 	padding: 6px 8px;
-	border-radius: 8px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
 	width: 100%;
 	box-sizing: border-box;
 }
@@ -636,9 +1073,6 @@ body.preview-collapsed #root {
 	align-items: center;
 	gap: 6px;
 	padding: 6px 8px;
-	border-radius: 8px;
-	border: 1px solid var(--border);
-	background: var(--surface-alt);
 }
 
 .left-sidebar__plan-name {
@@ -652,23 +1086,9 @@ body.preview-collapsed #root {
 }
 
 .left-sidebar__plan-action {
-	font: inherit;
 	font-size: 11px;
 	padding: 4px 8px;
-	border-radius: 6px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
 	cursor: pointer;
-}
-
-.left-sidebar__plan-action:hover {
-	background: var(--surface-hover);
-}
-
-.left-sidebar__plan-action--danger:hover {
-	background: color-mix(in srgb, #e05656 25%, var(--surface));
-	border-color: #e05656;
 }
 
 .left-sidebar.is-collapsed {
@@ -690,7 +1110,6 @@ body.preview-collapsed #root {
 .left-sidebar.is-collapsed .left-sidebar__toggle {
 	width: 100%;
 	padding: 8px 0;
-	border-radius: 6px;
 }
 
 .preview-sidebar {
@@ -700,9 +1119,6 @@ body.preview-collapsed #root {
 	bottom: var(--bottom-bar-height);
 	width: var(--preview-sidebar-width);
 	padding: 18px;
-	background: var(--surface);
-	border-left: 2px solid var(--grid-line);
-	box-shadow: -10px 0 24px rgba(0, 0, 0, 0.35);
 	overflow-y: auto;
 	z-index: 8;
 	transition:
@@ -725,9 +1141,6 @@ body.preview-collapsed #root {
 	gap: 8px;
 	margin-bottom: 12px;
 	padding: 8px 10px;
-	border-radius: 8px;
-	background: var(--surface-alt);
-	border: 1px solid var(--border);
 	font-size: 12px;
 	font-variant-numeric: tabular-nums;
 }
@@ -750,27 +1163,15 @@ body.preview-collapsed #root {
 }
 
 .preview-sidebar__toggle {
-	font: inherit;
 	font-size: 12px;
 	padding: 6px 10px;
-	border-radius: 8px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
 	cursor: pointer;
-}
-
-.preview-sidebar__toggle:hover {
-	background: var(--surface-hover);
 }
 
 .preview-card {
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
-	background: var(--surface-alt);
-	border: 1px solid var(--border);
-	border-radius: 10px;
 	padding: 12px;
 }
 
@@ -783,36 +1184,21 @@ body.preview-collapsed #root {
 
 .preview-card__view-toggle {
 	display: flex;
+	/* Keeps the buttons at their natural height when the mobile layout
+	   turns .preview-card into a row and stretches this toggle to full height. */
+	align-items: flex-start;
 	gap: 6px;
 }
 
 .preview-card__view-btn {
-	font: inherit;
 	font-size: 11px;
 	padding: 4px 10px;
-	border-radius: 999px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink-muted);
 	cursor: pointer;
-}
-
-.preview-card__view-btn:hover {
-	filter: brightness(1.1);
-}
-
-.preview-card__view-btn.is-active {
-	background: var(--accent);
-	border-color: var(--accent);
-	color: var(--accent-ink);
 }
 
 .preview-card__image-wrap {
 	position: relative;
 	aspect-ratio: 4 / 3;
-	background: var(--surface-sunken);
-	border: 1px solid var(--border);
-	border-radius: 8px;
 	overflow: hidden;
 	display: flex;
 	align-items: center;
@@ -850,14 +1236,12 @@ body.preview-collapsed #root {
 	font-weight: 700;
 	line-height: 1.3;
 	text-align: center;
-	background: rgba(255, 255, 255, 0.75);
-	/* A fixed dark ink, not --accent-ink - that variable is tuned for
-	   contrast against --accent (a saturated blue chip) and flips to white
-	   in the light theme, which would go invisible against this always-white
-	   background regardless of theme. */
-	color: #12141a;
+	/* Same name tag as a top-down building on the grid (see
+	   .placed-square.has-topdown .placed-badge) - fixed colors, not theme
+	   tokens, since it sits over a render rather than over UI chrome. */
+	background: rgba(0, 0, 0, 0.6);
+	color: #ffffff;
 	border: none;
-	border-radius: 5px;
 	white-space: normal;
 	overflow: visible;
 	pointer-events: none;
@@ -900,7 +1284,6 @@ body.hide-topdown-overlay .preview-card__topdown-label {
 .preview-sidebar.is-collapsed .preview-sidebar__toggle {
 	width: 100%;
 	padding: 8px 0;
-	border-radius: 6px;
 }
 
 .preview-sidebar.is-collapsed .cost-card {
@@ -912,9 +1295,6 @@ body.hide-topdown-overlay .preview-card__topdown-label {
 	flex-direction: column;
 	gap: 10px;
 	margin-top: 12px;
-	background: var(--surface-alt);
-	border: 1px solid var(--border);
-	border-radius: 10px;
 	padding: 12px;
 }
 
@@ -929,25 +1309,12 @@ body.hide-topdown-overlay .preview-card__topdown-label {
 }
 
 .cost-card__level-button {
-	font: inherit;
 	font-size: 12px;
 	padding: 5px 12px;
-	border: 1px solid var(--border);
-	border-radius: 999px;
-	background: var(--surface);
-	color: var(--ink);
 	cursor: pointer;
-	transition: background 0.15s ease;
-}
-
-.cost-card__level-button:hover {
-	background: var(--surface-hover);
 }
 
 .cost-card__level-button.is-active {
-	background: var(--accent);
-	border-color: var(--accent);
-	color: var(--accent-ink);
 	font-weight: 600;
 }
 
@@ -984,9 +1351,6 @@ body.hide-topdown-overlay .preview-card__topdown-label {
 	gap: 8px;
 	font-size: 12px;
 	padding: 4px 8px;
-	border-radius: 6px;
-	background: var(--surface);
-	border: 1px solid var(--border);
 }
 
 .cost-card__material-label {
@@ -1001,12 +1365,6 @@ body.hide-topdown-overlay .preview-card__topdown-label {
 	height: 18px;
 	flex-shrink: 0;
 	image-rendering: pixelated;
-	border-radius: 3px;
-}
-
-.cost-card__material-icon--placeholder {
-	background: var(--surface-sunken);
-	border: 1px solid var(--border);
 }
 
 /* Fences/walls/slabs/plates/buttons are textured identically to their parent
@@ -1119,12 +1477,7 @@ body.preview-collapsed .grid-zoom-controls {
 	gap: 1px;
 	width: 34px;
 	height: 34px;
-	border-radius: 50%;
-	background: rgba(10, 10, 14, 0.6);
-	color: #fff;
-	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 	pointer-events: none;
-	transition: right 0.2s ease;
 }
 
 body.preview-collapsed .map-compass {
@@ -1145,19 +1498,9 @@ body.preview-collapsed .map-compass {
 .grid-zoom-controls button {
 	width: 32px;
 	height: 32px;
-	border-radius: 6px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
-	font: inherit;
 	font-size: 16px;
 	line-height: 1;
 	cursor: pointer;
-	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-}
-
-.grid-zoom-controls button:hover {
-	filter: brightness(1.1);
 }
 
 .grid-goto-controls {
@@ -1166,9 +1509,6 @@ body.preview-collapsed .map-compass {
 	gap: 6px;
 	margin-bottom: 12px;
 	padding: 8px;
-	background: var(--surface-alt);
-	border: 1px solid var(--border);
-	border-radius: 8px;
 }
 
 .preview-sidebar.is-collapsed .grid-goto-controls {
@@ -1184,13 +1524,8 @@ body.preview-collapsed .map-compass {
 }
 
 .grid-goto-controls input[type="number"] {
-	font: inherit;
 	font-size: 13px;
 	padding: 5px 6px;
-	border-radius: 6px;
-	border: 1px solid var(--border);
-	background: var(--surface-alt);
-	color: var(--ink);
 	width: 72px;
 	box-sizing: border-box;
 }
@@ -1198,18 +1533,8 @@ body.preview-collapsed .map-compass {
 .grid-goto-controls button {
 	height: 30px;
 	padding: 0 12px;
-	border-radius: 6px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
-	font: inherit;
 	font-size: 13px;
 	cursor: pointer;
-	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-}
-
-.grid-goto-controls button:hover {
-	filter: brightness(1.1);
 }
 
 /* Gridlines are a pure CSS background pattern, not one DOM element per cell
@@ -1228,8 +1553,7 @@ body.preview-collapsed .map-compass {
 		linear-gradient(to right, var(--map-grid-minor) 1px, transparent 1px) 0 0 / var(--cell-size) var(--cell-size),
 		linear-gradient(to bottom, var(--map-grid-minor) 1px, transparent 1px) 0 0 / var(--cell-size) var(--cell-size),
 		var(--grid-bg);
-	border: 2px solid var(--grid-line);
-	box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+	border: 2px solid var(--mc-outline);
 	cursor: grab;
 	/* Without these, a trackpad click-and-drag can get eaten by the
 	   browser's own default touch/text-selection handling instead of
@@ -1278,14 +1602,11 @@ body.preview-collapsed .map-compass {
 	left: 0;
 	right: 0;
 	bottom: 0;
-	background: var(--surface);
-	border-top: 2px solid var(--grid-line);
 	padding: 16px 24px;
 	display: flex;
 	flex-direction: column;
 	align-items: stretch;
 	gap: 16px;
-	box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.45);
 	color: var(--ink);
 }
 
@@ -1334,69 +1655,33 @@ body.preview-collapsed .map-compass {
 }
 
 .subtab {
-	font: inherit;
 	font-size: 12px;
 	padding: 5px 12px;
-	border: 1px solid var(--border);
-	border-radius: 999px;
-	background: var(--surface-alt);
 	cursor: pointer;
-	color: var(--ink);
-	transition: background 0.15s ease;
-}
-
-.subtab:hover {
-	background: var(--surface-hover);
 }
 
 .subtab.is-active {
-	background: var(--accent);
-	border-color: var(--accent);
-	color: var(--accent-ink);
 	font-weight: 600;
 }
 
 .tab {
-	font: inherit;
 	font-size: 13px;
 	padding: 7px 16px;
-	border: 1px solid var(--border);
-	border-radius: 999px;
-	background: var(--surface-alt);
 	cursor: pointer;
-	color: var(--ink);
-	transition: background 0.15s ease;
-}
-
-.tab:hover {
-	background: var(--surface-hover);
 }
 
 .tab.is-active {
-	background: var(--accent);
-	border-color: var(--accent);
-	color: var(--accent-ink);
 	font-weight: 600;
 }
 
 .style-select {
-	font: inherit;
 	font-size: 14px;
 	padding: 6px 10px;
-	border-radius: 8px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
 }
 
 .shape-search-input {
-	font: inherit;
 	font-size: 14px;
 	padding: 6px 10px;
-	border-radius: 8px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
 	width: 170px;
 	align-self: center;
 }
@@ -1428,49 +1713,36 @@ body.preview-collapsed .map-compass {
 	display: flex;
 	align-items: center;
 	gap: 6px;
-	font: inherit;
 	font-size: 12px;
 	padding: 5px 10px 5px 6px;
-	border-radius: 999px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
 	cursor: pointer;
 }
 
-.path-type-swatch:hover {
-	background: var(--surface-hover);
-}
-
 .path-type-swatch.is-active {
-	border-color: var(--accent);
-	background: color-mix(in srgb, var(--accent) 18%, var(--surface));
 	font-weight: 600;
 }
 
 .path-type-swatch__color {
 	width: 14px;
 	height: 14px;
-	border-radius: 50%;
 	border: 1px solid rgba(12, 12, 18, 0.55);
 	flex-shrink: 0;
 }
 
 /* "walls" drags out real schematic buildings on release instead of
    painting a flat color like every other type in this row (see
-   renderPathTypeOptions) - a leading divider (border, not just a gap - a
-   plain gap reads identically to the spacing between every other swatch)
-   separates it from the paint colors, and a squared-off swatch (vs. every
-   other type's round color dot) hints "this is a building piece", not a
-   color choice, before the click. */
+   renderPathTypeOptions) - an extra-wide gap separates it from the paint
+   colors, and its swatch is drawn as a bevelled block (vs. every other
+   type's flat paint chip) to hint "this is a building piece", not a color
+   choice, before the click. */
 .path-type-swatch--building {
-	margin-left: 6px;
-	padding-left: 12px;
-	border-left: 1px solid var(--border);
+	margin-left: 12px;
 }
 
 .path-type-swatch--building .path-type-swatch__color {
-	border-radius: 3px;
+	box-shadow:
+		inset 2px 2px 0 rgba(255, 255, 255, 0.45),
+		inset -2px -2px 0 rgba(0, 0, 0, 0.4);
 }
 
 .path-controls__row {
@@ -1489,13 +1761,8 @@ body.preview-collapsed .map-compass {
 
 .path-controls__field select,
 .path-controls__field input[type="number"] {
-	font: inherit;
 	font-size: 13px;
 	padding: 5px 8px;
-	border-radius: 8px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
 }
 
 .path-controls__field input[type="number"] {
@@ -1503,25 +1770,10 @@ body.preview-collapsed .map-compass {
 }
 
 .path-controls__erase-toggle {
-	font: inherit;
 	font-size: 13px;
 	padding: 6px 14px;
-	border-radius: 8px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
 	cursor: pointer;
 	height: 30px;
-}
-
-.path-controls__erase-toggle:hover {
-	filter: brightness(1.1);
-}
-
-.path-controls__erase-toggle.is-active {
-	background: var(--accent);
-	border-color: var(--accent);
-	color: var(--accent-ink);
 }
 
 .shape-tray {
@@ -1533,30 +1785,16 @@ body.preview-collapsed .map-compass {
 	min-width: max-content;
 }
 
+/* 6px padding on each side matches the +12px app.js adds to the
+   thumbnail's width (renderShapeTray), so the preview fits exactly. */
 .shape-option {
-	border: 2px solid transparent;
-	background: var(--surface-alt);
-	border-radius: 12px;
-	padding: 8px;
+	padding: 6px;
 	cursor: pointer;
 	display: grid;
 	justify-items: center;
 	gap: 4px;
 	align-content: start;
 	align-items: start;
-	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
-	transition:
-		background 0.15s ease,
-		border-color 0.15s ease;
-}
-
-.shape-option:hover {
-	background: var(--surface-hover);
-}
-
-.shape-option.is-selected {
-	border-color: var(--accent-selected);
-	background: color-mix(in srgb, var(--accent-selected) 18%, var(--surface-alt));
 }
 
 .shape-preview-wrap {
@@ -1611,7 +1849,7 @@ body.preview-collapsed .map-compass {
 		rgba(255, 255, 255, 0.72)
 	);
 	border: 1px solid rgba(12, 12, 18, 0.55);
-	color: var(--accent-ink);
+	color: var(--badge-ink);
 	font-weight: 700;
 }
 
@@ -1629,12 +1867,10 @@ body.preview-collapsed .map-compass {
 
 .shape-label {
 	font-size: 12px;
-	color: var(--ink);
 }
 
 .shape-dimensions {
 	font-size: 10px;
-	color: var(--ink-muted);
 }
 
 .sample-square,
@@ -1708,7 +1944,7 @@ body.preview-collapsed .map-compass {
 	border: 1px solid rgba(12, 12, 18, 0.55);
 	user-select: none;
 	-webkit-user-select: none;
-	color: var(--accent-ink);
+	color: var(--badge-ink);
 	font-weight: 700;
 }
 
@@ -1736,11 +1972,11 @@ body.preview-collapsed .map-compass {
 
 /* A top-down-rendered building shrinks its badge down to a small name tag
    floating in the middle of the square instead of the flat mode's
-   full-square label, so the render underneath stays legible. Background
-   uses --category-border (the more saturated "accent" version of the
-   category color, vs. the pale --category-color used for the flat fill)
-   for a stronger, borderless tag - set per category-* class on
-   .placed-square, so it still reads as "this category". Text wraps rather
+   full-square label, so the render underneath stays legible. Styled as a
+   Minecraft mob name tag: translucent black box, white text, in fixed
+   colors regardless of theme (it sits over a render, not UI chrome; the
+   game's own tags are ~25% black - darker here so it holds up over busy
+   rooftops). Text wraps rather
    than truncating - name, not emoji, is the whole point of the tag - and
    the emoji span (see placeSquare) is hidden below so only the name shows.
    The tag itself (not just its text) sits centered in the middle of the
@@ -1761,15 +1997,9 @@ body.preview-collapsed .map-compass {
 	padding: 4px 7px;
 	font-size: 11px;
 	line-height: 1.25;
-	background: rgba(255, 255, 255, 0.75);
-	/* A fixed dark ink rather than the base .placed-badge rule's
-	   --accent-ink - that variable is tuned for contrast against --accent
-	   (a saturated blue chip) and flips to white in the light theme, which
-	   would go invisible against this always-white background regardless
-	   of theme. */
-	color: #12141a;
+	background: rgba(0, 0, 0, 0.6);
+	color: #ffffff;
 	border: none;
-	border-radius: 4px;
 	text-align: center;
 	white-space: normal;
 	overflow: visible;
@@ -1857,40 +2087,13 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 	flex-direction: column;
 	gap: 6px;
 	padding: 8px;
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: 14px;
-	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .action-menu button {
-	font: inherit;
 	font-size: 12px;
 	padding: 6px 10px;
-	border-radius: 8px;
-	border: 1px solid var(--border);
-	background: var(--surface-alt);
 	cursor: pointer;
 	text-align: left;
-	color: var(--ink);
-}
-
-.action-menu button:hover {
-	background: var(--surface-hover);
-}
-
-/* Matches .left-sidebar__button--danger's red treatment for "Clear board" -
-   Delete is just as destructive/unrecoverable-without-undo, but used to be
-   plain text identical to Rotate/Duplicate, the only visual cue being the
-   word itself. */
-.action-menu button[data-action="delete"] {
-	color: #e05656;
-	border-color: color-mix(in srgb, var(--border) 50%, #e05656 50%);
-}
-
-.action-menu button[data-action="delete"]:hover {
-	background: color-mix(in srgb, #e05656 18%, var(--surface));
-	border-color: #e05656;
 }
 
 .path-action-menu {
@@ -1900,38 +2103,13 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 	flex-direction: column;
 	gap: 6px;
 	padding: 8px;
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: 14px;
-	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .path-action-menu button {
-	font: inherit;
 	font-size: 12px;
 	padding: 6px 10px;
-	border-radius: 8px;
-	border: 1px solid var(--border);
-	background: var(--surface-alt);
 	cursor: pointer;
 	text-align: left;
-	color: var(--ink);
-}
-
-.path-action-menu button:hover {
-	background: var(--surface-hover);
-}
-
-/* Its only button is Delete - same red treatment as
-   .left-sidebar__button--danger/.action-menu button[data-action="delete"]. */
-.path-action-menu button[data-path-action="delete"] {
-	color: #e05656;
-	border-color: color-mix(in srgb, var(--border) 50%, #e05656 50%);
-}
-
-.path-action-menu button[data-path-action="delete"]:hover {
-	background: color-mix(in srgb, #e05656 18%, var(--surface));
-	border-color: #e05656;
 }
 
 .placed-path.is-selected {
@@ -2050,9 +2228,6 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 		bottom: auto;
 		width: auto;
 		height: var(--left-sidebar-mobile-height);
-		border-right: none;
-		border-bottom: 2px solid var(--grid-line);
-		box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
 	}
 
 	.left-sidebar.is-collapsed {
@@ -2061,7 +2236,6 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 		width: auto;
 		height: var(--left-sidebar-mobile-collapsed-height);
 		padding: 8px 12px;
-		border-bottom: 2px solid var(--grid-line);
 	}
 
 	.left-sidebar__title {
@@ -2089,9 +2263,6 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 		bottom: var(--bottom-bar-height);
 		width: auto;
 		height: var(--preview-sidebar-mobile-height);
-		border-left: none;
-		border-top: 2px solid var(--grid-line);
-		box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.35);
 	}
 
 	.preview-sidebar.is-collapsed {
@@ -2100,7 +2271,6 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 		width: auto;
 		height: var(--preview-sidebar-mobile-collapsed-height);
 		padding: 8px 12px;
-		border-top: 2px solid var(--grid-line);
 	}
 
 	.preview-sidebar__title {
@@ -2170,7 +2340,6 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 
 .inspector-intro__subtitle {
 	margin: 4px 0 0;
-	color: var(--ink-muted);
 	font-size: 14px;
 }
 
@@ -2181,17 +2350,9 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 }
 
 .inspector-upload__zone {
-	border: 2px dashed var(--border);
-	border-radius: 12px;
-	background: var(--surface);
 	padding: 32px 24px;
 	text-align: center;
 	transition: border-color 0.15s ease, background 0.15s ease;
-}
-
-.inspector-upload__zone.is-dragover {
-	border-color: var(--accent);
-	background: var(--surface-hover);
 }
 
 .inspector-upload__prompt {
@@ -2204,18 +2365,9 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 }
 
 .inspector-upload__button {
-	font: inherit;
 	font-size: 14px;
 	padding: 10px 18px;
-	border-radius: 8px;
-	border: 1px solid var(--border);
-	background: var(--accent);
-	color: var(--accent-ink);
 	cursor: pointer;
-}
-
-.inspector-upload__button:hover {
-	filter: brightness(1.05);
 }
 
 .inspector-upload__status {
@@ -2230,7 +2382,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 	margin-top: 4px;
 	font: inherit;
 	font-size: 12px;
-	color: var(--accent);
+	color: var(--link);
 	background: none;
 	border: none;
 	cursor: pointer;
@@ -2243,9 +2395,6 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 }
 
 .inspector-help {
-	border: 1px solid var(--border);
-	border-radius: 10px;
-	background: var(--surface-alt);
 	padding: 10px 14px;
 }
 
@@ -2269,9 +2418,6 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 }
 
 .inspector-notice {
-	background: var(--surface-alt);
-	border: 1px solid var(--border);
-	border-radius: 8px;
 	padding: 12px 14px;
 	font-size: 13px;
 	color: var(--ink-muted);
@@ -2290,19 +2436,11 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 }
 
 .inspector-picker__select {
-	font: inherit;
 	font-size: 14px;
 	padding: 8px 10px;
-	border-radius: 8px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
 }
 
 .inspector-card {
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: 12px;
 	padding: 20px;
 }
 
@@ -2321,8 +2459,6 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
-	background: var(--surface-alt);
-	border-radius: 8px;
 	padding: 10px 12px;
 }
 
@@ -2350,8 +2486,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 .inspector-swatch {
 	width: 14px;
 	height: 14px;
-	border-radius: 4px;
-	border: 1px solid var(--border);
+	border: 2px solid var(--panel-lo);
 	display: inline-block;
 }
 
@@ -2365,10 +2500,6 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 .inspector-chip {
 	font-size: 12px;
 	padding: 4px 10px;
-	border-radius: 999px;
-	background: var(--surface-alt);
-	border: 1px solid var(--border);
-	color: var(--ink);
 }
 
 .inspector-chip--small {
@@ -2394,9 +2525,6 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 }
 
 .inspector-citizen-card {
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: 10px;
 	padding: 14px;
 	display: flex;
 	flex-direction: column;
@@ -2448,15 +2576,12 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 .inspector-meter {
 	display: block;
 	height: 6px;
-	border-radius: 999px;
-	background: var(--surface-sunken);
 	overflow: hidden;
 }
 
 .inspector-meter__fill {
 	display: block;
 	height: 100%;
-	background: var(--accent);
 }
 
 .inspector-citizen-card__skills {
@@ -2489,7 +2614,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 .inspector-table td {
 	text-align: left;
 	padding: 8px 10px;
-	border-bottom: 1px solid var(--border);
+	border-bottom: 2px solid var(--panel-lo);
 }
 
 .inspector-table th {
@@ -2499,9 +2624,6 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 }
 
 .inspector-raw {
-	border: 1px solid var(--border);
-	border-radius: 10px;
-	background: var(--surface-alt);
 	padding: 10px 14px;
 }
 
@@ -2514,7 +2636,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 	list-style: none;
 	margin: 6px 0 0;
 	padding-left: 16px;
-	border-left: 1px solid var(--border);
+	border-left: 2px solid var(--panel-lo);
 	font-family: "SFMono-Regular", Consolas, monospace;
 	font-size: 12px;
 }
@@ -2553,9 +2675,6 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 .world-viewer-canvas-wrap {
 	position: relative;
 	height: 560px;
-	background: var(--surface-alt);
-	border: 1px solid var(--border);
-	border-radius: 10px;
 	overflow: hidden;
 	cursor: grab;
 	touch-action: none;
@@ -2597,10 +2716,6 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 	align-items: flex-end;
 	gap: 6px;
 	padding: 8px;
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: 8px;
-	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 	z-index: 4;
 }
 
@@ -2613,13 +2728,8 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 }
 
 .world-viewer-goto input[type="number"] {
-	font: inherit;
 	font-size: 13px;
 	padding: 5px 6px;
-	border-radius: 6px;
-	border: 1px solid var(--border);
-	background: var(--surface-alt);
-	color: var(--ink);
 	width: 72px;
 	box-sizing: border-box;
 }
@@ -2627,18 +2737,8 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 .world-viewer-goto button {
 	height: 30px;
 	padding: 0 12px;
-	border-radius: 6px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
-	font: inherit;
 	font-size: 13px;
 	cursor: pointer;
-	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-}
-
-.world-viewer-goto button:hover {
-	filter: brightness(1.1);
 }
 
 .world-viewer-zoom-controls {
@@ -2654,31 +2754,16 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 .world-viewer-zoom-controls button {
 	width: 32px;
 	height: 32px;
-	border-radius: 6px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
-	font: inherit;
 	font-size: 16px;
 	line-height: 1;
 	cursor: pointer;
-	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-}
-
-.world-viewer-zoom-controls button:hover {
-	filter: brightness(1.1);
 }
 
 .world-viewer-tooltip {
 	position: absolute;
 	pointer-events: none;
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: 6px;
 	padding: 6px 10px;
 	font-size: 12px;
-	color: var(--ink);
-	box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
 	white-space: nowrap;
 	z-index: 5;
 }
@@ -2700,8 +2785,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 .world-viewer-legend__swatch {
 	width: 12px;
 	height: 12px;
-	border-radius: 3px;
-	border: 1px solid var(--border);
+	border: 2px solid var(--panel-lo);
 	flex-shrink: 0;
 }
 
@@ -2727,18 +2811,12 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 }
 
 .debug-section__count {
-	color: var(--ink-muted);
 	font-size: 13px;
 }
 
 .debug-search {
-	font: inherit;
 	font-size: 14px;
 	padding: 8px 12px;
-	border-radius: 8px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
 	max-width: 320px;
 }
 
@@ -2754,9 +2832,6 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 	align-items: center;
 	gap: 6px;
 	padding: 10px 8px;
-	border: 1px solid var(--border);
-	border-radius: 10px;
-	background: var(--surface);
 	min-width: 0;
 }
 
@@ -2766,8 +2841,6 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: var(--surface-alt);
-	border-radius: 6px;
 }
 
 .debug-material-item__icon {
@@ -2798,17 +2871,13 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 	align-items: center;
 	gap: 10px;
 	padding: 8px 10px;
-	border: 1px solid var(--border);
-	border-radius: 8px;
-	background: var(--surface);
 	min-width: 0;
 }
 
 .debug-biome-item__swatch {
 	width: 28px;
 	height: 28px;
-	border-radius: 6px;
-	border: 1px solid var(--border);
+	border: 2px solid var(--panel-lo);
 	flex-shrink: 0;
 }
 
