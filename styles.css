@@ -9,19 +9,26 @@
 	--grid-line: #3a3a3a;
 	--grid-line-light: rgba(255, 255, 255, 0.08);
 	--grid-bg: #1e1e1e;
+	/* Map-only grid overlay, decoupled from --grid-line/-light above (those
+	   stay solid/subtle for UI chrome borders elsewhere) - the world
+	   background is always fully opaque now, so a solid chunk line reads as
+	   a harsh dark bar over varied terrain colors (translucent instead), and
+	   the old 0.08 cell-line alpha was barely visible against it (bumped up
+	   noticeably). */
+	--map-grid-major: rgba(255, 255, 255, 0.3);
+	--map-grid-minor: rgba(255, 255, 255, 0.18);
 	--ink: #e8e8e8;
 	--ink-muted: #a0a0a0;
 	--accent: #6aa6ff;
 	--accent-ink: #0f1115;
 	--accent-selected: #b7bdf8;
 	--path-cell-bg: rgba(100, 180, 220, 0.4);
-	--path-cell-bg-selected: rgba(106, 172, 255, 0.45);
 	--path-cell-border: rgba(60, 140, 200, 0.8);
-	--path-preview-bg: rgba(100, 180, 220, 0.3);
-	--path-preview-border: rgba(60, 140, 200, 0.6);
-	--path-resize-handle-bg: rgba(255, 200, 50, 0.9);
-	--path-resize-handle-border: rgba(180, 120, 0, 1);
+	--path-selected-outline: rgba(180, 120, 0, 1);
+	--path-bevel-light: rgba(255, 255, 255, 0.45);
+	--path-bevel-dark: rgba(0, 0, 0, 0.4);
 	--bottom-bar-height: 0px;
+	--topbar-height: 52px;
 	--left-sidebar-width: 240px;
 	--left-sidebar-collapsed-width: 44px;
 	--left-sidebar-mobile-height: 120px;
@@ -30,6 +37,7 @@
 	--preview-sidebar-collapsed-width: 44px;
 	--preview-sidebar-mobile-height: 188px;
 	--preview-sidebar-mobile-collapsed-height: 44px;
+	--bottom-tray-height: 170px;
 }
 
 [data-theme="light"] {
@@ -42,18 +50,18 @@
 	--grid-line: #c8c8cf;
 	--grid-line-light: rgba(0, 0, 0, 0.08);
 	--grid-bg: #ffffff;
+	--map-grid-major: rgba(0, 0, 0, 0.28);
+	--map-grid-minor: rgba(0, 0, 0, 0.16);
 	--ink: #1c1c1e;
 	--ink-muted: #55555c;
 	--accent: #3a72e0;
 	--accent-ink: #ffffff;
 	--accent-selected: #5b6bd8;
 	--path-cell-bg: rgba(58, 140, 190, 0.28);
-	--path-cell-bg-selected: rgba(58, 114, 224, 0.35);
 	--path-cell-border: rgba(30, 100, 150, 0.7);
-	--path-preview-bg: rgba(58, 140, 190, 0.2);
-	--path-preview-border: rgba(30, 100, 150, 0.5);
-	--path-resize-handle-bg: rgba(230, 150, 20, 0.9);
-	--path-resize-handle-border: rgba(150, 90, 0, 1);
+	--path-selected-outline: rgba(150, 90, 0, 1);
+	--path-bevel-light: rgba(255, 255, 255, 0.45);
+	--path-bevel-dark: rgba(0, 0, 0, 0.4);
 }
 
 @media (prefers-color-scheme: light) {
@@ -67,18 +75,18 @@
 		--grid-line: #c8c8cf;
 		--grid-line-light: rgba(0, 0, 0, 0.08);
 		--grid-bg: #ffffff;
+		--map-grid-major: rgba(0, 0, 0, 0.28);
+		--map-grid-minor: rgba(0, 0, 0, 0.16);
 		--ink: #1c1c1e;
 		--ink-muted: #55555c;
 		--accent: #3a72e0;
 		--accent-ink: #ffffff;
 		--accent-selected: #5b6bd8;
 		--path-cell-bg: rgba(58, 140, 190, 0.28);
-		--path-cell-bg-selected: rgba(58, 114, 224, 0.35);
 		--path-cell-border: rgba(30, 100, 150, 0.7);
-		--path-preview-bg: rgba(58, 140, 190, 0.2);
-		--path-preview-border: rgba(30, 100, 150, 0.5);
-		--path-resize-handle-bg: rgba(230, 150, 20, 0.9);
-		--path-resize-handle-border: rgba(150, 90, 0, 1);
+		--path-selected-outline: rgba(150, 90, 0, 1);
+		--path-bevel-light: rgba(255, 255, 255, 0.45);
+		--path-bevel-dark: rgba(0, 0, 0, 0.4);
 	}
 }
 
@@ -93,32 +101,269 @@ body {
 	color: var(--ink);
 }
 
+/* Every icon from icons.js carries this class. Sized in em by default so it
+   tracks whatever dynamic/computed font-size surrounds it (badge text that
+   scales with a building's footprint, etc.) without each call site having
+   to compute a matching pixel size - callers that DO want a fixed pixel
+   size still get one from the width/height attributes getIconSvg() sets,
+   this only overrides for spots that opt in via a more specific selector. */
+.mc-icon {
+	flex-shrink: 0;
+	vertical-align: -0.15em;
+}
+
+/* The grid is sized to comfortably cover a whole uploaded region file
+   (512x512 blocks) or more, so it's normally bigger than the visible page -
+   #root IS the scrollable viewport onto it (fixed to the space between the
+   topbar/sidebars/bottom bar, native overflow:auto scrollbars/trackpad/
+   wheel panning) rather than a flex-centered box that assumed the grid
+   would always fit on screen. */
 #root {
-	display: flex;
-	justify-content: center;
-	align-items: flex-start;
+	position: fixed;
+	top: var(--topbar-height);
+	left: var(--left-sidebar-width);
+	right: var(--preview-sidebar-width);
+	bottom: var(--bottom-bar-height);
+	overflow: auto;
 	padding: 32px;
-	padding-left: calc(var(--left-sidebar-width) + 24px);
-	padding-right: calc(var(--preview-sidebar-width) + 24px);
-	padding-bottom: calc(var(--bottom-bar-height) + 24px);
 	transition:
-		padding-left 0.2s ease,
-		padding-right 0.2s ease,
-		padding-top 0.2s ease,
-		padding-bottom 0.2s ease;
+		left 0.2s ease,
+		right 0.2s ease;
 }
 
 body.left-pane-collapsed #root {
-	padding-left: calc(var(--left-sidebar-collapsed-width) + 24px);
+	left: var(--left-sidebar-collapsed-width);
 }
 
 body.preview-collapsed #root {
-	padding-right: calc(var(--preview-sidebar-collapsed-width) + 24px);
+	right: var(--preview-sidebar-collapsed-width);
+}
+
+.app-nav {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: var(--topbar-height);
+	display: flex;
+	align-items: center;
+	gap: 20px;
+	padding: 0 20px;
+	background: var(--surface);
+	border-bottom: 2px solid var(--grid-line);
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+	z-index: 30;
+}
+
+.app-nav__brand {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--ink);
+	text-decoration: none;
+	font-weight: 700;
+	font-size: 14px;
+	white-space: nowrap;
+}
+
+.app-nav__logo {
+	display: flex;
+	align-items: center;
+	color: var(--ink);
+}
+
+.app-nav__links {
+	display: flex;
+	gap: 4px;
+	flex: 1;
+	min-width: 0;
+	/* min-width:0 alone only lets THIS flex item shrink below its content
+	   size - it doesn't stop the nowrap links inside from rendering at
+	   their full natural width once there's less room than they need
+	   (narrow viewports, "Colony Inspector" being the long one), which
+	   otherwise visually spills into the theme-toggle/shortcuts buttons
+	   sitting right after this in .app-nav's own flex row. Scrolls within
+	   its own slot instead, same pattern as the shape tray's horizontal
+	   scroll below. */
+	overflow-x: auto;
+}
+
+.app-nav__link {
+	font-size: 13px;
+	padding: 6px 14px;
+	border-radius: 8px;
+	color: var(--ink-muted);
+	text-decoration: none;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+.app-nav__link:hover {
+	background: var(--surface-hover);
+	color: var(--ink);
+}
+
+.app-nav__link.is-active {
+	background: var(--accent);
+	color: var(--accent-ink);
+	font-weight: 600;
+}
+
+.app-nav__theme-toggle,
+.app-nav__shortcuts-toggle {
+	font: inherit;
+	font-size: 16px;
+	line-height: 1;
+	padding: 8px 10px;
+	border-radius: 8px;
+	border: 1px solid var(--border);
+	background: var(--surface);
+	color: var(--ink);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.app-nav__theme-toggle:hover,
+.app-nav__shortcuts-toggle:hover {
+	background: var(--surface-hover);
+}
+
+.app-nav__shortcuts-toggle {
+	font-weight: 700;
+}
+
+.shortcuts-modal-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(8, 9, 12, 0.55);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 50;
+	padding: 24px;
+}
+
+.shortcuts-modal-overlay[hidden] {
+	display: none;
+}
+
+.shortcuts-modal {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+	width: min(560px, 100%);
+	max-height: 80vh;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+}
+
+.shortcuts-modal__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 16px 20px;
+	border-bottom: 1px solid var(--border);
+	position: sticky;
+	top: 0;
+	background: var(--surface);
+}
+
+.shortcuts-modal__header h2 {
+	margin: 0;
+	font-size: 18px;
+}
+
+.shortcuts-modal__close {
+	font: inherit;
+	font-size: 20px;
+	line-height: 1;
+	padding: 4px 9px;
+	border-radius: 6px;
+	border: 1px solid var(--border);
+	background: var(--surface-alt);
+	color: var(--ink);
+	cursor: pointer;
+}
+
+.shortcuts-modal__close:hover {
+	background: var(--surface-hover);
+}
+
+.shortcuts-modal__body {
+	padding: 16px 20px 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+
+.shortcuts-modal__group h3 {
+	margin: 0 0 8px;
+	font-size: 13px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--ink-muted);
+}
+
+.shortcuts-modal__group dl {
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.shortcuts-modal__row {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 16px;
+}
+
+.shortcuts-modal__row dt {
+	flex: 0 0 auto;
+	white-space: nowrap;
+}
+
+.shortcuts-modal__row dd {
+	margin: 0;
+	text-align: right;
+	color: var(--ink);
+	font-size: 13px;
+}
+
+.shortcuts-modal kbd {
+	font: inherit;
+	font-size: 12px;
+	font-family: ui-monospace, "SF Mono", Consolas, monospace;
+	padding: 2px 6px;
+	border-radius: 5px;
+	border: 1px solid var(--border);
+	background: var(--surface-alt);
+	color: var(--ink);
+}
+
+@media (max-width: 560px) {
+	.app-nav {
+		gap: 10px;
+		padding: 0 12px;
+	}
+
+	.app-nav__title {
+		display: none;
+	}
+
+	.app-nav__link {
+		padding: 6px 10px;
+	}
 }
 
 .left-sidebar {
 	position: fixed;
-	top: 0;
+	top: var(--topbar-height);
 	left: 0;
 	bottom: var(--bottom-bar-height);
 	width: var(--left-sidebar-width);
@@ -163,25 +408,6 @@ body.preview-collapsed #root {
 	background: var(--surface-hover);
 }
 
-.left-sidebar__theme-toggle {
-	font: inherit;
-	font-size: 14px;
-	line-height: 1;
-	width: 30px;
-	height: 30px;
-	padding: 0;
-	border-radius: 8px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--ink);
-	cursor: pointer;
-	flex-shrink: 0;
-}
-
-.left-sidebar__theme-toggle:hover {
-	background: var(--surface-hover);
-}
-
 .left-sidebar__content {
 	background: var(--surface-alt);
 	border: 1px solid var(--border);
@@ -212,12 +438,78 @@ body.preview-collapsed #root {
 	gap: 8px;
 }
 
+.plan-check {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.plan-check__empty {
+	margin: 0;
+	font-size: 12px;
+	color: var(--ink-muted);
+}
+
+.plan-check__group {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.plan-check__group-title {
+	margin: 0;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	color: var(--ink-muted);
+}
+
+.plan-check__item {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	padding: 8px 10px;
+	border-radius: 8px;
+	background: var(--surface-alt);
+	border: 1px solid var(--border);
+}
+
+.plan-check__item--warn {
+	border-color: color-mix(in srgb, var(--border) 50%, #d9822b 50%);
+}
+
+.plan-check__icon {
+	flex-shrink: 0;
+	line-height: 1.3;
+}
+
+.plan-check__text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.plan-check__title {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--ink);
+}
+
+.plan-check__detail {
+	font-size: 11px;
+	line-height: 1.4;
+	color: var(--ink-muted);
+}
+
 .left-sidebar__button-row .left-sidebar__button {
 	flex: 1;
 	text-align: center;
 }
 
 .left-sidebar__button {
+	display: block;
 	font: inherit;
 	font-size: 13px;
 	padding: 8px 12px;
@@ -227,6 +519,8 @@ body.preview-collapsed #root {
 	color: var(--ink);
 	cursor: pointer;
 	text-align: left;
+	text-decoration: none;
+	box-sizing: border-box;
 }
 
 .left-sidebar__button:hover {
@@ -240,6 +534,17 @@ body.preview-collapsed #root {
 
 .left-sidebar__button:disabled:hover {
 	background: var(--surface);
+}
+
+.left-sidebar__button--danger {
+	text-align: center;
+	color: #e05656;
+	border-color: color-mix(in srgb, var(--border) 50%, #e05656 50%);
+}
+
+.left-sidebar__button--danger:hover {
+	background: color-mix(in srgb, #e05656 18%, var(--surface));
+	border-color: #e05656;
 }
 
 .left-sidebar__text-input {
@@ -256,6 +561,63 @@ body.preview-collapsed #root {
 
 .left-sidebar__text-input::placeholder {
 	color: var(--ink-muted);
+}
+
+.left-sidebar__hint {
+	margin: 0;
+	font-size: 12px;
+	line-height: 1.4;
+	color: var(--ink-muted);
+}
+
+.world-bg-controls {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.world-bg-controls__row {
+	display: flex;
+	align-items: center;
+	/* Every current use is a checkbox immediately followed by its own label
+	   text (Show top-down renders / Show doors / Show name tags & borders /
+	   Show grid lines / Show background) - space-between shoved the
+	   checkbox and a short label to opposite ends of the row (a big,
+	   disconnected-looking gap for "Show doors", barely any for the longer
+	   labels), which only ever made sense back when this row template also
+	   held the old opacity slider (label on the left, control on the
+	   right) - now removed. flex-start keeps checkbox+label together as one
+	   connected control regardless of label length. */
+	justify-content: flex-start;
+	gap: 8px;
+	font-size: 13px;
+	color: var(--ink);
+}
+
+.world-bg-controls__offsets {
+	display: flex;
+	gap: 8px;
+}
+
+.world-bg-controls__offsets label {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 12px;
+	color: var(--ink-muted);
+}
+
+.world-bg-controls__offsets input[type="number"] {
+	font: inherit;
+	font-size: 13px;
+	padding: 6px 8px;
+	border-radius: 8px;
+	border: 1px solid var(--border);
+	background: var(--surface);
+	color: var(--ink);
+	width: 100%;
+	box-sizing: border-box;
 }
 
 .left-sidebar__plans-list {
@@ -321,7 +683,6 @@ body.preview-collapsed #root {
 }
 
 .left-sidebar.is-collapsed .left-sidebar__title,
-.left-sidebar.is-collapsed .left-sidebar__theme-toggle,
 .left-sidebar.is-collapsed .left-sidebar__content {
 	display: none;
 }
@@ -334,7 +695,7 @@ body.preview-collapsed #root {
 
 .preview-sidebar {
 	position: fixed;
-	top: 0;
+	top: var(--topbar-height);
 	right: 0;
 	bottom: var(--bottom-bar-height);
 	width: var(--preview-sidebar-width);
@@ -356,6 +717,30 @@ body.preview-collapsed #root {
 	justify-content: space-between;
 	gap: 8px;
 	margin-bottom: 12px;
+}
+
+.hover-coords {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	margin-bottom: 12px;
+	padding: 8px 10px;
+	border-radius: 8px;
+	background: var(--surface-alt);
+	border: 1px solid var(--border);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+}
+
+.hover-coords[hidden] {
+	display: none;
+}
+
+.hover-coords__biome {
+	color: var(--ink-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .preview-sidebar__title {
@@ -396,6 +781,32 @@ body.preview-collapsed #root {
 	word-break: break-word;
 }
 
+.preview-card__view-toggle {
+	display: flex;
+	gap: 6px;
+}
+
+.preview-card__view-btn {
+	font: inherit;
+	font-size: 11px;
+	padding: 4px 10px;
+	border-radius: 999px;
+	border: 1px solid var(--border);
+	background: var(--surface);
+	color: var(--ink-muted);
+	cursor: pointer;
+}
+
+.preview-card__view-btn:hover {
+	filter: brightness(1.1);
+}
+
+.preview-card__view-btn.is-active {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: var(--accent-ink);
+}
+
 .preview-card__image-wrap {
 	position: relative;
 	aspect-ratio: 4 / 3;
@@ -412,6 +823,47 @@ body.preview-collapsed #root {
 	max-width: 100%;
 	max-height: 100%;
 	object-fit: contain;
+	display: none;
+}
+
+.preview-card__canvas {
+	max-width: 100%;
+	max-height: 100%;
+	/* Same reasoning as World Viewer's canvas - a top-down building render is
+	   made of crisp per-block icons, and smooth scaling would blur the exact
+	   pixel edges that make fence/wall/stair shapes readable. */
+	image-rendering: pixelated;
+}
+
+/* Category class (category-farming etc.) is set on this element in JS
+   (showPreviewView) so --category-color/--category-border resolve the same
+   way they do for a placed building's own badge - same tint, same source. */
+.preview-card__topdown-label {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: max-content;
+	max-width: calc(100% - 16px);
+	padding: 5px 9px;
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 1.3;
+	text-align: center;
+	background: rgba(255, 255, 255, 0.75);
+	/* A fixed dark ink, not --accent-ink - that variable is tuned for
+	   contrast against --accent (a saturated blue chip) and flips to white
+	   in the light theme, which would go invisible against this always-white
+	   background regardless of theme. */
+	color: #12141a;
+	border: none;
+	border-radius: 5px;
+	white-space: normal;
+	overflow: visible;
+	pointer-events: none;
+}
+
+body.hide-topdown-overlay .preview-card__topdown-label {
 	display: none;
 }
 
@@ -440,7 +892,8 @@ body.preview-collapsed #root {
 }
 
 .preview-sidebar.is-collapsed .preview-sidebar__title,
-.preview-sidebar.is-collapsed .preview-card {
+.preview-sidebar.is-collapsed .preview-card,
+.preview-sidebar.is-collapsed .hover-coords {
 	display: none;
 }
 
@@ -450,74 +903,374 @@ body.preview-collapsed #root {
 	border-radius: 6px;
 }
 
+.preview-sidebar.is-collapsed .cost-card {
+	display: none;
+}
+
+.cost-card {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-top: 12px;
+	background: var(--surface-alt);
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	padding: 12px;
+}
+
+.cost-card[hidden] {
+	display: none;
+}
+
+.cost-card__levels {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.cost-card__level-button {
+	font: inherit;
+	font-size: 12px;
+	padding: 5px 12px;
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	background: var(--surface);
+	color: var(--ink);
+	cursor: pointer;
+	transition: background 0.15s ease;
+}
+
+.cost-card__level-button:hover {
+	background: var(--surface-hover);
+}
+
+.cost-card__level-button.is-active {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: var(--accent-ink);
+	font-weight: 600;
+}
+
+.cost-card__body {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.cost-card__section-title {
+	margin: 0 0 6px;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	color: var(--ink-muted);
+}
+
+.cost-card__materials {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	max-height: 220px;
+	overflow-y: auto;
+}
+
+.cost-card__material {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 12px;
+	padding: 4px 8px;
+	border-radius: 6px;
+	background: var(--surface);
+	border: 1px solid var(--border);
+}
+
+.cost-card__material-label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+}
+
+.cost-card__material-icon {
+	width: 18px;
+	height: 18px;
+	flex-shrink: 0;
+	image-rendering: pixelated;
+	border-radius: 3px;
+}
+
+.cost-card__material-icon--placeholder {
+	background: var(--surface-sunken);
+	border: 1px solid var(--border);
+}
+
+/* Fences/walls/slabs/plates/buttons are textured identically to their parent
+   block (a fence is literally UV-mapped with the plank texture), so the only
+   way to hint at the actual shape is to crop the icon into a silhouette of
+   it — still the real material color, just correctly shaped. */
+.material-shape--fence {
+	/* A front-on cross: one full-height post crossed by two full-width rails
+	   — this is the material-list icon (glanced at in a list, next to a
+	   name), so a recognizable elevation view reads better here than the
+	   top-down post view used in the building renders, where "seen from
+	   above" is the whole point. Disconnected rectangles need a mask (SVG),
+	   not clip-path — a single polygon can't express unconnected regions. */
+	-webkit-mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='37' y='0' width='26' height='100'/><rect x='0' y='13' width='100' height='20'/><rect x='0' y='57' width='100' height='20'/></svg>");
+	mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='37' y='0' width='26' height='100'/><rect x='0' y='13' width='100' height='20'/><rect x='0' y='57' width='100' height='20'/></svg>");
+	-webkit-mask-size: 100% 100%;
+	mask-size: 100% 100%;
+}
+
+.material-shape--wall {
+	-webkit-clip-path: inset(8% 34%);
+	clip-path: inset(8% 34%);
+}
+
+.material-shape--stairs {
+	/* Cost-panel icon only (see topdown_grid.js — top-down rendering keeps
+	   stairs as a full block, since from directly above a staircase mostly
+	   reads as a solid tread surface). A single step: an L-shaped silhouette
+	   rising from bottom-left to top-right. */
+	-webkit-clip-path: polygon(0 100%, 0 50%, 50% 50%, 50% 0, 100% 0, 100% 100%);
+	clip-path: polygon(0 100%, 0 50%, 50% 50%, 50% 0, 100% 0, 100% 100%);
+}
+
+.material-shape--slab {
+	-webkit-clip-path: inset(50% 0 0 0);
+	clip-path: inset(50% 0 0 0);
+}
+
+.material-shape--plate {
+	-webkit-clip-path: inset(72% 8% 6% 8%);
+	clip-path: inset(72% 8% 6% 8%);
+}
+
+.material-shape--button {
+	-webkit-clip-path: inset(34%);
+	clip-path: inset(34%);
+}
+
+.cost-card__material-name {
+	color: var(--ink);
+	word-break: break-word;
+}
+
+.cost-card__material-count {
+	color: var(--ink-muted);
+	font-weight: 600;
+	flex-shrink: 0;
+}
+
+.cost-card__empty {
+	font-size: 12px;
+	color: var(--ink-muted);
+}
+
+/* Sized in JS to the current zoom level - see app.js's applyGridZoom(). This
+   is what #root actually scrolls; .grid-shell inside it stays at natural
+   size and is visually scaled via transform (paint-time only, doesn't
+   affect scroll extent, hence this separate sizer tracking it explicitly). */
+.grid-zoom-sizer {
+	position: relative;
+}
+
 .grid-shell {
-	position: relative;
-	display: inline-block;
-}
-
-.grid {
-	position: relative;
-	display: grid;
-	background: var(--grid-bg);
-	background-image:
-		linear-gradient(to right, var(--grid-line) 2px, transparent 2px),
-		linear-gradient(to bottom, var(--grid-line) 2px, transparent 2px);
-	background-size: var(--chunk-size) var(--chunk-size);
-	border: 2px solid var(--grid-line);
-	box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
-}
-
-.grid-expand {
 	position: absolute;
-	padding: 6px 10px;
-	border-radius: 0;
+	top: 0;
+	left: 0;
+	transform-origin: 0 0;
+}
+
+.grid-zoom-controls {
+	position: fixed;
+	right: calc(var(--preview-sidebar-width) + 24px);
+	bottom: calc(var(--bottom-bar-height) + 24px);
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	z-index: 6;
+	transition: right 0.2s ease;
+}
+
+body.preview-collapsed .grid-zoom-controls {
+	right: calc(var(--preview-sidebar-collapsed-width) + 24px);
+}
+
+/* One fixed compass for the whole map (top-right, same collapse-aware
+   right offset as .grid-zoom-controls) - replaces the old per-building
+   compass badge that used to render on every top-down building tile. */
+.map-compass {
+	position: fixed;
+	/* Below .app-nav (fixed, top:0, z-index:30) - anchoring straight to the
+	   viewport top would tuck this under the nav bar instead of floating
+	   over the grid like .grid-zoom-controls does at the bottom. */
+	top: calc(var(--topbar-height) + 16px);
+	right: calc(var(--preview-sidebar-width) + 24px);
+	z-index: 6;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 1px;
+	width: 34px;
+	height: 34px;
+	border-radius: 50%;
+	background: rgba(10, 10, 14, 0.6);
+	color: #fff;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+	pointer-events: none;
+	transition: right 0.2s ease;
+}
+
+body.preview-collapsed .map-compass {
+	right: calc(var(--preview-sidebar-collapsed-width) + 24px);
+}
+
+.map-compass__arrow {
+	font-size: 12px;
+	line-height: 1;
+}
+
+.map-compass__label {
+	font-size: 10px;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.grid-zoom-controls button {
+	width: 32px;
+	height: 32px;
+	border-radius: 6px;
 	border: 1px solid var(--border);
 	background: var(--surface);
 	color: var(--ink);
-	font-size: 12px;
+	font: inherit;
+	font-size: 16px;
+	line-height: 1;
 	cursor: pointer;
-	box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
-.grid-expand--top {
-	left: 0;
-	right: 0;
-	top: -28px;
-	height: 28px;
+.grid-zoom-controls button:hover {
+	filter: brightness(1.1);
 }
 
-.grid-expand--bottom {
-	left: 0;
-	right: 0;
-	bottom: -28px;
-	height: 28px;
+.grid-goto-controls {
+	display: flex;
+	align-items: flex-end;
+	gap: 6px;
+	margin-bottom: 12px;
+	padding: 8px;
+	background: var(--surface-alt);
+	border: 1px solid var(--border);
+	border-radius: 8px;
 }
 
-.grid-expand--left {
+.preview-sidebar.is-collapsed .grid-goto-controls {
+	display: none;
+}
+
+.grid-goto-controls label {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	font-size: 11px;
+	color: var(--ink-muted);
+}
+
+.grid-goto-controls input[type="number"] {
+	font: inherit;
+	font-size: 13px;
+	padding: 5px 6px;
+	border-radius: 6px;
+	border: 1px solid var(--border);
+	background: var(--surface-alt);
+	color: var(--ink);
+	width: 72px;
+	box-sizing: border-box;
+}
+
+.grid-goto-controls button {
+	height: 30px;
+	padding: 0 12px;
+	border-radius: 6px;
+	border: 1px solid var(--border);
+	background: var(--surface);
+	color: var(--ink);
+	font: inherit;
+	font-size: 13px;
+	cursor: pointer;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.grid-goto-controls button:hover {
+	filter: brightness(1.1);
+}
+
+/* Gridlines are a pure CSS background pattern, not one DOM element per cell
+   (the old .grid-cell approach) - at the grid sizes needed to make "scroll
+   around freely" actually useful (covering a full uploaded region file,
+   512x512+ blocks), one div per cell would mean hundreds of thousands of DOM
+   nodes just to draw lines. Two gradient pairs stacked in one background:
+   the fine per-cell lines tile at --cell-size, the bolder chunk-boundary
+   lines tile at --chunk-size on top of them (first-listed background layer
+   paints on top in CSS). */
+.grid {
+	position: relative;
+	background:
+		linear-gradient(to right, var(--map-grid-major) 2px, transparent 2px) 0 0 / var(--chunk-size) var(--chunk-size),
+		linear-gradient(to bottom, var(--map-grid-major) 2px, transparent 2px) 0 0 / var(--chunk-size) var(--chunk-size),
+		linear-gradient(to right, var(--map-grid-minor) 1px, transparent 1px) 0 0 / var(--cell-size) var(--cell-size),
+		linear-gradient(to bottom, var(--map-grid-minor) 1px, transparent 1px) 0 0 / var(--cell-size) var(--cell-size),
+		var(--grid-bg);
+	border: 2px solid var(--grid-line);
+	box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+	cursor: grab;
+	/* Without these, a trackpad click-and-drag can get eaten by the
+	   browser's own default touch/text-selection handling instead of
+	   reaching the pointerdown/pointermove pan logic in app.js - matches
+	   .world-viewer-canvas-wrap, whose already-working drag-to-pan has both. */
+	touch-action: none;
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+/* "Show grid lines" toggle (see app.js) - drops both line layers, leaving
+   just the flat base fill from the same background shorthand. */
+.grid.hide-grid-lines {
+	background: var(--grid-bg);
+}
+
+.grid.is-panning {
+	cursor: grabbing;
+}
+
+/* Uploaded-world background (see app.js's worldBgLayer/worldBgCanvas) - a
+   solid-color biome map positioned behind the grid so buildings can be
+   placed against real terrain instead of a blank grid. background-color
+   alone is overridden to transparent here (leaving the gridline
+   background-image layer alone) so the map shows through the gaps between
+   lines once .has-world-bg is toggled on. */
+.grid.has-world-bg {
+	background-color: transparent;
+}
+
+.world-bg-layer {
+	position: absolute;
 	top: 0;
-	bottom: 0;
-	left: -28px;
-	width: 28px;
-	padding: 0;
+	left: 0;
+	overflow: hidden;
 }
 
-.grid-expand--right {
-	top: 0;
-	bottom: 0;
-	right: -28px;
-	width: 28px;
-	padding: 0;
-}
-
-.grid-cell {
-	width: var(--cell-size);
-	height: var(--cell-size);
-	border-right: 1px solid var(--grid-line-light);
-	border-bottom: 1px solid var(--grid-line-light);
-}
-
-.grid-cell.last-col {
-	border-right: none;
+.world-bg-layer canvas {
+	position: absolute;
+	image-rendering: pixelated;
+	display: block;
 }
 
 .bottom-bar {
@@ -552,7 +1305,7 @@ body.preview-collapsed #root {
 
 .bottom-bottom {
 	display: flex;
-	height: 170px;
+	height: var(--bottom-tray-height);
 	overflow-x: auto;
 	overflow-y: hidden;
 	padding-bottom: 0;
@@ -636,6 +1389,141 @@ body.preview-collapsed #root {
 	color: var(--ink);
 }
 
+.shape-search-input {
+	font: inherit;
+	font-size: 14px;
+	padding: 6px 10px;
+	border-radius: 8px;
+	border: 1px solid var(--border);
+	background: var(--surface);
+	color: var(--ink);
+	width: 170px;
+	align-self: center;
+}
+
+/* Lives inside the shape tray (see renderShapeTray's "roads" branch), not
+   the always-visible bottom-top bar - a column layout (hint above the
+   controls row) suits that flex-row tray slot better than the inline strip
+   this used when it sat next to the style selector. */
+.path-controls {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 8px 4px;
+}
+
+.path-controls__hint {
+	margin: 0;
+	font-size: 12px;
+	color: var(--ink-muted);
+}
+
+.path-type-picker {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.path-type-swatch {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font: inherit;
+	font-size: 12px;
+	padding: 5px 10px 5px 6px;
+	border-radius: 999px;
+	border: 1px solid var(--border);
+	background: var(--surface);
+	color: var(--ink);
+	cursor: pointer;
+}
+
+.path-type-swatch:hover {
+	background: var(--surface-hover);
+}
+
+.path-type-swatch.is-active {
+	border-color: var(--accent);
+	background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+	font-weight: 600;
+}
+
+.path-type-swatch__color {
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	border: 1px solid rgba(12, 12, 18, 0.55);
+	flex-shrink: 0;
+}
+
+/* "walls" drags out real schematic buildings on release instead of
+   painting a flat color like every other type in this row (see
+   renderPathTypeOptions) - a leading divider (border, not just a gap - a
+   plain gap reads identically to the spacing between every other swatch)
+   separates it from the paint colors, and a squared-off swatch (vs. every
+   other type's round color dot) hints "this is a building piece", not a
+   color choice, before the click. */
+.path-type-swatch--building {
+	margin-left: 6px;
+	padding-left: 12px;
+	border-left: 1px solid var(--border);
+}
+
+.path-type-swatch--building .path-type-swatch__color {
+	border-radius: 3px;
+}
+
+.path-controls__row {
+	display: flex;
+	align-items: flex-end;
+	gap: 8px;
+}
+
+.path-controls__field {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	font-size: 11px;
+	color: var(--ink-muted);
+}
+
+.path-controls__field select,
+.path-controls__field input[type="number"] {
+	font: inherit;
+	font-size: 13px;
+	padding: 5px 8px;
+	border-radius: 8px;
+	border: 1px solid var(--border);
+	background: var(--surface);
+	color: var(--ink);
+}
+
+.path-controls__field input[type="number"] {
+	width: 56px;
+}
+
+.path-controls__erase-toggle {
+	font: inherit;
+	font-size: 13px;
+	padding: 6px 14px;
+	border-radius: 8px;
+	border: 1px solid var(--border);
+	background: var(--surface);
+	color: var(--ink);
+	cursor: pointer;
+	height: 30px;
+}
+
+.path-controls__erase-toggle:hover {
+	filter: brightness(1.1);
+}
+
+.path-controls__erase-toggle.is-active {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: var(--accent-ink);
+}
+
 .shape-tray {
 	display: flex;
 	flex-direction: row;
@@ -699,6 +1587,14 @@ body.preview-collapsed #root {
 	position: relative;
 }
 
+.shape-preview__image {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
 .preview-badge {
 	position: absolute;
 	inset: 0;
@@ -717,6 +1613,18 @@ body.preview-collapsed #root {
 	border: 1px solid rgba(12, 12, 18, 0.55);
 	color: var(--accent-ink);
 	font-weight: 700;
+}
+
+/* .preview-badge's own display:flex above is an author-stylesheet rule, so
+   it beats the [hidden] attribute's UA-stylesheet display:none by origin
+   regardless of selector specificity - this class+attribute selector is
+   both more specific AND still an author rule, so it wins instead. Set via
+   badge.hidden in loadShapeTrayThumbnail once a shape tray card's real
+   preview photo loads (the photo replaces the flat-color+badge fallback,
+   not layers under it - the badge would otherwise still visibly cover the
+   photo since both are position:absolute; inset:0). */
+.preview-badge[hidden] {
+	display: none;
 }
 
 .shape-label {
@@ -744,8 +1652,14 @@ body.preview-collapsed #root {
 			transparent 1px
 		);
 	background-size: var(--cell-size) var(--cell-size);
-	border: 2px solid var(--category-border, #b59a7a);
-	box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+	/* content-box (overriding the page-wide border-box reset) so this
+	   border adds OUTWARD from the tile's own footprint instead of eating
+	   into it - two abutting placed-squares (e.g. wall segments tiled
+	   edge-to-edge) then just overlap borders by a pixel or two at the
+	   shared seam rather than each shrinking its own fill and stacking two
+	   full-width borders into a gap-looking band between them. */
+	box-sizing: content-box;
+	border: 1px solid var(--category-border, #b59a7a);
 }
 
 .sample-square {
@@ -760,11 +1674,25 @@ body.preview-collapsed #root {
 .placed-square {
 	position: absolute;
 	cursor: grab;
+	/* Above .placed-path (z-index: 1 below) regardless of DOM order - paths
+	   get removed/re-appended to .grid on every edit (paint, drag, undo),
+	   so relying on insertion order alone would make a road painted or
+	   moved after a building was placed render on top of it. */
+	z-index: 2;
+}
+
+.placed-path {
+	z-index: 1;
 }
 
 .placed-badge {
 	position: absolute;
 	inset: 0;
+	/* Painted after .placed-square__rooftop-canvas in the DOM (see
+	   placeSquare) but must stay ON TOP of it in top-down mode - equal
+	   z-index falls back to DOM order, which would otherwise put the
+	   canvas above the badge and hide the top-down name tag entirely. */
+	z-index: 1;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -782,6 +1710,80 @@ body.preview-collapsed #root {
 	-webkit-user-select: none;
 	color: var(--accent-ink);
 	font-weight: 700;
+}
+
+/* Wall segments/corners tile edge-to-edge into long, thin runs - a text
+   label on every piece just clutters the run, so walls skip the badge by
+   default (flat mode and top-down mode alike). The .has-topdown-qualified
+   selector isn't redundant - it out-specifies (3 ancestor classes vs 2)
+   the later `.placed-square.has-topdown .placed-badge { display: flex }`
+   rule below, which would otherwise win on source order alone once a wall
+   piece's top-down render kicks in and adds that class. */
+.placed-square.category-walls .placed-badge,
+.placed-square.category-walls.has-topdown .placed-badge {
+	display: none;
+}
+
+.placed-square__rooftop-canvas {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	image-rendering: pixelated;
+	pointer-events: none;
+	z-index: 0;
+}
+
+/* A top-down-rendered building shrinks its badge down to a small name tag
+   floating in the middle of the square instead of the flat mode's
+   full-square label, so the render underneath stays legible. Background
+   uses --category-border (the more saturated "accent" version of the
+   category color, vs. the pale --category-color used for the flat fill)
+   for a stronger, borderless tag - set per category-* class on
+   .placed-square, so it still reads as "this category". Text wraps rather
+   than truncating - name, not emoji, is the whole point of the tag - and
+   the emoji span (see placeSquare) is hidden below so only the name shows.
+   The tag itself (not just its text) sits centered in the middle of the
+   square - width hugs its content up to the square's own size, via the
+   translate(-50%,-50%) centering trick. */
+.placed-square.has-topdown .placed-badge {
+	inset: auto;
+	top: 50%;
+	left: 50%;
+	right: auto;
+	bottom: auto;
+	transform: translate(-50%, -50%);
+	width: max-content;
+	max-width: calc(100% - 8px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 4px 7px;
+	font-size: 11px;
+	line-height: 1.25;
+	background: rgba(255, 255, 255, 0.75);
+	/* A fixed dark ink rather than the base .placed-badge rule's
+	   --accent-ink - that variable is tuned for contrast against --accent
+	   (a saturated blue chip) and flips to white in the light theme, which
+	   would go invisible against this always-white background regardless
+	   of theme. */
+	color: #12141a;
+	border: none;
+	border-radius: 4px;
+	text-align: center;
+	white-space: normal;
+	overflow: visible;
+}
+
+body.hide-topdown-overlay .placed-square.has-topdown .placed-badge {
+	display: none;
+}
+
+body.hide-topdown-overlay .placed-square.has-topdown {
+	background-color: transparent;
+	background-image: none;
+	border-color: transparent;
+	box-shadow: none;
 }
 
 .category-farming {
@@ -877,6 +1879,20 @@ body.preview-collapsed #root {
 	background: var(--surface-hover);
 }
 
+/* Matches .left-sidebar__button--danger's red treatment for "Clear board" -
+   Delete is just as destructive/unrecoverable-without-undo, but used to be
+   plain text identical to Rotate/Duplicate, the only visual cue being the
+   word itself. */
+.action-menu button[data-action="delete"] {
+	color: #e05656;
+	border-color: color-mix(in srgb, var(--border) 50%, #e05656 50%);
+}
+
+.action-menu button[data-action="delete"]:hover {
+	background: color-mix(in srgb, #e05656 18%, var(--surface));
+	border-color: #e05656;
+}
+
 .path-action-menu {
 	position: absolute;
 	z-index: 5;
@@ -906,54 +1922,121 @@ body.preview-collapsed #root {
 	background: var(--surface-hover);
 }
 
+/* Its only button is Delete - same red treatment as
+   .left-sidebar__button--danger/.action-menu button[data-action="delete"]. */
+.path-action-menu button[data-path-action="delete"] {
+	color: #e05656;
+	border-color: color-mix(in srgb, var(--border) 50%, #e05656 50%);
+}
+
+.path-action-menu button[data-path-action="delete"]:hover {
+	background: color-mix(in srgb, #e05656 18%, var(--surface));
+	border-color: #e05656;
+}
+
 .placed-path.is-selected {
-	background: var(--path-cell-bg-selected) !important;
+	outline: 2px solid var(--path-selected-outline);
+	outline-offset: -1px;
 	box-shadow: inset 0 0 3px rgba(255, 255, 255, 0.3);
 }
 
-.path-toggle.is-active {
-	background: var(--accent);
-	border-color: var(--accent);
-}
-
-.path-node {
-	border: 2px solid #ff7b54;
-	border-radius: 50%;
-	background: rgba(255, 123, 84, 0.3);
-	box-shadow: 0 0 6px rgba(255, 123, 84, 0.6);
+.eraser-hover-preview {
+	position: absolute;
+	z-index: 5;
+	display: none;
+	box-sizing: border-box;
+	background: rgba(224, 86, 86, 0.22);
+	border: 2px dashed #e05656;
 	pointer-events: none;
 }
 
-.path-resize-handle {
+.marquee-select {
 	position: absolute;
-	border-radius: 50%;
-	cursor: grab;
-	z-index: 20;
-	pointer-events: auto;
-	touch-action: none;
-	box-shadow: 0 0 6px rgba(180, 120, 0, 0.8);
-	transition: transform 0.1s;
+	z-index: 5;
+	display: none;
+	box-sizing: border-box;
+	background: color-mix(in srgb, var(--accent-selected) 18%, transparent);
+	border: 1px solid var(--accent-selected);
+	pointer-events: none;
 }
 
-.path-resize-handle:hover {
-	transform: scale(1.2);
+.wall-draw-preview {
+	position: absolute;
+	z-index: 5;
+	display: none;
+	box-sizing: border-box;
+	background: rgba(150, 150, 156, 0.35);
+	border: 2px dashed rgba(150, 150, 156, 0.9);
+	pointer-events: none;
 }
 
 @media (max-width: 1024px) {
+	/* Redefines (not self-references - a literal px restated, not var()) the
+	   three fixed mobile panel/tray heights from :root above with a
+	   vh-capped version, picked up automatically by every consumer of these
+	   same custom properties (.left-sidebar/.preview-sidebar/.bottom-bottom's
+	   own height rules AND #root's padding-top/-bottom calc) with no changes
+	   needed anywhere else. On a short viewport (a landscape phone, or just
+	   a browser window resized short) these fixed panels used to claim
+	   their full 120px/188px/170px regardless of how little height was left
+	   over for the grid - the actual point of the app - after the topbar
+	   and the rest of the bottom bar were subtracted too. Verified against
+	   an iPhone-SE-sized 375x667 viewport, where the uncapped total
+	   (topbar + left strip + bottom bar + preview strip, padding included)
+	   added up to MORE than the viewport's own height - #root's box was
+	   being forced taller than the screen just to fit its own padding,
+	   leaving zero visible room for the grid.
+	   :root, not this block's own selector: a plain :root here still only
+	   applies while this media query matches (media-scoped custom property
+	   overrides work in the cascade like anything else, and the surrounding
+	   @media already gates it), and using :root keeps the specificity/
+	   selector identical to where these were first defined. */
+	:root {
+		--left-sidebar-mobile-height: min(120px, 16vh);
+		--preview-sidebar-mobile-height: min(188px, 22vh);
+		--bottom-tray-height: min(170px, 14vh);
+	}
+
 	#root {
+		/* The base (desktop) rule insets #root by the sidebars' full widths
+		   (--left-sidebar-width: 240px, --preview-sidebar-width: 320px) to
+		   sit between two side-by-side columns - below this breakpoint the
+		   sidebars reposition to horizontal bands (left:0; right:0; see
+		   .left-sidebar/.preview-sidebar below) stacked above/below the grid
+		   instead, so #root needs to span the full width too (inset only by
+		   its own small padding) rather than keeping the desktop columns'
+		   240px/320px reservations - left uncorrected, that leaves a content
+		   area of `100vw - 240px - 320px`, which goes negative below a
+		   560px-wide viewport and was squeezing the grid down to nothing.
+		   left/right, not the whole position shorthand: top/bottom still
+		   come from the base rule's var(--topbar-height)/var(--bottom-bar-
+		   height), unchanged - only the horizontal insets are wrong here. */
+		left: 0;
+		right: 0;
 		padding-left: 20px;
 		padding-right: 20px;
-		padding-top: calc(var(--left-sidebar-mobile-height) + 20px);
+		padding-top: calc(
+			var(--topbar-height) + var(--left-sidebar-mobile-height) + 20px
+		);
 		padding-bottom: calc(
 			var(--bottom-bar-height) + var(--preview-sidebar-mobile-height) + 24px
 		);
 	}
 
+	/* Same specificity as the base (desktop) body.left-pane-collapsed #root
+	   rule that sets left: var(--left-sidebar-collapsed-width) (240px-scale
+	   column collapse) - without repeating left:0 here too, that desktop
+	   rule would win over this media query's own plain #root{left:0} above
+	   purely on selector specificity, regardless of source order. */
 	body.left-pane-collapsed #root {
-		padding-top: calc(var(--left-sidebar-mobile-collapsed-height) + 20px);
+		left: 0;
+		padding-top: calc(
+			var(--topbar-height) + var(--left-sidebar-mobile-collapsed-height) + 20px
+		);
 	}
 
 	body.preview-collapsed #root {
+		right: 0;
 		padding-bottom: calc(
 			var(--bottom-bar-height) +
 				var(--preview-sidebar-mobile-collapsed-height) + 24px
@@ -963,7 +2046,7 @@ body.preview-collapsed #root {
 	.left-sidebar {
 		left: 0;
 		right: 0;
-		top: 0;
+		top: var(--topbar-height);
 		bottom: auto;
 		width: auto;
 		height: var(--left-sidebar-mobile-height);
@@ -1052,5 +2135,702 @@ body.preview-collapsed #root {
 	.preview-card__image-wrap {
 		flex: 1;
 		aspect-ratio: auto;
+	}
+}
+
+/* ---------------------------------------------------------------------- */
+/* Colony Inspector page                                                  */
+/* ---------------------------------------------------------------------- */
+
+#inspector-root,
+#world-viewer-root {
+	max-width: 1100px;
+	margin: 0 auto;
+	padding: calc(var(--topbar-height) + 32px) 24px 64px;
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+}
+
+#debug-root {
+	/* Wider than the other utility pages - a dense icon/color review grid
+	   benefits from more columns, unlike the single-focus upload tools. */
+	max-width: 1400px;
+	margin: 0 auto;
+	padding: calc(var(--topbar-height) + 32px) 24px 64px;
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+}
+
+.inspector-intro__title {
+	margin: 0;
+	font-size: 22px;
+}
+
+.inspector-intro__subtitle {
+	margin: 4px 0 0;
+	color: var(--ink-muted);
+	font-size: 14px;
+}
+
+.inspector-upload {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.inspector-upload__zone {
+	border: 2px dashed var(--border);
+	border-radius: 12px;
+	background: var(--surface);
+	padding: 32px 24px;
+	text-align: center;
+	transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.inspector-upload__zone.is-dragover {
+	border-color: var(--accent);
+	background: var(--surface-hover);
+}
+
+.inspector-upload__prompt {
+	margin: 0 0 12px;
+	color: var(--ink-muted);
+}
+
+.inspector-upload__prompt code {
+	color: var(--ink);
+}
+
+.inspector-upload__button {
+	font: inherit;
+	font-size: 14px;
+	padding: 10px 18px;
+	border-radius: 8px;
+	border: 1px solid var(--border);
+	background: var(--accent);
+	color: var(--accent-ink);
+	cursor: pointer;
+}
+
+.inspector-upload__button:hover {
+	filter: brightness(1.05);
+}
+
+.inspector-upload__status {
+	margin: 12px 0 0;
+	font-size: 13px;
+	color: var(--ink-muted);
+	min-height: 1.2em;
+}
+
+.inspector-upload__link-button {
+	display: inline-block;
+	margin-top: 4px;
+	font: inherit;
+	font-size: 12px;
+	color: var(--accent);
+	background: none;
+	border: none;
+	cursor: pointer;
+	text-decoration: underline;
+	padding: 0;
+}
+
+.inspector-upload__link-button:hover {
+	filter: brightness(1.1);
+}
+
+.inspector-help {
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	background: var(--surface-alt);
+	padding: 10px 14px;
+}
+
+.inspector-help summary {
+	cursor: pointer;
+	font-size: 13px;
+	color: var(--ink);
+}
+
+.inspector-help__body {
+	margin-top: 10px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	font-size: 13px;
+	color: var(--ink-muted);
+}
+
+.inspector-help__body code {
+	color: var(--ink);
+}
+
+.inspector-notice {
+	background: var(--surface-alt);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	padding: 12px 14px;
+	font-size: 13px;
+	color: var(--ink-muted);
+}
+
+.inspector-picker {
+	display: flex;
+}
+
+.inspector-picker__label {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	font-size: 13px;
+	color: var(--ink-muted);
+}
+
+.inspector-picker__select {
+	font: inherit;
+	font-size: 14px;
+	padding: 8px 10px;
+	border-radius: 8px;
+	border: 1px solid var(--border);
+	background: var(--surface);
+	color: var(--ink);
+}
+
+.inspector-card {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	padding: 20px;
+}
+
+.inspector-card__title {
+	margin: 0 0 16px;
+	font-size: 20px;
+}
+
+.inspector-stat-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+	gap: 12px;
+}
+
+.inspector-stat-tile {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	background: var(--surface-alt);
+	border-radius: 8px;
+	padding: 10px 12px;
+}
+
+.inspector-stat-tile__label {
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--ink-muted);
+}
+
+.inspector-stat-tile__value {
+	font-size: 15px;
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.inspector-stat-tile__value--swatch {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 400;
+	font-size: 13px;
+}
+
+.inspector-swatch {
+	width: 14px;
+	height: 14px;
+	border-radius: 4px;
+	border: 1px solid var(--border);
+	display: inline-block;
+}
+
+.inspector-chip-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 14px;
+}
+
+.inspector-chip {
+	font-size: 12px;
+	padding: 4px 10px;
+	border-radius: 999px;
+	background: var(--surface-alt);
+	border: 1px solid var(--border);
+	color: var(--ink);
+}
+
+.inspector-chip--small {
+	font-size: 11px;
+	padding: 3px 8px;
+}
+
+.inspector-section {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.inspector-section__title {
+	margin: 0;
+	font-size: 18px;
+}
+
+.inspector-citizen-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: 14px;
+}
+
+.inspector-citizen-card {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	padding: 14px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.inspector-citizen-card__header {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.inspector-citizen-card__name {
+	margin: 0;
+	font-size: 15px;
+}
+
+.inspector-citizen-card__gender {
+	display: flex;
+	align-items: center;
+	color: var(--ink-muted);
+}
+
+.inspector-citizen-card__meta {
+	display: flex;
+	justify-content: space-between;
+	font-size: 12px;
+	color: var(--ink-muted);
+}
+
+.inspector-meter-row {
+	display: grid;
+	grid-template-columns: 70px 1fr auto;
+	align-items: center;
+	gap: 8px;
+	font-size: 12px;
+}
+
+.inspector-meter-row__label {
+	color: var(--ink-muted);
+}
+
+.inspector-meter-row__value {
+	color: var(--ink-muted);
+	white-space: nowrap;
+}
+
+.inspector-meter {
+	display: block;
+	height: 6px;
+	border-radius: 999px;
+	background: var(--surface-sunken);
+	overflow: hidden;
+}
+
+.inspector-meter__fill {
+	display: block;
+	height: 100%;
+	background: var(--accent);
+}
+
+.inspector-citizen-card__skills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 8px;
+	font-size: 11px;
+	color: var(--ink-muted);
+}
+
+.inspector-citizen-card__buildings {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.inspector-citizen-card__happiness-detail summary {
+	cursor: pointer;
+	font-size: 11px;
+	color: var(--ink-muted);
+}
+
+.inspector-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+
+.inspector-table th,
+.inspector-table td {
+	text-align: left;
+	padding: 8px 10px;
+	border-bottom: 1px solid var(--border);
+}
+
+.inspector-table th {
+	color: var(--ink-muted);
+	font-weight: 600;
+	font-size: 12px;
+}
+
+.inspector-raw {
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	background: var(--surface-alt);
+	padding: 10px 14px;
+}
+
+.inspector-raw summary {
+	cursor: pointer;
+	font-size: 13px;
+}
+
+.inspector-raw__list {
+	list-style: none;
+	margin: 6px 0 0;
+	padding-left: 16px;
+	border-left: 1px solid var(--border);
+	font-family: "SFMono-Regular", Consolas, monospace;
+	font-size: 12px;
+}
+
+.inspector-raw__key {
+	color: var(--ink-muted);
+}
+
+.inspector-raw__leaf {
+	color: var(--ink);
+}
+
+.inspector-raw__truncated {
+	color: var(--ink-muted);
+	font-style: italic;
+}
+
+.world-viewer-upload-buttons {
+	display: flex;
+	justify-content: center;
+	gap: 10px;
+}
+
+.world-viewer-results {
+	max-width: 900px;
+	margin: 20px auto 0;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.world-viewer-results[hidden] {
+	display: none;
+}
+
+.world-viewer-canvas-wrap {
+	position: relative;
+	height: 560px;
+	background: var(--surface-alt);
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	overflow: hidden;
+	cursor: grab;
+	touch-action: none;
+	user-select: none;
+}
+
+.world-viewer-canvas-wrap.is-panning {
+	cursor: grabbing;
+}
+
+.world-viewer-canvas-inner {
+	position: absolute;
+	top: 0;
+	left: 0;
+	transform-origin: 0 0;
+}
+
+.world-viewer-canvas-wrap canvas {
+	image-rendering: pixelated;
+	display: block;
+}
+
+/* Below 1:1 zoom the canvas is being shrunk, not enlarged - "pixelated"
+   nearest-neighbor sampling skips most source pixels when shrinking, which
+   erases 1px-wide contour lines almost entirely (confirmed: a multi-region
+   map at 0.65x zoom rendered with no visible contour/hillshade texture at
+   all, just flat biome color). Smooth interpolation properly area-averages
+   instead, so those thin lines still contribute a faint darkening rather
+   than vanishing. Toggled by JS based on the current zoom level. */
+.world-viewer-canvas-wrap canvas.is-downscaled {
+	image-rendering: auto;
+}
+
+.world-viewer-goto {
+	position: absolute;
+	left: 12px;
+	top: 12px;
+	display: flex;
+	align-items: flex-end;
+	gap: 6px;
+	padding: 8px;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+	z-index: 4;
+}
+
+.world-viewer-goto label {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	font-size: 11px;
+	color: var(--ink-muted);
+}
+
+.world-viewer-goto input[type="number"] {
+	font: inherit;
+	font-size: 13px;
+	padding: 5px 6px;
+	border-radius: 6px;
+	border: 1px solid var(--border);
+	background: var(--surface-alt);
+	color: var(--ink);
+	width: 72px;
+	box-sizing: border-box;
+}
+
+.world-viewer-goto button {
+	height: 30px;
+	padding: 0 12px;
+	border-radius: 6px;
+	border: 1px solid var(--border);
+	background: var(--surface);
+	color: var(--ink);
+	font: inherit;
+	font-size: 13px;
+	cursor: pointer;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.world-viewer-goto button:hover {
+	filter: brightness(1.1);
+}
+
+.world-viewer-zoom-controls {
+	position: absolute;
+	right: 12px;
+	bottom: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	z-index: 4;
+}
+
+.world-viewer-zoom-controls button {
+	width: 32px;
+	height: 32px;
+	border-radius: 6px;
+	border: 1px solid var(--border);
+	background: var(--surface);
+	color: var(--ink);
+	font: inherit;
+	font-size: 16px;
+	line-height: 1;
+	cursor: pointer;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.world-viewer-zoom-controls button:hover {
+	filter: brightness(1.1);
+}
+
+.world-viewer-tooltip {
+	position: absolute;
+	pointer-events: none;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 6px 10px;
+	font-size: 12px;
+	color: var(--ink);
+	box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+	white-space: nowrap;
+	z-index: 5;
+}
+
+.world-viewer-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 16px;
+	font-size: 12px;
+	color: var(--ink-muted);
+}
+
+.world-viewer-legend__item {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.world-viewer-legend__swatch {
+	width: 12px;
+	height: 12px;
+	border-radius: 3px;
+	border: 1px solid var(--border);
+	flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Debug page                                                             */
+/* ---------------------------------------------------------------------- */
+
+.debug-section {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.debug-section__header {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.debug-section__title {
+	margin: 0;
+	font-size: 18px;
+}
+
+.debug-section__count {
+	color: var(--ink-muted);
+	font-size: 13px;
+}
+
+.debug-search {
+	font: inherit;
+	font-size: 14px;
+	padding: 8px 12px;
+	border-radius: 8px;
+	border: 1px solid var(--border);
+	background: var(--surface);
+	color: var(--ink);
+	max-width: 320px;
+}
+
+.debug-material-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+	gap: 10px;
+}
+
+.debug-material-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	padding: 10px 8px;
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	background: var(--surface);
+	min-width: 0;
+}
+
+.debug-material-item__icon-wrap {
+	width: 40px;
+	height: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--surface-alt);
+	border-radius: 6px;
+}
+
+.debug-material-item__icon {
+	width: 32px;
+	height: 32px;
+	object-fit: contain;
+	image-rendering: pixelated;
+}
+
+.debug-material-item__label {
+	font-size: 10px;
+	color: var(--ink-muted);
+	text-align: center;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 100%;
+}
+
+.debug-biome-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 8px;
+}
+
+.debug-biome-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 10px;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: var(--surface);
+	min-width: 0;
+}
+
+.debug-biome-item__swatch {
+	width: 28px;
+	height: 28px;
+	border-radius: 6px;
+	border: 1px solid var(--border);
+	flex-shrink: 0;
+}
+
+.debug-biome-item__labels {
+	min-width: 0;
+}
+
+.debug-biome-item__name {
+	font-size: 13px;
+	color: var(--ink);
+}
+
+.debug-biome-item__meta {
+	font-size: 11px;
+	color: var(--ink-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+	.inspector-citizen-grid {
+		grid-template-columns: 1fr;
 	}
 }

@@ -1,0 +1,9 @@
+# Editor/backup cruft — never intentional to track or deploy.
+*.bak
+*.orig
+*.tmp
+
+# Internal dev session notes. Not meant for the deployed static site (this
+# repo root is served as-is, no build step, so anything committed here is
+# publicly fetchable) and not useful to anyone consuming the app itself.
+conversation-logs/
