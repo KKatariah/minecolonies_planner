@@ -164,6 +164,56 @@ test.describe("JSON export / import", () => {
 		expect(await planner.buildingCount()).toBe(1);
 	});
 
+	test("invalid JSON tells the user why", async ({ page, pageErrors }) => {
+		pageErrors.allow(/Failed to read plan file/);
+		const dialog = page.waitForEvent("dialog");
+		await importPlanFile(page, "{ this is not json", "broken.json");
+		const d = await dialog;
+		expect(d.message()).toContain("broken.json");
+		await d.dismiss();
+	});
+
+	test("malformed buildings are skipped without aborting the rest of the import", async ({ page, planner }) => {
+		await planner.place(FLORIST, 100, 100); // must be replaced, not kept
+		page.on("dialog", (d) => d.dismiss());
+		await importPlanFile(page, Planner.planJson({
+			buildings: [
+				{ id: FARMER, x: 1, y: 1 },
+				{ id: FARMER, x: 20, y: 1, category: "a b" }, // used to throw mid-import
+				{ id: FARMER, x: "q", y: 1 },
+				{ id: FARMER, x: -50, y: 1 },
+				{ id: FARMER, x: 40, y: 1, w: "wide" }, // bad size falls back to the style's
+				{ id: 42, x: 60, y: 1 },
+			],
+		}));
+		await expect.poll(() => planner.buildingCount()).toBe(3);
+		const buildings = await planner.buildings();
+		expect(buildings.map((b) => [b.x, b.y])).toEqual([[1, 1], [20, 1], [40, 1]]);
+		expect(buildings[1].category).toBe("farming");
+		expect(buildings[2].w).toBe(13);
+	});
+
+	test("the import reports how many buildings it skipped", async ({ page }) => {
+		const dialog = page.waitForEvent("dialog");
+		await importPlanFile(page, Planner.planJson({
+			buildings: [{ id: FARMER, x: 1, y: 1 }, { id: FARMER, x: -1, y: 1 }, null],
+		}));
+		const d = await dialog;
+		expect(d.message()).toContain("skipped 2 buildings");
+		await d.dismiss();
+	});
+
+	test("an invalid grid size falls back, and the grid grows to fit what's on it", async ({ page, planner }) => {
+		await importPlanFile(page, Planner.planJson({
+			grid: { rows: "abc", cols: -5 },
+			buildings: [{ id: FARMER, x: 600, y: 2 }],
+			paths: [{ id: "path_1", cells: [{ x: 3, y: 700 }] }],
+		}));
+		await expect.poll(() => planner.buildingCount()).toBe(1);
+		const grid = await page.evaluate(() => ({ rows, cols }));
+		expect(grid).toEqual({ rows: 701, cols: 613 });
+	});
+
 	test("an unknown format version is refused", async ({ page, planner, pageErrors }) => {
 		pageErrors.allow(/Unsupported or missing plan format version/);
 		await planner.place(FARMER, 10, 10);
@@ -355,6 +405,32 @@ test.describe("preferences", () => {
 		const names = page.locator("[data-names-toggle]");
 		await page.keyboard.press("ControlLeft");
 		await expect(names).not.toBeChecked();
+		await page.keyboard.press("ControlLeft");
+		await expect(names).toBeChecked();
+	});
+
+	test("Ctrl used as a modifier doesn't toggle name tags", async ({ page, planner }) => {
+		const names = page.locator("[data-names-toggle]");
+		await planner.place(FARMER, 10, 10);
+		// Checked after every action - an even number of stray toggles would
+		// otherwise cancel out and hide the bug.
+		await page.keyboard.press("Control+z");
+		await expect(names).toBeChecked();
+		await page.keyboard.press("Control+y");
+		await expect(names).toBeChecked();
+		await planner.clickCell(60, 60, { modifiers: ["Control"] });
+		await expect(names).toBeChecked();
+		await page.keyboard.down("Control");
+		const p = await planner.cellPoint(30, 30);
+		await page.mouse.move(p.x, p.y);
+		await page.mouse.wheel(0, -100);
+		await page.keyboard.up("Control");
+		await expect(names).toBeChecked();
+	});
+
+	test("Left Ctrl while typing in a text field doesn't toggle name tags", async ({ page }) => {
+		const names = page.locator("[data-names-toggle]");
+		await page.locator("[data-plan-name-input]").focus();
 		await page.keyboard.press("ControlLeft");
 		await expect(names).toBeChecked();
 	});

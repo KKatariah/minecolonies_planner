@@ -96,7 +96,7 @@ initNavBar("planner", [
 	{
 		title: "Top-down renders",
 		items: [
-			{ combo: ["Left Ctrl"], description: "Toggle name tags and category borders for a clean view" },
+			{ combo: ["Left Ctrl"], description: "Tap to toggle name tags and category borders for a clean view" },
 		],
 	},
 ]);
@@ -1024,15 +1024,18 @@ const ARROW_KEY_DELTAS = {
 	ArrowRight: [1, 0],
 };
 
-document.addEventListener("keydown", (event) => {
-	const target = event.target;
-	const isEditable =
+function isEditableTarget(target) {
+	return Boolean(
 		target &&
-		(target.tagName === "INPUT" ||
-			target.tagName === "TEXTAREA" ||
-			target.tagName === "SELECT" ||
-			target.isContentEditable);
-	if (isEditable) return;
+			(target.tagName === "INPUT" ||
+				target.tagName === "TEXTAREA" ||
+				target.tagName === "SELECT" ||
+				target.isContentEditable),
+	);
+}
+
+document.addEventListener("keydown", (event) => {
+	if (isEditableTarget(event.target)) return;
 
 	if (event.key === "Delete" || event.key === "Backspace") {
 		if (selectedPlaced.size) {
@@ -1769,9 +1772,23 @@ function extendWallRun(kit, run, farCell) {
 // run in place (see extendWallRun) rather than creating an adjacent one;
 // a perpendicular snap proceeds as a new run whose matching end(s) get
 // retiled and merged into a shared corner piece.
+// wallRuns/wallCorners hold references to placedSquares entries, but undo,
+// Clear board, loading a plan and plain deletion all replace or remove those
+// entries without knowing about this bookkeeping. Drop anything whose pieces
+// are no longer on the board, so a stale run can't be retiled back into
+// existence and a stale corner can't block a new one at the same junction.
+function pruneStaleWallState() {
+	const live = new Set(placedSquares);
+	wallRuns = wallRuns.filter((run) => run.segments.every((seg) => live.has(seg)));
+	for (const [key, corner] of wallCorners) {
+		if (!live.has(corner)) wallCorners.delete(key);
+	}
+}
+
 function placeWallRun(axis, startCell, endCell) {
 	const kit = WALL_KITS[styleSelect.value];
 	if (!kit) return;
+	pruneStaleWallState();
 
 	const startSnap = findNearbyRunEndpoint(kit, startCell);
 	if (startSnap) startCell = startSnap.cell;
@@ -2273,9 +2290,29 @@ function setShowBuildingOverlay(on) {
 	}
 }
 setShowBuildingOverlay(showBuildingOverlay);
+// Toggles on a clean tap only - Left Ctrl pressed and released with nothing
+// else in between. Ctrl is also the modifier for undo/copy/paste, snapping
+// and zoom, so toggling on keydown flipped the overlay on every one of those.
+let leftCtrlTapPending = false;
 window.addEventListener("keydown", (event) => {
-	if (event.code !== "ControlLeft" || event.repeat) return;
-	setShowBuildingOverlay(!showBuildingOverlay);
+	if (event.code === "ControlLeft") {
+		if (!event.repeat) leftCtrlTapPending = !isEditableTarget(event.target);
+	} else {
+		leftCtrlTapPending = false;
+	}
+});
+window.addEventListener("keyup", (event) => {
+	if (event.code !== "ControlLeft") return;
+	if (leftCtrlTapPending) setShowBuildingOverlay(!showBuildingOverlay);
+	leftCtrlTapPending = false;
+});
+for (const type of ["pointerdown", "wheel"]) {
+	window.addEventListener(type, () => {
+		leftCtrlTapPending = false;
+	}, { capture: true, passive: true });
+}
+window.addEventListener("blur", () => {
+	leftCtrlTapPending = false;
 });
 namesToggleCheckbox.addEventListener("change", () => {
 	setShowBuildingOverlay(namesToggleCheckbox.checked);
@@ -3474,6 +3511,22 @@ function constrainToAxis(start, cell) {
 	return dx >= dy ? { x: cell.x, y: start.y } : { x: start.x, y: cell.y };
 }
 
+// A loop rather than Math.min(...xs): spreading a large painted area's cells
+// as arguments can exceed the engine's argument limit.
+function getCellBounds(cells) {
+	let minX = Infinity;
+	let maxX = -Infinity;
+	let minY = Infinity;
+	let maxY = -Infinity;
+	for (const c of cells) {
+		if (c.x < minX) minX = c.x;
+		if (c.x > maxX) maxX = c.x;
+		if (c.y < minY) minY = c.y;
+		if (c.y > maxY) maxY = c.y;
+	}
+	return { minX, maxX, minY, maxY };
+}
+
 function buildGlobalCellSet() {
 	const set = new Set();
 	for (const p of paths) {
@@ -3764,6 +3817,7 @@ grid.addEventListener("pointerdown", (e) => {
 				startCell: { ...cell },
 				pathId: selectedPathId,
 				origCells: p.cells.map((c) => ({ ...c })),
+				bounds: getCellBounds(p.cells),
 			};
 			grid.setPointerCapture(e.pointerId);
 			e.preventDefault();
@@ -4041,9 +4095,13 @@ grid.addEventListener("pointermove", (e) => {
 			if (pathDragging) {
 				const p = paths.find((pt) => pt.id === pathDragPending.pathId);
 				if (p) {
-					p.cells = pathDragPending.origCells.map((c) => ({
-						x: c.x + dx,
-						y: c.y + dy,
+					// Clamp the offset so the whole path stays on the grid.
+					const { origCells, bounds } = pathDragPending;
+					const clampedDx = Math.max(-bounds.minX, Math.min(cols - 1 - bounds.maxX, dx));
+					const clampedDy = Math.max(-bounds.minY, Math.min(rows - 1 - bounds.maxY, dy));
+					p.cells = origCells.map((c) => ({
+						x: c.x + clampedDx,
+						y: c.y + clampedDy,
 					}));
 					rerenderAllPathBorders();
 				}
@@ -4816,7 +4874,7 @@ function restorePathsFromSaved(savedPaths) {
 		let cells;
 		if (Array.isArray(saved.cells)) {
 			cells = saved.cells
-				.filter((c) => c && Number.isFinite(c.x) && Number.isFinite(c.y))
+				.filter((c) => c && isGridCoord(c.x, cols) && isGridCoord(c.y, rows))
 				.map((c) => ({ x: c.x, y: c.y }));
 		} else if (saved.from && saved.to) {
 			// Pre-paintbrush save format: a straight line + one fixed width, no
@@ -4855,15 +4913,100 @@ function restorePathsFromSaved(savedPaths) {
 	rerenderAllPathBorders();
 }
 
+// Same ceiling world-terrain.js puts on an uploaded background, so a plan
+// can never ask for a grid larger than a real upload could produce.
+const MAX_PLAN_GRID_DIMENSION = 16384;
+const PLAN_CATEGORY_PATTERN = /^[a-z0-9_-]+$/i;
+
+function isGridCoord(value, limit) {
+	return Number.isInteger(value) && value >= 0 && value < limit;
+}
+
+function isPositiveInt(value) {
+	return Number.isInteger(value) && value > 0;
+}
+
+// Plan files come from outside (imports, shared files, old autosaves), so
+// everything is checked here BEFORE the current board is cleared - a bad
+// value can't leave the board half-loaded. Buildings that are malformed or
+// off the grid are dropped and counted. Overlap is NOT rejected: the walls
+// tool deliberately overlaps segments (see tileWallSegments), so real saves
+// contain overlapping pieces. The grid keeps the
+// saved size when that's valid, grown to fit whatever was saved on it.
+// Needs the plan's style already applied, to resolve footprints a minimal
+// plan leaves out.
+function sanitizePlanData(data) {
+	let gridRows = isPositiveInt(data.grid?.rows) ? data.grid.rows : rows;
+	let gridCols = isPositiveInt(data.grid?.cols) ? data.grid.cols : cols;
+
+	const buildings = [];
+	let skippedBuildings = 0;
+	for (const saved of Array.isArray(data.buildings) ? data.buildings : []) {
+		if (!saved || typeof saved.id !== "string" || !saved.id) {
+			skippedBuildings++;
+			continue;
+		}
+		const shape = resolveShapeData({
+			id: saved.id,
+			w: isPositiveInt(saved.w) ? saved.w : undefined,
+			h: isPositiveInt(saved.h) ? saved.h : undefined,
+			label: typeof saved.label === "string" ? saved.label : undefined,
+			category:
+				typeof saved.category === "string" && PLAN_CATEGORY_PATTERN.test(saved.category)
+					? saved.category
+					: undefined,
+			emoji: typeof saved.emoji === "string" ? saved.emoji : undefined,
+			styleFile: typeof saved.styleFile === "string" ? saved.styleFile : undefined,
+		});
+		const { x, y } = saved;
+		const fits =
+			isGridCoord(x, MAX_PLAN_GRID_DIMENSION) &&
+			isGridCoord(y, MAX_PLAN_GRID_DIMENSION) &&
+			x + shape.w <= MAX_PLAN_GRID_DIMENSION &&
+			y + shape.h <= MAX_PLAN_GRID_DIMENSION;
+		if (!fits) {
+			skippedBuildings++;
+			continue;
+		}
+		buildings.push({ ...shape, x, y, rotated: saved.rotated === true });
+		gridCols = Math.max(gridCols, x + shape.w);
+		gridRows = Math.max(gridRows, y + shape.h);
+	}
+
+	const savedPaths = Array.isArray(data.roads?.paths) ? data.roads.paths : [];
+	for (const path of savedPaths) {
+		if (!path || !Array.isArray(path.cells)) continue;
+		for (const c of path.cells) {
+			if (!c || !isGridCoord(c.x, MAX_PLAN_GRID_DIMENSION) || !isGridCoord(c.y, MAX_PLAN_GRID_DIMENSION)) continue;
+			gridCols = Math.max(gridCols, c.x + 1);
+			gridRows = Math.max(gridRows, c.y + 1);
+		}
+	}
+
+	return {
+		rows: Math.min(gridRows, MAX_PLAN_GRID_DIMENSION),
+		cols: Math.min(gridCols, MAX_PLAN_GRID_DIMENSION),
+		buildings,
+		paths: savedPaths,
+		skippedBuildings,
+	};
+}
+
 // backgroundIdbKey tells restoreWorldBackgroundFromSaved's IndexedDB lookup
 // where to find the image when data.background didn't already carry it
 // inline (see getWorldBackgroundSaveDataLocal) - omitted entirely for an
 // imported JSON file, which is always self-contained already.
+// Resolves to { ok, message?, skippedBuildings? } so an import can tell the
+// user what happened; autosave/named-plan restores just ignore it.
 async function applyPlanData(data, { backgroundIdbKey } = {}) {
 	if (!data || data.formatVersion !== SAVE_FORMAT_VERSION) {
 		console.error("Unsupported or missing plan format version.");
-		return;
+		return {
+			ok: false,
+			message: "This file isn't a plan saved by this version of the planner.",
+		};
 	}
+	let skippedBuildings = 0;
 	undoStack.length = 0;
 	redoStack.length = 0;
 	updateUndoRedoButtons();
@@ -4878,14 +5021,14 @@ async function applyPlanData(data, { backgroundIdbKey } = {}) {
 				await applyStyle(match.file);
 			}
 		}
+		const plan = sanitizePlanData(data);
+		skippedBuildings = plan.skippedBuildings;
 		clearPlan();
-		if (data.grid) {
-			rows = data.grid.rows || rows;
-			cols = data.grid.cols || cols;
-			updateGridSize();
-		}
-		restoreBuildingsFromSaved(data.buildings);
-		restorePathsFromSaved(data.roads && data.roads.paths);
+		rows = plan.rows;
+		cols = plan.cols;
+		updateGridSize();
+		restoreBuildingsFromSaved(plan.buildings);
+		restorePathsFromSaved(plan.paths);
 		const resolvedBackground = await resolveBackgroundForRestore(
 			data.background || null,
 			backgroundIdbKey,
@@ -4895,17 +5038,29 @@ async function applyPlanData(data, { backgroundIdbKey } = {}) {
 		autoSaveSuppressed = false;
 	}
 	scheduleAutoSave();
+	return { ok: true, skippedBuildings };
 }
 
 function readPlanFile(file) {
 	if (!file) return;
 	const reader = new FileReader();
-	reader.onload = () => {
+	reader.onload = async () => {
+		let data;
 		try {
-			const data = JSON.parse(reader.result);
-			applyPlanData(data);
+			data = JSON.parse(reader.result);
 		} catch (error) {
 			console.error("Failed to read plan file.", error);
+			window.alert(`Couldn't import "${file.name}" - it isn't valid JSON.`);
+			return;
+		}
+		const result = await applyPlanData(data);
+		if (!result.ok) {
+			window.alert(`Couldn't import "${file.name}": ${result.message}`);
+		} else if (result.skippedBuildings) {
+			const n = result.skippedBuildings;
+			window.alert(
+				`Imported "${file.name}", but skipped ${n} building${n === 1 ? "" : "s"} that ${n === 1 ? "was" : "were"} malformed or off the grid.`,
+			);
 		}
 	};
 	reader.readAsText(file);

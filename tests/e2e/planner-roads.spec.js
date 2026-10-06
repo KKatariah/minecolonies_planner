@@ -247,6 +247,16 @@ test.describe("selecting painted paths", () => {
 		const [after] = await planner.paths();
 		expect(after.cells).toEqual(before.cells.map((c) => ({ x: c.x + 10, y: c.y + 15 })));
 	});
+
+	test("a dragged path stops at the grid edge instead of leaving it", async ({ planner }) => {
+		const [before] = await planner.paths();
+		const minX = Math.min(...before.cells.map((c) => c.x));
+		await planner.clickCell(40, 30);
+		// Asks for 40 blocks left, but the path's left edge is only minX from the edge.
+		await planner.dragCells({ x: 40, y: 30 }, { x: 0, y: 30 });
+		const [after] = await planner.paths();
+		expect(after.cells).toEqual(before.cells.map((c) => ({ x: c.x - minX, y: c.y })));
+	});
 });
 
 test.describe("walls", () => {
@@ -298,6 +308,43 @@ test.describe("walls", () => {
 		expect(await planner.buildingCount()).toBeGreaterThan(1);
 		await page.keyboard.press("Control+z");
 		expect(await planner.buildingCount()).toBe(0);
+	});
+
+	test("an undone run isn't rebuilt when a later run connects near it", async ({ page, planner }) => {
+		await page.locator('[data-path-type-option="walls"]').click();
+		await planner.dragCells({ x: 20, y: 40 }, { x: 80, y: 40 });
+		await page.keyboard.press("Control+z");
+		await planner.dragCells({ x: 80, y: 45 }, { x: 80, y: 120 });
+		const pieces = await planner.buildings();
+		expect(pieces.length).toBeGreaterThan(0);
+		// The undone run sat at y=40; everything left should belong to the new run (y >= 45).
+		for (const piece of pieces) expect(piece.y, `${piece.id} at ${piece.x},${piece.y}`).toBeGreaterThanOrEqual(45);
+	});
+
+	test("a deleted segment isn't rebuilt when a later run connects to its run", async ({ page, planner }) => {
+		await page.locator('[data-path-type-option="walls"]').click();
+		await planner.dragCells({ x: 20, y: 40 }, { x: 80, y: 40 });
+		const segment = (await planner.buildings()).find((b) => b.x === 20);
+		await planner.clickCell(segment.x + 1, 40);
+		await page.keyboard.press("Delete");
+		await planner.dragCells({ x: 80, y: 40 }, { x: 80, y: 100 });
+		const pieces = await planner.buildings();
+		expect(pieces.some((b) => b.x === 20 && b.w > b.h)).toBe(false);
+	});
+
+	test("corners still merge after the board is cleared", async ({ page, planner }) => {
+		page.on("dialog", (dialog) => dialog.accept());
+		await page.locator('[data-path-type-option="walls"]').click();
+		const kit = await page.evaluate(() => WALL_KITS[styleSelect.value]);
+		const drawCorner = async () => {
+			await planner.dragCells({ x: 20, y: 40 }, { x: 80, y: 40 });
+			await planner.dragCells({ x: 80, y: 40 }, { x: 80, y: 100 });
+		};
+		await drawCorner();
+		await page.locator("[data-clear-board]").click();
+		expect(await planner.buildingCount()).toBe(0);
+		await drawCorner();
+		expect((await planner.buildings()).map((b) => b.id)).toContain(kit.cornerId);
 	});
 
 	test("every style's wall kit references real shapes of the declared size", async ({ page }) => {
