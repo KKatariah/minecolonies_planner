@@ -148,8 +148,9 @@ test.describe("painting", () => {
 		await planner.clickCell(60, 20);
 		const paths = await planner.paths();
 		expect(paths.map((p) => p.type)).toEqual(["default", "canal"]);
-		const colors = await page.locator(".placed-path").evaluateAll((els) =>
-			els.map((e) => getComputedStyle(e.firstElementChild).backgroundColor),
+		// Sampled from the middle of each path's canvas, away from its edges.
+		const colors = await page.locator(".placed-path__canvas").evaluateAll((canvases) =>
+			canvases.map((c) => c.getContext("2d").getImageData(c.width >> 1, c.height >> 1, 1, 1).data.join(",")),
 		);
 		expect(colors[0]).not.toBe(colors[1]);
 	});
@@ -205,6 +206,30 @@ test.describe("eraser", () => {
 		await expect(page.locator(".eraser-hover-preview")).toBeVisible();
 		await page.locator("[data-path-erase-toggle]").click();
 		await expect(page.locator(".eraser-hover-preview")).toBeHidden();
+	});
+});
+
+test.describe("path rendering", () => {
+	// Paths used to be one DOM element per cell, which made every edit
+	// (and every grid click) cost hundreds of ms on a large map.
+	test("each path is a single element with one canvas, however many cells it has", async ({ page, planner }) => {
+		await page.locator("[data-path-width-input]").fill("10");
+		await page.locator("[data-path-width-input]").dispatchEvent("change");
+		await planner.dragCells({ x: 20, y: 30 }, { x: 200, y: 30 });
+		const [p] = await planner.paths();
+		expect(p.cells.length).toBeGreaterThan(1000);
+		await expect(page.locator(".placed-path")).toHaveCount(1);
+		expect(await page.locator(".placed-path *").count()).toBe(1);
+		await expect(page.locator(".placed-path > canvas.placed-path__canvas")).toHaveCount(1);
+	});
+
+	test("switching theme redraws paths in the new theme's colors", async ({ page, planner }) => {
+		await planner.dragCells({ x: 20, y: 30 }, { x: 60, y: 30 });
+		const centerPixel = () =>
+			page.locator(".placed-path__canvas").evaluate((c) => c.getContext("2d").getImageData(c.width >> 1, c.height >> 1, 1, 1).data.join(","));
+		const before = await centerPixel();
+		await page.locator("[data-theme-toggle]").click();
+		await expect.poll(centerPixel).not.toBe(before);
 	});
 });
 

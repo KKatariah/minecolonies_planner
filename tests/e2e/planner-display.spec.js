@@ -143,6 +143,27 @@ test.describe("top-down renders on the grid", () => {
 	});
 });
 
+test("a failed rooftop-data request is retried, not cached", async ({ page, planner, pageErrors }) => {
+	pageErrors.allow(/503/);
+	const dataPath = await page.evaluate((id) => rooftopManifest[`${styleSelect.value}::${id}`], FARMER);
+	let failNext = true;
+	await page.route(`**/${dataPath}`, async (route) => {
+		if (failNext) {
+			failNext = false;
+			await route.fulfill({ status: 503, body: "unavailable" });
+		} else {
+			await route.continue();
+		}
+	});
+	await planner.place(FARMER, 10, 10);
+	const rooftop = page.locator("[data-rooftop-toggle]");
+	await rooftop.check(); // first fetch fails - stays a flat block
+	await expect(page.locator(".placed-square")).not.toHaveClass(/has-topdown/);
+	await rooftop.uncheck();
+	await rooftop.check(); // retried, and now succeeds
+	await expect(page.locator(".placed-square")).toHaveClass(/has-topdown/);
+});
+
 test.describe("world background", () => {
 	async function uploadRegion(page, buffer, name = "r.0.0.mca") {
 		await page.locator("[data-bg-file-input]").setInputFiles({ name, mimeType: "application/octet-stream", buffer });
@@ -227,5 +248,59 @@ test.describe("world background", () => {
 		await uploadRegion(page, Buffer.alloc(100));
 		await expect(page.locator("[data-bg-status]")).toContainText(/too small|No chunks|couldn't|Skipped|no /i, { timeout: 10_000 });
 		expect(await page.evaluate(() => worldBackground)).toBeNull();
+	});
+
+	// Autosave skips rewriting an unchanged background to IndexedDB (see
+	// getWorldBackgroundSaveDataLocal). Another tab sharing the same autosave
+	// slot must not trick that into leaving the wrong image behind.
+	test("after another tab overwrites the autosaved background, this tab's next save restores its own", async ({ page, planner, context }) => {
+		await uploadRegion(page, SAMPLE_REGION);
+		await expect(page.locator("[data-bg-controls]")).toBeVisible({ timeout: 30_000 });
+		await planner.waitForAutosave();
+
+		const other = await context.newPage();
+		const otherPlanner = new planner.constructor(other);
+		await otherPlanner.goto();
+		await other.evaluate(async () => {
+			const magenta = document.createElement("canvas");
+			magenta.width = worldBackground.gridW;
+			magenta.height = worldBackground.gridH;
+			const ctx = magenta.getContext("2d");
+			ctx.fillStyle = "#ff00ff";
+			ctx.fillRect(0, 0, magenta.width, magenta.height);
+			drawWorldBgCanvas(magenta, magenta.width, magenta.height);
+			await getWorldBackgroundSaveDataLocal(AUTOSAVE_BG_IDB_KEY);
+		});
+		await other.close();
+
+		await planner.place(FARMER, 10, 10); // any edit triggers an autosave
+		await planner.waitForAutosave();
+		await planner.reload();
+		await expect(page.locator(".world-bg-layer")).toBeVisible();
+		const pixel = await page.evaluate(() => {
+			const { gridW, gridH } = worldBackground;
+			return [...worldBgCanvas.getContext("2d").getImageData(gridW >> 1, gridH >> 1, 1, 1).data];
+		});
+		expect(pixel).not.toEqual([255, 0, 255, 255]);
+	});
+
+	test("a named plan deleted and saved again under the same name keeps its background", async ({ page, planner }) => {
+		page.on("dialog", (dialog) => dialog.accept());
+		await uploadRegion(page, SAMPLE_REGION);
+		await expect(page.locator("[data-bg-controls]")).toBeVisible({ timeout: 30_000 });
+		const saveAs = async (name) => {
+			await page.locator("[data-plan-name-input]").fill(name);
+			await page.locator("[data-save-named-plan]").click();
+			await expect(page.locator(".left-sidebar__plan-row", { hasText: name })).toHaveCount(1);
+		};
+		await saveAs("site");
+		await page.locator(".left-sidebar__plan-row", { hasText: "site" }).locator(".left-sidebar__plan-action--danger").click();
+		await expect(page.locator(".left-sidebar__plan-row")).toHaveCount(0);
+		await saveAs("site");
+
+		await page.locator("[data-bg-remove]").click();
+		await page.locator(".left-sidebar__plan-row", { hasText: "site" }).getByText("Load").click();
+		await expect(page.locator("[data-bg-controls]")).toBeVisible();
+		expect(await page.evaluate(() => worldBackground && worldBackground.gridW)).toBeGreaterThan(0);
 	});
 });

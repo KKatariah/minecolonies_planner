@@ -66,10 +66,11 @@ const MAX_NBT_DEPTH = 512;
 const UTF8_DECODER = new TextDecoder("utf-8");
 
 class NbtReader {
-	constructor(buffer) {
+	constructor(buffer, { bigIntLongArrays = false } = {}) {
 		this.view = new DataView(buffer);
 		this.offset = 0;
 		this.depth = 0;
+		this.bigIntLongArrays = bigIntLongArrays;
 	}
 
 	// Throws before allocating if `len` (attacker/file-controlled) couldn't
@@ -215,6 +216,15 @@ class NbtReader {
 			case NBT_TAG.LongArray: {
 				const len = this.int();
 				this.assertPlausibleLength(len, TAG_MIN_SIZE[NBT_TAG.Long]);
+				// Opt-in raw form for bulk packed data (chunk block states,
+				// heightmaps): converting every long to a Number/string is over
+				// half the parse time of a chunk, and region parsing only ever
+				// reads a few hundred of its thousands of longs.
+				if (this.bigIntLongArrays) {
+					const raw = new BigInt64Array(len);
+					for (let i = 0; i < len; i++) raw[i] = this.long();
+					return raw;
+				}
 				const arr = new Array(len);
 				for (let i = 0; i < len; i++) arr[i] = longToNumber(this.long());
 				return arr;
@@ -235,8 +245,11 @@ function longToNumber(big) {
 	return big.toString();
 }
 
-function parseNbtBuffer(buffer) {
-	const reader = new NbtReader(buffer);
+// options.bigIntLongArrays: return LongArray tags as a BigInt64Array of the
+// raw signed values instead of plain Numbers (or decimal strings, past the
+// safe-integer range). Faster for bulk data; not a plain-JSON value tree.
+function parseNbtBuffer(buffer, options) {
+	const reader = new NbtReader(buffer, options);
 	const rootType = reader.ubyte();
 	if (rootType !== NBT_TAG.Compound) {
 		throw new Error("NBT root tag is not a compound — not a valid NBT file.");

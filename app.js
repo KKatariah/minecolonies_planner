@@ -6,6 +6,9 @@ let rows = 32 * 16;
 let cols = 32 * 16;
 const cellSize = 5;
 const chunkSize = 16;
+// Largest grid (in blocks, per axis) a plan may use - the same ceiling
+// world-terrain.js puts on an uploaded background.
+const MAX_PLAN_GRID_DIMENSION = 16384;
 const STYLE_FILES = [
 	{ id: "caledonia", label: "Caledonia", file: "styles/caledonia.json" },
 	{
@@ -280,6 +283,22 @@ const bgRemoveButton = leftSidebar.querySelector("[data-bg-remove]");
 
 let worldBackground = null; // { gridW, gridH, minCx, minCz, biomeAt }, set once a background is loaded - always anchored at grid origin (0, 0), no manual alignment
 let bgUploadGeneration = 0; // same stale-response guard pattern as World Viewer's handleFiles
+// Bumped whenever the background image changes (drawn or removed), so saves
+// can tell whether the expensive PNG encode + IndexedDB write is needed.
+let worldBgVersion = 0;
+let worldBgDataUrlCache = null; // { version, dataUrl }
+
+// canvas.toDataURL() on a multi-region background takes tens of ms on the
+// main thread - encode once per version, not once per save.
+function getWorldBgDataUrl() {
+	if (!worldBgDataUrlCache || worldBgDataUrlCache.version !== worldBgVersion) {
+		worldBgDataUrlCache = {
+			version: worldBgVersion,
+			dataUrl: worldBgCanvas.toDataURL("image/png"),
+		};
+	}
+	return worldBgDataUrlCache.dataUrl;
+}
 
 // A freshly-uploaded background's biomeAt() (from buildTerrainImage) is an
 // in-memory closure over its full parse - gone after a reload, so it can't
@@ -329,6 +348,8 @@ function applyWorldBgVisibility() {
 
 function removeWorldBackground() {
 	worldBackground = null;
+	worldBgVersion++;
+	worldBgDataUrlCache = null;
 	bgUploadGeneration++; // invalidate any in-flight parse
 	worldBgLayer.hidden = true;
 	grid.classList.remove("has-world-bg");
@@ -359,6 +380,7 @@ function computeContentExtent() {
 }
 
 function drawWorldBgCanvas(source, gridW, gridH) {
+	worldBgVersion++;
 	worldBgCanvas.width = gridW;
 	worldBgCanvas.height = gridH;
 	worldBgCanvas.getContext("2d").drawImage(source, 0, 0);
@@ -443,7 +465,7 @@ async function handleBackgroundFiles(files) {
 function getWorldBackgroundSaveData() {
 	if (!worldBackground) return null;
 	return {
-		dataUrl: worldBgCanvas.toDataURL("image/png"),
+		dataUrl: getWorldBgDataUrl(),
 		gridW: worldBackground.gridW,
 		gridH: worldBackground.gridH,
 		minCx: worldBackground.minCx,
@@ -488,11 +510,20 @@ function openBgIdb() {
 	return bgIdbPromise;
 }
 
-async function idbPutBackground(key, dataUrl) {
+// Each background entry has a small companion "stamp" entry identifying
+// which in-memory background version it holds - see
+// getWorldBackgroundSaveDataLocal.
+function bgStampKey(key) {
+	return `${key}:stamp`;
+}
+
+async function idbPutBackground(key, value, stamp) {
 	const db = await openBgIdb();
 	return new Promise((resolve, reject) => {
 		const tx = db.transaction(BG_IDB_STORE, "readwrite");
-		tx.objectStore(BG_IDB_STORE).put(dataUrl, key);
+		const store = tx.objectStore(BG_IDB_STORE);
+		store.put(value, key);
+		store.put(stamp, bgStampKey(key));
 		tx.oncomplete = () => resolve();
 		tx.onerror = () => reject(tx.error);
 	});
@@ -512,7 +543,9 @@ async function idbDeleteBackground(key) {
 	const db = await openBgIdb();
 	return new Promise((resolve, reject) => {
 		const tx = db.transaction(BG_IDB_STORE, "readwrite");
-		tx.objectStore(BG_IDB_STORE).delete(key);
+		const store = tx.objectStore(BG_IDB_STORE);
+		store.delete(key);
+		store.delete(bgStampKey(key));
 		tx.oncomplete = () => resolve();
 		tx.onerror = () => reject(tx.error);
 	});
@@ -546,18 +579,25 @@ function getWorldBackgroundMetadata() {
 // shape if IndexedDB itself isn't available (e.g. some private-browsing
 // modes) - worse odds of fitting under quota, same as before this change,
 // but never worse than before.
+//
+// Autosave calls this after every edit, but the background itself rarely
+// changes - so the multi-MB write is skipped when IndexedDB already holds
+// this exact version under idbKey. That's checked against the stamp stored
+// beside it rather than remembered in memory, so another tab overwriting
+// the entry (or a deleted named plan) is noticed and the image rewritten.
+const BG_SESSION_ID = Math.random().toString(36).slice(2);
 async function getWorldBackgroundSaveDataLocal(idbKey) {
 	if (!worldBackground) return null;
 	const meta = getWorldBackgroundMetadata();
-	const payload = {
-		dataUrl: worldBgCanvas.toDataURL("image/png"),
-		biomeCompact: worldBackground.biomeCompact,
-	};
+	const { biomeCompact } = worldBackground; // captured: may be removed while awaiting
+	const payload = () => ({ dataUrl: getWorldBgDataUrl(), biomeCompact });
 	try {
-		await idbPutBackground(idbKey, payload);
+		const stamp = `${BG_SESSION_ID}:${worldBgVersion}`;
+		if ((await idbGetBackground(bgStampKey(idbKey))) === stamp) return meta;
+		await idbPutBackground(idbKey, payload(), stamp);
 		return meta;
 	} catch {
-		return { ...meta, ...payload };
+		return { ...meta, ...payload() };
 	}
 }
 
@@ -2046,6 +2086,25 @@ fetch("rooftop-data/manifest.json")
 	});
 
 const rooftopDataCache = new Map(); // dataPath -> Promise<gridData>
+
+// Shared, de-duplicated fetch of one rooftop-data file. A failed request is
+// evicted rather than cached, so a brief network error doesn't leave that
+// building without a top-down render until the page is reloaded.
+function fetchRooftopData(dataPath) {
+	if (!rooftopDataCache.has(dataPath)) {
+		const request = fetch(dataPath)
+			.then((response) => {
+				if (!response.ok) throw new Error(`HTTP ${response.status} for ${dataPath}`);
+				return response.json();
+			})
+			.catch((error) => {
+				rooftopDataCache.delete(dataPath);
+				throw error;
+			});
+		rooftopDataCache.set(dataPath, request);
+	}
+	return rooftopDataCache.get(dataPath);
+}
 // A blueprint only ever needs rendering ONCE, unrotated, at its native
 // orientation - every placed instance of the same building (and both its
 // rotated/unrotated states) reuses this single offscreen render as a plain
@@ -2112,11 +2171,8 @@ async function showPreviewView(mode) {
 	const requestId = previewRequestId;
 	previewImage.style.display = "none";
 	previewTopDownLabel.hidden = true;
-	if (!rooftopDataCache.has(dataPath)) {
-		rooftopDataCache.set(dataPath, fetch(dataPath).then((response) => response.json()));
-	}
 	try {
-		const gridData = await rooftopDataCache.get(dataPath);
+		const gridData = await fetchRooftopData(dataPath);
 		if (requestId !== previewRequestId || previewViewMode !== "top") return; // preview moved on while this was loading
 		await window.RooftopRender.renderGrid(gridData, previewCanvas, { showDoors: showDoorLabels });
 		if (requestId !== previewRequestId || previewViewMode !== "top") return;
@@ -2174,11 +2230,8 @@ async function applyBuildingVisualMode(entry) {
 		setBuildingTopDownMode(entry, false);
 		return;
 	}
-	if (!rooftopDataCache.has(dataPath)) {
-		rooftopDataCache.set(dataPath, fetch(dataPath).then((response) => response.json()));
-	}
 	try {
-		const gridData = await rooftopDataCache.get(dataPath);
+		const gridData = await fetchRooftopData(dataPath);
 		// The building may have been un-toggled, rotated, or removed while
 		// this fetch was in flight - re-check before touching the DOM.
 		if (!useTopDownRenders || !placedSquares.includes(entry)) return;
@@ -2333,6 +2386,8 @@ function setShowGridLines(on) {
 	showGridLines = on;
 	grid.classList.toggle("hide-grid-lines", !on);
 	gridLinesToggleCheckbox.checked = on;
+	// Solid paths (canal) draw their own grid lines - see renderPathDOM.
+	if (paths.length) rerenderAllPathBorders();
 	try {
 		window.localStorage.setItem(GRID_LINES_TOGGLE_STORAGE_KEY, on ? "1" : "0");
 	} catch {
@@ -3527,10 +3582,19 @@ function getCellBounds(cells) {
 	return { minX, maxX, minY, maxY };
 }
 
+// Numeric key for the "is any path painted here" set - much cheaper to build
+// and look up than "x,y" strings across tens of thousands of cells. The
+// stride is past the largest allowed grid width, so x - 1 / x + 1 can never
+// alias a cell in the neighboring row.
+const PATH_CELL_KEY_STRIDE = MAX_PLAN_GRID_DIMENSION + 2;
+function pathCellKey(x, y) {
+	return y * PATH_CELL_KEY_STRIDE + x;
+}
+
 function buildGlobalCellSet() {
 	const set = new Set();
 	for (const p of paths) {
-		for (const c of p.cells) set.add(`${c.x},${c.y}`);
+		for (const c of p.cells) set.add(pathCellKey(c.x, c.y));
 	}
 	return set;
 }
@@ -3539,11 +3603,18 @@ function buildGlobalCellSet() {
 // regardless of type - an eraser stroke doesn't care whether it's crossing
 // a road, an alley, or a canal. A path emptied down to zero cells is
 // deleted outright rather than left behind as a zero-cell husk.
+// Returns the erased area as pathCellKey()s, for rerenderPathsNear().
 function eraseCellsAt(cellKeySet) {
+	const erased = new Set();
+	for (const key of cellKeySet) {
+		const [x, y] = key.split(",").map(Number);
+		erased.add(pathCellKey(x, y));
+	}
 	for (let i = paths.length - 1; i >= 0; i--) {
 		const path = paths[i];
-		const filtered = path.cells.filter((c) => !cellKeySet.has(`${c.x},${c.y}`));
-		if (filtered.length === path.cells.length) continue;
+		// Most paths are nowhere near the stroke - check before allocating.
+		if (!path.cells.some((c) => erased.has(pathCellKey(c.x, c.y)))) continue;
+		const filtered = path.cells.filter((c) => !erased.has(pathCellKey(c.x, c.y)));
 		if (filtered.length === 0) {
 			path.elements.forEach((el) => el.remove());
 			if (selectedPathId === path.id) selectedPathId = null;
@@ -3551,6 +3622,25 @@ function eraseCellsAt(cellKeySet) {
 		} else {
 			path.cells = filtered;
 		}
+	}
+	return erased;
+}
+
+// Redraws only the paths with a cell in or next to keyCells (pathCellKey()s) -
+// erasing changes those paths' cells, and exposes new edges on any path
+// bordering the erased area, but leaves every other path untouched.
+function rerenderPathsNear(keyCells) {
+	const near = new Set();
+	for (const key of keyCells) {
+		near.add(key);
+		near.add(key - 1);
+		near.add(key + 1);
+		near.add(key - PATH_CELL_KEY_STRIDE);
+		near.add(key + PATH_CELL_KEY_STRIDE);
+	}
+	const globalCellSet = buildGlobalCellSet();
+	for (const path of paths) {
+		if (path.cells.some((c) => near.has(pathCellKey(c.x, c.y)))) renderPathDOM(path, globalCellSet);
 	}
 }
 
@@ -3569,7 +3659,16 @@ function eraseCellsAt(cellKeySet) {
 // block, since a random water/stone-bank mix would look like a broken
 // channel rather than a texture.
 const PATH_TEXTURE_SKIP = /torch|lantern|chain|decorationcontroller|_sign|_banner/;
-const pathTextureCache = new Map(); // type -> [{icon, weight}] | null (no source) | "loading"
+const pathTextureCache = new Map(); // type -> [{icon, weight, img}] | null (no source) | "loading"
+
+function loadImageOrNull(src) {
+	return new Promise((resolve) => {
+		const img = new Image();
+		img.onload = () => resolve(img);
+		img.onerror = () => resolve(null);
+		img.src = src;
+	});
+}
 
 function findPathTextureSource(type) {
 	for (const key of Object.keys(rooftopManifest)) {
@@ -3592,12 +3691,8 @@ function getPathTexture(type) {
 	const dataPath = source && getRooftopDataPath(source);
 	if (!dataPath) return null; // manifest may not be loaded yet - don't cache
 	pathTextureCache.set(type, "loading");
-	if (!rooftopDataCache.has(dataPath)) {
-		rooftopDataCache.set(dataPath, fetch(dataPath).then((response) => response.json()));
-	}
-	rooftopDataCache
-		.get(dataPath)
-		.then((gridData) => {
+	fetchRooftopData(dataPath)
+		.then(async (gridData) => {
 			const counts = new Map();
 			for (const row of gridData.grid) {
 				for (const block of row) {
@@ -3611,6 +3706,12 @@ function getPathTexture(type) {
 				.map(([icon, weight]) => ({ icon, weight }))
 				.sort((a, b) => b.weight - a.weight);
 			if (ROAD_TYPE_SOLID.has(type)) palette = palette.slice(0, 1);
+			// Paths are drawn on a canvas, which needs decoded images rather
+			// than CSS url()s - a block whose icon fails to load is dropped.
+			const images = await Promise.all(palette.map((entry) => loadImageOrNull(entry.icon)));
+			palette = palette
+				.map((entry, i) => ({ ...entry, img: images[i] }))
+				.filter((entry) => entry.img);
 			pathTextureCache.set(type, palette.length ? palette : null);
 		})
 		.catch(() => pathTextureCache.set(type, null))
@@ -3627,16 +3728,56 @@ function cellHash(x, y) {
 	return ((h ^ (h >>> 15)) >>> 0) / 4294967296;
 }
 
-function pickPathTextureIcon(palette, x, y) {
+function pickPathTextureImage(palette, x, y) {
 	const total = palette.reduce((sum, entry) => sum + entry.weight, 0);
 	let roll = cellHash(x, y) * total;
 	for (const entry of palette) {
 		roll -= entry.weight;
-		if (roll < 0) return entry.icon;
+		if (roll < 0) return entry.img;
 	}
-	return palette[palette.length - 1].icon;
+	return palette[palette.length - 1].img;
 }
 
+// Theme colors the path canvas needs as real values (a canvas can't use
+// var(--x)). Cached until the theme changes - see the observer below.
+let pathThemeColors = null;
+function getPathThemeColors() {
+	if (!pathThemeColors) {
+		const style = getComputedStyle(document.documentElement);
+		const read = (name, fallback) => style.getPropertyValue(name).trim() || fallback;
+		pathThemeColors = {
+			cellBg: read("--path-cell-bg", "rgba(100, 180, 220, 0.4)"),
+			cellBorder: read("--path-cell-border", "rgba(60, 140, 200, 0.8)"),
+			bevelLight: read("--path-bevel-light", "rgba(255, 255, 255, 0.45)"),
+			bevelDark: read("--path-bevel-dark", "rgba(0, 0, 0, 0.4)"),
+			gridLine: read("--grid-line-light", "rgba(255, 255, 255, 0.08)"),
+		};
+	}
+	return pathThemeColors;
+}
+
+// Backing-store pixels per CSS pixel for a path's canvas: the device pixel
+// ratio (capped at 2), so paths look as sharp as the page around them, but
+// stepped down for a huge painted area so the canvas stays inside browser
+// size limits.
+const PATH_CANVAS_MAX_DIMENSION = 16000;
+const PATH_CANVAS_MAX_PIXELS = 16_000_000;
+function getPathCanvasScale(cssW, cssH) {
+	return Math.min(
+		Math.min(2, window.devicePixelRatio || 1),
+		PATH_CANVAS_MAX_DIMENSION / cssW,
+		PATH_CANVAS_MAX_DIMENSION / cssH,
+		Math.sqrt(PATH_CANVAS_MAX_PIXELS / (cssW * cssH)),
+	);
+}
+
+// One .placed-path element per path (it's the click/selection target, and
+// carries the selection outline), with every cell drawn into a single
+// canvas inside it. Fills and edges are batched into one canvas path per
+// color, so redrawing every path stays cheap even for tens of thousands of
+// cells - this used to be one DOM element per cell. Edges are only drawn
+// where a cell borders open ground, not another painted cell (of any path),
+// so neighboring paths read as one surface.
 function renderPathDOM(path, globalCellSet) {
 	path.elements.forEach((el) => el.remove());
 	path.elements = [];
@@ -3644,12 +3785,9 @@ function renderPathDOM(path, globalCellSet) {
 	const cells = path.cells;
 	if (cells.length === 0) return;
 
-	const xs = cells.map((c) => c.x);
-	const ys = cells.map((c) => c.y);
-	const minX = Math.min(...xs);
-	const maxX = Math.max(...xs);
-	const minY = Math.min(...ys);
-	const maxY = Math.max(...ys);
+	const { minX, maxX, minY, maxY } = getCellBounds(cells);
+	const cssW = (maxX - minX + 1) * cellSize;
+	const cssH = (maxY - minY + 1) * cellSize;
 
 	const container = document.createElement("div");
 	container.className = "placed-path";
@@ -3657,99 +3795,90 @@ function renderPathDOM(path, globalCellSet) {
 	container.style.position = "absolute";
 	container.style.left = `${minX * cellSize}px`;
 	container.style.top = `${minY * cellSize}px`;
-	container.style.width = `${(maxX - minX + 1) * cellSize}px`;
-	container.style.height = `${(maxY - minY + 1) * cellSize}px`;
+	container.style.width = `${cssW}px`;
+	container.style.height = `${cssH}px`;
 	container.style.pointerEvents = "auto";
 	container.dataset.pathId = path.id;
 
-	// null (the "default" type, or an unrecognized one from an older/foreign
-	// save) falls back to the theme's --path-cell-bg variable rather than a
-	// fixed color, same as the tool always looked before road types existed.
-	// Object.hasOwn, not a plain bracket-truthy check: path.type comes
-	// straight from an imported plan's JSON on the restore path, and
-	// ROAD_TYPE_COLORS is a plain object literal, so a crafted
-	// type: "__proto__" would otherwise resolve via bracket access to the
-	// object's actual prototype (a truthy object, not undefined) instead of
-	// correctly falling through to the default color - confirmed this
-	// without the hasOwn guard.
+	const canvas = document.createElement("canvas");
+	canvas.className = "placed-path__canvas";
+	const scale = getPathCanvasScale(cssW, cssH);
+	canvas.width = Math.max(1, Math.round(cssW * scale));
+	canvas.height = Math.max(1, Math.round(cssH * scale));
+	const ctx = canvas.getContext("2d");
+	ctx.setTransform(scale, 0, 0, scale, 0, 0);
+	ctx.imageSmoothingEnabled = false;
+
+	// Object.hasOwn, not a plain bracket lookup: path.type comes straight
+	// from an imported plan's JSON, and a crafted type: "__proto__" would
+	// otherwise resolve to the object's prototype instead of falling
+	// through to the default color. null (the "default" type) uses the
+	// theme's path color.
 	const color = Object.hasOwn(ROAD_TYPE_COLORS, path.type)
 		? ROAD_TYPE_COLORS[path.type]
 		: null;
-
 	const solid = ROAD_TYPE_SOLID.has(path.type);
 	const texture =
 		useTopDownRenders && Object.hasOwn(ROAD_TYPE_COLORS, path.type)
 			? getPathTexture(path.type)
 			: null;
+	const theme = getPathThemeColors();
+	const s = cellSize;
+	const hasCell = (x, y) => globalCellSet.has(pathCellKey(x, y));
 
-	for (const cell of cells) {
-		const relX = cell.x - minX;
-		const relY = cell.y - minY;
-
-		const cellEl = document.createElement("div");
-		cellEl.style.position = "absolute";
-		cellEl.style.left = `${relX * cellSize}px`;
-		cellEl.style.top = `${relY * cellSize}px`;
-		cellEl.style.width = `${cellSize}px`;
-		cellEl.style.height = `${cellSize}px`;
-		cellEl.style.pointerEvents = "none";
-		cellEl.style.boxSizing = "border-box";
-
-		if (texture) {
-			// Real block texture (see getPathTexture) - opaque like a placed
-			// building's top-down render, so no grid lines redrawn over it.
-			cellEl.style.background = `url("${pickPathTextureIcon(texture, cell.x, cell.y)}") 0 0 / 100% 100%`;
-			cellEl.style.imageRendering = "pixelated";
-		} else if (solid) {
-			// An opaque fill would otherwise completely hide the grid lines
-			// underneath - redraw them on top instead, one tick per cell
-			// (left/top edge each), the same technique .placed-square already
-			// uses to show its own internal grid over a solid category color.
-			// Self-aligning regardless of the shape's position: every cell is
-			// exactly cellSize, so adjacent cells' lines abut seamlessly with
-			// no absolute-position math needed.
-			cellEl.style.backgroundColor = color || "var(--path-cell-bg)";
-			cellEl.style.backgroundImage =
-				"linear-gradient(to right, var(--grid-line-light) 1px, transparent 1px), " +
-				"linear-gradient(to bottom, var(--grid-line-light) 1px, transparent 1px)";
-		} else {
-			cellEl.style.background = color || "var(--path-cell-bg)";
+	if (texture) {
+		// Real block texture (see getPathTexture) - opaque like a placed
+		// building's top-down render, so no grid lines redrawn over it.
+		// Smoothed: 16px block textures are being shrunk to a few pixels,
+		// where nearest-neighbor sampling turns them into scattered dots.
+		ctx.imageSmoothingEnabled = true;
+		for (const c of cells) {
+			ctx.drawImage(pickPathTextureImage(texture, c.x, c.y), (c.x - minX) * s, (c.y - minY) * s, s, s);
 		}
-
-		const hasLeft = globalCellSet.has(`${cell.x - 1},${cell.y}`);
-		const hasRight = globalCellSet.has(`${cell.x + 1},${cell.y}`);
-		const hasTop = globalCellSet.has(`${cell.x},${cell.y - 1}`);
-		const hasBottom = globalCellSet.has(`${cell.x},${cell.y + 1}`);
-
-		if (solid) {
-			// A sunken-channel bevel instead of a flat, uniform border - dark
-			// shadow on the top/left (the near wall of the carved channel,
-			// where a top-left light source can't reach), light catching the
-			// bottom/right (the far wall it grazes), the inverse of an
-			// embossed/raised edge so it reads as indented rather than
-			// bulging up. Only drawn on edges that actually border open
-			// ground (not another canal cell), so adjacent canal cells still
-			// read as one continuous channel.
-			if (!hasTop) cellEl.style.borderTop = "1px solid var(--path-bevel-dark)";
-			if (!hasLeft)
-				cellEl.style.borderLeft = "1px solid var(--path-bevel-dark)";
-			if (!hasBottom)
-				cellEl.style.borderBottom = "1px solid var(--path-bevel-light)";
-			if (!hasRight)
-				cellEl.style.borderRight = "1px solid var(--path-bevel-light)";
-		} else {
-			const border = texture
-				? "1px solid rgba(0, 0, 0, 0.45)"
-				: "1px solid var(--path-cell-border)";
-			if (!hasTop) cellEl.style.borderTop = border;
-			if (!hasBottom) cellEl.style.borderBottom = border;
-			if (!hasLeft) cellEl.style.borderLeft = border;
-			if (!hasRight) cellEl.style.borderRight = border;
+	} else {
+		ctx.fillStyle = color || theme.cellBg;
+		ctx.beginPath();
+		for (const c of cells) ctx.rect((c.x - minX) * s, (c.y - minY) * s, s, s);
+		ctx.fill();
+		if (solid && showGridLines) {
+			// The opaque fill hides the grid's own lines underneath - redraw
+			// them on top (each cell's left and top edge).
+			ctx.fillStyle = theme.gridLine;
+			ctx.beginPath();
+			for (const c of cells) {
+				const px = (c.x - minX) * s;
+				const py = (c.y - minY) * s;
+				ctx.rect(px, py, 1, s);
+				ctx.rect(px, py, s, 1);
+			}
+			ctx.fill();
 		}
-
-		container.appendChild(cellEl);
 	}
 
+	const drawEdges = (fillStyle, { top, bottom, left, right }) => {
+		ctx.fillStyle = fillStyle;
+		ctx.beginPath();
+		for (const c of cells) {
+			const px = (c.x - minX) * s;
+			const py = (c.y - minY) * s;
+			if (top && !hasCell(c.x, c.y - 1)) ctx.rect(px, py, s, 1);
+			if (bottom && !hasCell(c.x, c.y + 1)) ctx.rect(px, py + s - 1, s, 1);
+			if (left && !hasCell(c.x - 1, c.y)) ctx.rect(px, py, 1, s);
+			if (right && !hasCell(c.x + 1, c.y)) ctx.rect(px + s - 1, py, 1, s);
+		}
+		ctx.fill();
+	};
+	if (solid) {
+		// A sunken-channel bevel: dark on the top/left (the near wall of the
+		// channel, out of a top-left light), light on the bottom/right.
+		drawEdges(theme.bevelDark, { top: true, left: true });
+		drawEdges(theme.bevelLight, { bottom: true, right: true });
+	} else {
+		const all = { top: true, bottom: true, left: true, right: true };
+		drawEdges(texture ? "rgba(0, 0, 0, 0.45)" : theme.cellBorder, all);
+	}
+
+	container.appendChild(canvas);
 	grid.appendChild(container);
 	path.elements = [container];
 }
@@ -3758,6 +3887,19 @@ function rerenderAllPathBorders() {
 	const globalCellSet = buildGlobalCellSet();
 	for (const path of paths) renderPathDOM(path, globalCellSet);
 }
+
+// Selecting/deselecting only changes the outline - no need to redraw.
+function updatePathSelectionClasses() {
+	for (const path of paths) {
+		for (const el of path.elements) el.classList.toggle("is-selected", path.id === selectedPathId);
+	}
+}
+
+// Path colors come from the theme, so a theme switch needs a redraw.
+new MutationObserver(() => {
+	pathThemeColors = null;
+	if (paths.length) rerenderAllPathBorders();
+}).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
 function setPathEraseMode(on) {
 	pathEraseMode = on;
@@ -3838,8 +3980,7 @@ grid.addEventListener("pointerdown", (e) => {
 		paintLastCell = cell;
 		const stampSet = new Set();
 		stampBrush(stampSet, cell.x, cell.y, pathWidth);
-		eraseCellsAt(stampSet);
-		rerenderAllPathBorders();
+		rerenderPathsNear(eraseCellsAt(stampSet));
 		try {
 			grid.setPointerCapture(e.pointerId);
 		} catch {
@@ -4122,8 +4263,7 @@ grid.addEventListener("pointermove", (e) => {
 			: [cell];
 		for (const point of points) stampBrush(stampSet, point.x, point.y, pathWidth);
 		paintLastCell = cell;
-		eraseCellsAt(stampSet);
-		rerenderAllPathBorders();
+		rerenderPathsNear(eraseCellsAt(stampSet));
 		return;
 	}
 
@@ -4418,7 +4558,7 @@ grid.addEventListener("pointerleave", () => {
 // ----- Path menu and selection -----
 function selectPath(pathId) {
 	selectedPathId = pathId;
-	rerenderAllPathBorders();
+	updatePathSelectionClasses();
 }
 
 function showPathMenuFor(pathId) {
@@ -4456,7 +4596,7 @@ function showPathMenuFor(pathId) {
 function hidePathMenu() {
 	pathActionMenu.style.display = "none";
 	selectedPathId = null;
-	rerenderAllPathBorders();
+	updatePathSelectionClasses();
 }
 
 function deleteSelectedPath() {
@@ -4913,9 +5053,6 @@ function restorePathsFromSaved(savedPaths) {
 	rerenderAllPathBorders();
 }
 
-// Same ceiling world-terrain.js puts on an uploaded background, so a plan
-// can never ask for a grid larger than a real upload could produce.
-const MAX_PLAN_GRID_DIMENSION = 16384;
 const PLAN_CATEGORY_PATTERN = /^[a-z0-9_-]+$/i;
 
 function isGridCoord(value, limit) {

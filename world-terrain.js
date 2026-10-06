@@ -260,11 +260,11 @@ function unpackPadded(longs, bitsPerValue, index) {
 	return Number((raw >> bitOffset) & mask);
 }
 
-// nbt.js's LongArray reader returns each entry as a plain Number when it
-// fits in a JS safe integer, or a decimal string otherwise (see
-// longToNumber in nbt.js) - normalize either back to a BigInt here.
+// Chunks are parsed with nbt.js's bigIntLongArrays option, so entries are
+// already BigInts; a plain Number or decimal string (the default LongArray
+// form, e.g. from a caller that didn't opt in) is converted.
 function toBigInt(v) {
-	return typeof v === "string" ? BigInt(v) : BigInt(v);
+	return typeof v === "bigint" ? v : BigInt(v);
 }
 
 const WORLD_MIN_Y = -64;
@@ -503,7 +503,7 @@ async function parseRegionFile(file, onChunk) {
 
 			let chunkNbt;
 			try {
-				chunkNbt = window.NBT.parseNbtBuffer(inflated.buffer.slice(inflated.byteOffset, inflated.byteOffset + inflated.byteLength)).value;
+				chunkNbt = window.NBT.parseNbtBuffer(inflated.buffer.slice(inflated.byteOffset, inflated.byteOffset + inflated.byteLength), { bigIntLongArrays: true }).value;
 			} catch {
 				continue;
 			}

@@ -2028,6 +2028,16 @@ body.preview-collapsed .map-compass {
 	z-index: 1;
 }
 
+/* Every cell of a painted path is drawn into this one canvas (see
+   renderPathDOM) - pixelated so zooming in keeps cell edges crisp. */
+.placed-path__canvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+	image-rendering: pixelated;
+	pointer-events: none;
+}
+
 .placed-badge {
 	position: absolute;
 	inset: 0;

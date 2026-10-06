@@ -15,13 +15,44 @@
 
 const CELL = 24;
 
+// Shared across every render, so each block icon is fetched and decoded
+// once per page rather than once per building. A failed load is evicted
+// (and resolves to null), so a later render retries it.
+const imageCache = new Map(); // src -> Promise<HTMLImageElement | null>
+
 function loadImage(src) {
-	return new Promise((resolve) => {
-		const img = new Image();
-		img.onload = () => resolve(img);
-		img.onerror = () => resolve(null);
-		img.src = src;
-	});
+	if (!imageCache.has(src)) {
+		imageCache.set(
+			src,
+			new Promise((resolve) => {
+				const img = new Image();
+				img.onload = () => resolve(img);
+				img.onerror = () => {
+					imageCache.delete(src);
+					resolve(null);
+				};
+				img.src = src;
+			}),
+		);
+	}
+	return imageCache.get(src);
+}
+
+// Every icon a grid draws: fetched up front in parallel, so a render waits
+// for roughly one round trip instead of one per distinct block in turn.
+async function preloadGridImages(grid) {
+	const srcs = new Set();
+	for (const row of grid) {
+		for (const cell of row) {
+			if (!cell) continue;
+			if (cell.icon) srcs.add(cell.icon);
+			if (cell.shape && cell.underlayIcon) srcs.add(cell.underlayIcon);
+			if (cell.topper?.icon) srcs.add(cell.topper.icon);
+		}
+	}
+	const list = [...srcs];
+	const images = await Promise.all(list.map(loadImage));
+	return new Map(list.map((src, i) => [src, images[i]]));
 }
 
 // A top-down fence post: a square post in the middle, with a rail running
@@ -301,11 +332,12 @@ function drawHeightShade(ctx, cell, neighbors, px, py, size) {
 // half) and rotate that single shaded image per cell instead. Same shading,
 // guaranteed pixel-identical across every direction, since it's the same
 // image just turned to face the right way.
-const shadedIconCache = new Map(); // iconPath -> Promise<Image>
+// The shaded copy is kept as a canvas - drawImage() takes one directly, so
+// there's no need to round-trip it through a data URL and an <img>.
+const shadedIconCache = new Map(); // iconPath -> HTMLCanvasElement
 
 function getShadedIcon(iconPath, baseImg) {
-	if (shadedIconCache.has(iconPath)) return shadedIconCache.get(iconPath);
-	const promise = (async () => {
+	if (!shadedIconCache.has(iconPath)) {
 		const off = document.createElement("canvas");
 		off.width = baseImg.width;
 		off.height = baseImg.height;
@@ -316,15 +348,9 @@ function getShadedIcon(iconPath, baseImg) {
 		octx.fillRect(0, off.height / 2, off.width, off.height / 2);
 		octx.fillStyle = "rgba(255, 255, 255, 0.1)";
 		octx.fillRect(0, 0, off.width, off.height / 2);
-		const shadedImg = new Image();
-		await new Promise((res) => {
-			shadedImg.onload = res;
-			shadedImg.src = off.toDataURL();
-		});
-		return shadedImg;
-	})();
-	shadedIconCache.set(iconPath, promise);
-	return promise;
+		shadedIconCache.set(iconPath, off);
+	}
+	return shadedIconCache.get(iconPath);
 }
 
 // The pre-shaded image has its dark half at the BOTTOM by construction, so
@@ -349,15 +375,12 @@ async function renderGrid(gridData, canvas, { cellSize = CELL, showDoors = true,
 	const { size_x, size_z, grid } = gridData;
 	canvas.width = size_x * cellSize;
 	canvas.height = size_z * cellSize;
+	// Loaded before touching the canvas, so the drawing below is synchronous.
+	const images = await preloadGridImages(grid);
+	const getImage = (src) => images.get(src) || null;
 	const ctx = canvas.getContext("2d");
 	ctx.imageSmoothingEnabled = false;
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-	const imageCache = new Map();
-	async function getImage(src) {
-		if (!imageCache.has(src)) imageCache.set(src, await loadImage(src));
-		return imageCache.get(src);
-	}
 
 	for (let z = 0; z < size_z; z++) {
 		for (let x = 0; x < size_x; x++) {
@@ -369,12 +392,12 @@ async function renderGrid(gridData, canvas, { cellSize = CELL, showDoors = true,
 			// the cell showing whatever's directly beneath them in-world — draw
 			// that first, full-cell, before the clipped primary icon on top.
 			if (cell.shape && cell.underlayIcon) {
-				const underImg = await getImage(cell.underlayIcon);
+				const underImg = getImage(cell.underlayIcon);
 				if (underImg) ctx.drawImage(underImg, px, py, cellSize, cellSize);
 			}
 
 			if (cell.icon) {
-				const img = await getImage(cell.icon);
+				const img = getImage(cell.icon);
 				if (img) {
 					if (cell.shape) {
 						ctx.save();
@@ -401,11 +424,11 @@ async function renderGrid(gridData, canvas, { cellSize = CELL, showDoors = true,
 						// full-size on top now, same as it'd render on its
 						// own.
 						if (cell.topper?.icon) {
-							const topperImg = await getImage(cell.topper.icon);
+							const topperImg = getImage(cell.topper.icon);
 							if (topperImg) ctx.drawImage(topperImg, px, py, cellSize, cellSize);
 						}
 					} else if (cell.facingDarken && !cell.name.endsWith("_stairs")) {
-						const shadedImg = await getShadedIcon(cell.icon, img);
+						const shadedImg = getShadedIcon(cell.icon, img);
 						if (shadedImg) drawRotatedShaded(ctx, shadedImg, cell.facingDarken, px, py, cellSize);
 						else ctx.drawImage(img, px, py, cellSize, cellSize);
 					} else {
