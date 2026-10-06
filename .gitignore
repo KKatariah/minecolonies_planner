@@ -7,3 +7,12 @@
 # repo root is served as-is, no build step, so anything committed here is
 # publicly fetchable) and not useful to anyone consuming the app itself.
 conversation-logs/
+
+# Original .otf font files the woff2 copies in fonts/ were converted from.
+# Kept locally only - the site serves the much smaller woff2 versions.
+fonts/originals/
+
+# Test tooling (see package.json / tests/).
+node_modules/
+test-results/
+playwright-report/

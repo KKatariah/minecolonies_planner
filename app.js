@@ -79,9 +79,9 @@ initNavBar("planner", [
 		title: "Placing & moving buildings",
 		items: [
 			{ combo: ["Arrow keys"], description: "Nudge the selected building(s) by 1 block" },
-			{ combo: ["R"], description: "Rotate the armed building before placing it" },
+			{ combo: ["R"], description: "Rotate the armed building before placing it, or the selected building on the grid" },
 			{ combo: ["Shift", "Click"], description: "Add/remove a building from the selection" },
-			{ combo: ["Ctrl", "Drag"], description: "Snap to 16-block chunk boundaries while placing, moving, or duplicating" },
+			{ combo: ["Ctrl", "Drag"], description: "Snap to 16-block chunk boundaries while placing, moving, or duplicating (⌘ on Mac)" },
 			{ combo: ["Ctrl", "C"], description: "Copy the selected building(s)" },
 			{ combo: ["Ctrl", "V"], description: "Arm a placement cursor for the last copy - click the grid to stamp it down, repeatably" },
 		],
@@ -881,8 +881,15 @@ zoomResetButton.addEventListener("click", () =>
 // whatever zoom is already set.
 function centerGridOn(cellX, cellY) {
 	const rect = root.getBoundingClientRect();
-	root.scrollLeft = cellX * cellSize * gridZoom - rect.width / 2;
-	root.scrollTop = cellY * cellSize * gridZoom - rect.height / 2;
+	// Where cell (0, 0) sits in #root's scrollable content - the grid is
+	// inset from the scroll origin by the dirt border/padding around it, and
+	// ignoring that left the target ~6 blocks off-center.
+	const origin = getGridOrigin();
+	const originX = origin.left - rect.left + root.scrollLeft;
+	const originY = origin.top - rect.top + root.scrollTop;
+	const onScreenCellSize = cellSize * gridZoom;
+	root.scrollLeft = originX + (cellX + 0.5) * onScreenCellSize - rect.width / 2;
+	root.scrollTop = originY + (cellY + 0.5) * onScreenCellSize - rect.height / 2;
 }
 
 gotoControls.addEventListener("submit", (event) => {
@@ -1066,10 +1073,23 @@ document.addEventListener("keydown", (event) => {
 		}
 	}
 
-	if (event.key === "r" || event.key === "R") {
-		if (selectedShapeId && !pathToolActive) {
+	// R rotates whatever the user is working with: the armed tray shape
+	// (before placing it) if there is one, otherwise the selected building
+	// already on the grid. Ignored with Ctrl/Cmd/Alt held so it never
+	// swallows browser shortcuts like Cmd+R / Ctrl+R (reload).
+	if (
+		(event.key === "r" || event.key === "R") &&
+		!event.ctrlKey &&
+		!event.metaKey &&
+		!event.altKey
+	) {
+		if (pathToolActive) return;
+		if (selectedShapeId) {
 			event.preventDefault();
 			toggleShapeRotation();
+		} else if (selectedPrimary) {
+			event.preventDefault();
+			rotateSelected();
 		}
 		return;
 	}
@@ -1603,11 +1623,20 @@ function tileWallSegments(kit, axis, perpCoord, from, to) {
 		const y = axis === "horizontal" ? thicknessOrigin : segStart;
 		const w = axis === "horizontal" ? piece.length : kit.segmentThickness;
 		const h = axis === "horizontal" ? kit.segmentThickness : piece.length;
+		// A segment blueprint has one native orientation (caledonia's run
+		// east-west, medievalspruce's north-south), so a run along the other
+		// axis is that piece turned a quarter - flag it, or the top-down
+		// render's size check (applyBuildingVisualMode) rejects the swapped
+		// footprint and the piece falls back to a flat box.
+		const native = getStyleShapes(styleSelect.value).find(
+			(shape) => shape.id === piece.id,
+		);
 		placeSquare(x, y, {
 			id: piece.id,
 			styleFile: styleSelect.value,
 			w,
 			h,
+			rotated: !!native && native.w !== w,
 		});
 		segments.push(placedSquares[placedSquares.length - 1]);
 		if (segStart + piece.length - 1 >= to) break;
@@ -1848,7 +1877,6 @@ function renderShapeTray() {
 		return;
 	}
 
-	const maxPreviewHeight = 110;
 	const visibleShapes = shapes.filter((shape) => {
 		if (shapeSearchQuery) {
 			return (shape.label || "").toLowerCase().includes(shapeSearchQuery);
@@ -1863,30 +1891,24 @@ function renderShapeTray() {
 		const isRotatedSelection = shape.id === selectedShapeId && pendingRotated;
 		const effW = isRotatedSelection ? shape.h : shape.w;
 		const effH = isRotatedSelection ? shape.w : shape.h;
-		const previewWidth = effW * cellSize;
-		const previewHeight = effH * cellSize;
-		const badgeSize = getBadgeFontSize(effW, effH);
-		const scale =
-			previewHeight > maxPreviewHeight ? maxPreviewHeight / previewHeight : 1;
-		const scaledWidth = Math.round(previewWidth * scale);
+		// Every tray item is the same fixed-size inventory slot (sized in CSS),
+		// whatever the building's footprint - the footprint is shown as text
+		// below instead. Sizing the thumbnail to the footprint made the tray
+		// a ragged row of differently shaped, differently aligned boxes, and
+		// stretched the square front-view photos to fit non-square footprints.
 		const button = document.createElement("button");
 		button.type = "button";
 		button.className = "shape-option";
 		button.dataset.shapeId = shape.id;
+		button.title = shape.label;
 		button.innerHTML = `
+			<div class="shape-preview category-${category}">
+				<img class="shape-preview__image" alt="" hidden />
+				<div class="preview-badge">${shape.label}</div>
+			</div>
 			<div class="shape-label">${shape.label}</div>
 			<div class="shape-dimensions">${effW}×${effH}${isRotatedSelection ? " ↻" : ""}</div>
-			<div class="shape-preview-wrap" style="width:${scaledWidth}px;">
-				<div
-					class="shape-preview category-${category}"
-					style="width:${previewWidth}px; height:${previewHeight}px; transform: scale(${scale});"
-				>
-					<img class="shape-preview__image" alt="" hidden />
-					<div class="preview-badge" style="font-size:${badgeSize}px;">${shape.label}</div>
-				</div>
-			</div>
 		`;
-		button.style.width = `${scaledWidth + 12}px`;
 		button.addEventListener("click", () => selectShape(shape.id));
 		shapeTray.appendChild(button);
 		loadShapeTrayThumbnail(
@@ -1996,6 +2018,9 @@ fetch("rooftop-data/manifest.json")
 	.then((response) => (response.ok ? response.json() : {}))
 	.then((manifest) => {
 		rooftopManifest = manifest;
+		// Paths restored before the manifest arrived couldn't find their
+		// texture source yet (see getPathTexture) - try again now.
+		if (useTopDownRenders) rerenderAllPathBorders();
 	})
 	.catch(() => {
 		// Missing entirely is fine (e.g. the generator hasn't been run yet in
@@ -2148,6 +2173,19 @@ async function applyBuildingVisualMode(entry) {
 		// dimensions (both come out equal either way). Still cross-checked
 		// against the expected dimensions for that rotation as a sanity guard
 		// (catches corrupt/pre-rotation-field saved data) before rendering.
+		// One case is repaired rather than rejected: a non-square footprint
+		// that exactly matches the OTHER orientation can only be the
+		// blueprint turned a quarter with the flag missing - e.g. wall runs
+		// drawn before tileWallSegments started setting it, which autosave
+		// and saved plans still carry - so the flag is corrected in place.
+		if (
+			gridData.size_x !== gridData.size_z &&
+			entry.w === (entry.rotated ? gridData.size_x : gridData.size_z) &&
+			entry.h === (entry.rotated ? gridData.size_z : gridData.size_x)
+		) {
+			entry.rotated = !entry.rotated;
+			scheduleAutoSave();
+		}
 		const expectedW = entry.rotated ? gridData.size_z : gridData.size_x;
 		const expectedH = entry.rotated ? gridData.size_x : gridData.size_z;
 		if (entry.w !== expectedW || entry.h !== expectedH) {
@@ -2185,6 +2223,7 @@ async function applyBuildingVisualMode(entry) {
 
 function applyTopDownRenderMode() {
 	placedSquares.forEach((entry) => applyBuildingVisualMode(entry));
+	rerenderAllPathBorders(); // painted paths switch to/from block textures too
 }
 
 rooftopToggleCheckbox.addEventListener("change", () => {
@@ -2710,20 +2749,40 @@ function clampGroupAnchor(anchorX, anchorY, groupItems) {
 	return { x: clampedX, y: clampedY };
 }
 
-function getSnapPoint(clientX, clientY, w, h, step) {
+// Screen position of cell (0, 0)'s top-left corner. Cells are laid out
+// inside .grid's border, not from its outer edge - getBoundingClientRect()
+// alone is off by the border width (times zoom), which made the last couple
+// of pixels of every cell resolve to the next cell over. clientLeft/Top are
+// unscaled layout values, so they need the zoom applied like everything else.
+function getGridOrigin() {
 	const rect = grid.getBoundingClientRect();
+	return {
+		left: rect.left + grid.clientLeft * gridZoom,
+		top: rect.top + grid.clientTop * gridZoom,
+	};
+}
+
+// Ctrl, or Cmd on a Mac - macOS turns Ctrl+click into a right-click (a
+// contextmenu event, and no click at all), so Ctrl alone could never snap a
+// click-to-place or a duplicate/paste stamp there.
+function isSnapModifier(event) {
+	return event.ctrlKey || event.metaKey;
+}
+
+function getSnapPoint(clientX, clientY, w, h, step) {
+	const origin = getGridOrigin();
 	const onScreenCellSize = cellSize * gridZoom;
-	const x = Math.floor((clientX - rect.left) / onScreenCellSize);
-	const y = Math.floor((clientY - rect.top) / onScreenCellSize);
+	const x = Math.floor((clientX - origin.left) / onScreenCellSize);
+	const y = Math.floor((clientY - origin.top) / onScreenCellSize);
 	if (x < 0 || y < 0 || x + w > cols || y + h > rows) return null;
 	return snapToGrid(x, y, w, h, step);
 }
 
 function getCenteredSnapPoint(clientX, clientY, w, h, step) {
-	const rect = grid.getBoundingClientRect();
+	const origin = getGridOrigin();
 	const onScreenCellSize = cellSize * gridZoom;
-	const centeredX = (clientX - rect.left) / onScreenCellSize - w / 2;
-	const centeredY = (clientY - rect.top) / onScreenCellSize - h / 2;
+	const centeredX = (clientX - origin.left) / onScreenCellSize - w / 2;
+	const centeredY = (clientY - origin.top) / onScreenCellSize - h / 2;
 	const x = Math.round(centeredX);
 	const y = Math.round(centeredY);
 	return snapToGrid(x, y, w, h, step);
@@ -2811,7 +2870,7 @@ function handleMove(event) {
 		}
 	}
 	if (!isDragging || !dragItem || !dragGroup) return;
-	const step = event.ctrlKey ? chunkSize : 1;
+	const step = isSnapModifier(event) ? chunkSize : 1;
 	const snap = getCenteredSnapPoint(
 		event.clientX,
 		event.clientY,
@@ -2929,10 +2988,10 @@ function selectPlaced(element, additive = false) {
 // needs fractional positions so it tracks the cursor exactly, and needs to
 // keep extending even if the drag momentarily leaves the grid area.
 function getGridPointFromClient(clientX, clientY) {
-	const rect = grid.getBoundingClientRect();
+	const origin = getGridOrigin();
 	const onScreenCellSize = cellSize * gridZoom;
-	const x = (clientX - rect.left) / onScreenCellSize;
-	const y = (clientY - rect.top) / onScreenCellSize;
+	const x = (clientX - origin.left) / onScreenCellSize;
+	const y = (clientY - origin.top) / onScreenCellSize;
 	return {
 		x: Math.max(0, Math.min(cols, x)),
 		y: Math.max(0, Math.min(rows, y)),
@@ -3037,7 +3096,9 @@ function rotateSelected() {
 	item.el.style.left = `${item.x * cellSize}px`;
 	item.el.style.top = `${item.y * cellSize}px`;
 	applyBuildingVisualMode(item);
-	showMenuFor(item.el);
+	// Re-anchor the action menu to the new footprint if it's open (the
+	// Rotate menu button) - but don't pop it open for a keyboard rotate.
+	if (isMenuOpen()) showMenuFor(item.el);
 	scheduleAutoSave();
 }
 
@@ -3146,7 +3207,7 @@ grid.addEventListener("click", (event) => {
 		const cell = getCellFromPoint(event.clientX, event.clientY);
 		if (!cell) return;
 		const { x, y } = cell;
-		const step = event.ctrlKey ? chunkSize : 1;
+		const step = isSnapModifier(event) ? chunkSize : 1;
 		if (!duplicateGroup) return;
 		const anchor = duplicateGroup.anchor;
 		const snap = snapToGrid(x, y, anchor?.w || 1, anchor?.h || 1, step);
@@ -3179,7 +3240,7 @@ grid.addEventListener("click", (event) => {
 	const cell = getCellFromPoint(event.clientX, event.clientY);
 	if (!cell) return;
 	const { x, y } = cell;
-	const step = event.ctrlKey ? chunkSize : 1;
+	const step = isSnapModifier(event) ? chunkSize : 1;
 	const snap = snapToGrid(x, y, shapeW, shapeH, step);
 	if (!snap) return;
 	if (snap.x + shapeW > cols || snap.y + shapeH > rows) return;
@@ -3295,10 +3356,10 @@ document.addEventListener("click", (event) => {
 
 // ----- Path tool helpers and handlers -----
 function getCellFromPoint(clientX, clientY) {
-	const rect = grid.getBoundingClientRect();
+	const origin = getGridOrigin();
 	const onScreenCellSize = cellSize * gridZoom;
-	const x = Math.floor((clientX - rect.left) / onScreenCellSize);
-	const y = Math.floor((clientY - rect.top) / onScreenCellSize);
+	const x = Math.floor((clientX - origin.left) / onScreenCellSize);
+	const y = Math.floor((clientY - origin.top) / onScreenCellSize);
 	if (x < 0 || y < 0 || x >= cols || y >= rows) return null;
 	return { x, y };
 }
@@ -3378,14 +3439,23 @@ function generalLine(x0, y0, x1, y1) {
 	return cells;
 }
 
+// How far a width-wide brush reaches before/after its center cell. An odd
+// width is symmetric (5 -> 2 each side); an even width can't be, so the
+// extra cell goes after the center (4 -> 1 before, 2 after). The old
+// symmetric floor(width / 2) radius painted width + 1 for every even width.
+function brushExtent(width) {
+	const before = Math.floor((width - 1) / 2);
+	return { before, after: width - 1 - before };
+}
+
 // Adds every cell in a width x width square centered on (cx, cy) into set,
 // clamped to the grid bounds - the brush "stamp" applied at every point
 // along a painted stroke (see generalLine above for how points in between
 // pointermove samples get filled in too).
 function stampBrush(set, cx, cy, width) {
-	const r = Math.floor(width / 2);
-	for (let dx = -r; dx <= r; dx++) {
-		for (let dy = -r; dy <= r; dy++) {
+	const { before, after } = brushExtent(width);
+	for (let dx = -before; dx <= after; dx++) {
+		for (let dy = -before; dy <= after; dy++) {
 			const nx = cx + dx;
 			const ny = cy + dy;
 			if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
@@ -3431,6 +3501,89 @@ function eraseCellsAt(cellKeySet) {
 	}
 }
 
+// ----- Top-down textures for painted paths -----
+// In top-down mode a painted road/river cell shows a real block texture
+// instead of its flat type color. Painted paths are free-form (any width,
+// any shape), so they can't reuse a road schematic's render directly the
+// way placed buildings do - instead each type borrows the SURFACE blocks of
+// its style's straight piece (alleys -> alleys_long, canal -> canal_straight,
+// found via the rooftop manifest), and every painted cell picks one of those
+// blocks by a hash of its world position: weighted by how much of the piece
+// each block covers, and stable across repaints/reloads/zoom.
+// Decorations sitting on the piece (torches, lanterns, chains, fences) are
+// left out - scattered at random over a painted area they'd read as noise,
+// not road. Water-type paths (canal) use only their single most common
+// block, since a random water/stone-bank mix would look like a broken
+// channel rather than a texture.
+const PATH_TEXTURE_SKIP = /torch|lantern|chain|decorationcontroller|_sign|_banner/;
+const pathTextureCache = new Map(); // type -> [{icon, weight}] | null (no source) | "loading"
+
+function findPathTextureSource(type) {
+	for (const key of Object.keys(rooftopManifest)) {
+		if (key.endsWith(`::${type}_long`) || key.endsWith(`::${type}_straight`)) {
+			const [styleFile, id] = key.split("::");
+			return { styleFile, id };
+		}
+	}
+	return null;
+}
+
+// Returns the type's texture palette, or null while it's unavailable (no
+// source piece, or still loading - a finished load re-renders every path).
+function getPathTexture(type) {
+	if (pathTextureCache.has(type)) {
+		const cached = pathTextureCache.get(type);
+		return cached === "loading" ? null : cached;
+	}
+	const source = findPathTextureSource(type);
+	const dataPath = source && getRooftopDataPath(source);
+	if (!dataPath) return null; // manifest may not be loaded yet - don't cache
+	pathTextureCache.set(type, "loading");
+	if (!rooftopDataCache.has(dataPath)) {
+		rooftopDataCache.set(dataPath, fetch(dataPath).then((response) => response.json()));
+	}
+	rooftopDataCache
+		.get(dataPath)
+		.then((gridData) => {
+			const counts = new Map();
+			for (const row of gridData.grid) {
+				for (const block of row) {
+					if (!block || !block.icon) continue;
+					if (block.fenceConnections || block.wallConnections || block.topper) continue;
+					if (PATH_TEXTURE_SKIP.test(block.name)) continue;
+					counts.set(block.icon, (counts.get(block.icon) || 0) + 1);
+				}
+			}
+			let palette = [...counts]
+				.map(([icon, weight]) => ({ icon, weight }))
+				.sort((a, b) => b.weight - a.weight);
+			if (ROAD_TYPE_SOLID.has(type)) palette = palette.slice(0, 1);
+			pathTextureCache.set(type, palette.length ? palette : null);
+		})
+		.catch(() => pathTextureCache.set(type, null))
+		.finally(() => {
+			if (useTopDownRenders) rerenderAllPathBorders();
+		});
+	return null;
+}
+
+// Deterministic 0..1 value per world cell, so a cell keeps its block.
+function cellHash(x, y) {
+	let h = Math.imul(x, 73856093) ^ Math.imul(y, 19349663);
+	h = Math.imul(h ^ (h >>> 13), 0x5bd1e995);
+	return ((h ^ (h >>> 15)) >>> 0) / 4294967296;
+}
+
+function pickPathTextureIcon(palette, x, y) {
+	const total = palette.reduce((sum, entry) => sum + entry.weight, 0);
+	let roll = cellHash(x, y) * total;
+	for (const entry of palette) {
+		roll -= entry.weight;
+		if (roll < 0) return entry.icon;
+	}
+	return palette[palette.length - 1].icon;
+}
+
 function renderPathDOM(path, globalCellSet) {
 	path.elements.forEach((el) => el.remove());
 	path.elements = [];
@@ -3471,6 +3624,10 @@ function renderPathDOM(path, globalCellSet) {
 		: null;
 
 	const solid = ROAD_TYPE_SOLID.has(path.type);
+	const texture =
+		useTopDownRenders && Object.hasOwn(ROAD_TYPE_COLORS, path.type)
+			? getPathTexture(path.type)
+			: null;
 
 	for (const cell of cells) {
 		const relX = cell.x - minX;
@@ -3485,7 +3642,12 @@ function renderPathDOM(path, globalCellSet) {
 		cellEl.style.pointerEvents = "none";
 		cellEl.style.boxSizing = "border-box";
 
-		if (solid) {
+		if (texture) {
+			// Real block texture (see getPathTexture) - opaque like a placed
+			// building's top-down render, so no grid lines redrawn over it.
+			cellEl.style.background = `url("${pickPathTextureIcon(texture, cell.x, cell.y)}") 0 0 / 100% 100%`;
+			cellEl.style.imageRendering = "pixelated";
+		} else if (solid) {
 			// An opaque fill would otherwise completely hide the grid lines
 			// underneath - redraw them on top instead, one tick per cell
 			// (left/top edge each), the same technique .placed-square already
@@ -3523,7 +3685,9 @@ function renderPathDOM(path, globalCellSet) {
 			if (!hasRight)
 				cellEl.style.borderRight = "1px solid var(--path-bevel-light)";
 		} else {
-			const border = "1px solid var(--path-cell-border)";
+			const border = texture
+				? "1px solid rgba(0, 0, 0, 0.45)"
+				: "1px solid var(--path-cell-border)";
 			if (!hasTop) cellEl.style.borderTop = border;
 			if (!hasBottom) cellEl.style.borderBottom = border;
 			if (!hasLeft) cellEl.style.borderLeft = border;
@@ -3551,8 +3715,8 @@ function setPathEraseMode(on) {
 
 pathEraseToggleButton.addEventListener("click", () => setPathEraseMode(!pathEraseMode));
 
-// Same footprint math as stampBrush (r = floor(width/2), stamped from
-// cx-r to cx+r inclusive on both axes) so the preview always matches what
+// Same footprint math as stampBrush (brushExtent, stamped from
+// cx-before to cx+after inclusive on both axes) so the preview always matches what
 // a click would actually erase, clamped to the grid same as stampBrush
 // silently skips out-of-bounds cells.
 function updateEraserHoverPreview(cell) {
@@ -3560,11 +3724,11 @@ function updateEraserHoverPreview(cell) {
 		hideEraserHoverPreview();
 		return;
 	}
-	const r = Math.floor(pathWidth / 2);
-	const minX = Math.max(0, cell.x - r);
-	const maxX = Math.min(cols - 1, cell.x + r);
-	const minY = Math.max(0, cell.y - r);
-	const maxY = Math.min(rows - 1, cell.y + r);
+	const { before, after } = brushExtent(pathWidth);
+	const minX = Math.max(0, cell.x - before);
+	const maxX = Math.min(cols - 1, cell.x + after);
+	const minY = Math.max(0, cell.y - before);
+	const maxY = Math.min(rows - 1, cell.y + after);
 	eraserHoverEl.style.display = "block";
 	eraserHoverEl.style.left = `${minX * cellSize}px`;
 	eraserHoverEl.style.top = `${minY * cellSize}px`;

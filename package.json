@@ -1,0 +1,16 @@
+{
+	"name": "minecolonies-planner",
+	"private": true,
+	"description": "Static site - no build step. package.json exists only for the test tooling.",
+	"scripts": {
+		"test": "npm run test:unit && npm run test:e2e",
+		"test:unit": "node --test \"tests/unit/**/*.test.js\"",
+		"test:e2e": "playwright test",
+		"test:e2e:headed": "playwright test --headed",
+		"test:e2e:ui": "playwright test --ui",
+		"serve": "node tests/server.js"
+	},
+	"devDependencies": {
+		"@playwright/test": "^1.49.0"
+	}
+}

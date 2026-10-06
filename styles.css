@@ -1,3 +1,48 @@
+/* The game's own fonts. fonts/minecraft-*.woff2 is Minecraft's font
+   (extracted from the game by minecraft-library/font-generator; "Copyright
+   Mojang AB"); Unifont is the fallback the game itself uses for characters
+   its font lacks (SIL OFL 1.1 / GPLv2+ with font embedding exception).
+   Converted to woff2 from the .otf originals - same glyphs, ~5x smaller.
+   Browsers only download a face when the page actually uses it, so italic
+   and Unifont are usually never fetched. */
+@font-face {
+	font-family: "Minecraft";
+	src: url("fonts/minecraft-regular.woff2") format("woff2");
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Minecraft";
+	src: url("fonts/minecraft-bold.woff2") format("woff2");
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Minecraft";
+	src: url("fonts/minecraft-italic.woff2") format("woff2");
+	font-weight: 400;
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Minecraft";
+	src: url("fonts/minecraft-bold-italic.woff2") format("woff2");
+	font-weight: 700;
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Unifont";
+	src: url("fonts/unifont.woff2") format("woff2");
+	font-display: swap;
+}
+
 /* ====================================================================== */
 /* Minecraft UI kit                                                       */
 /* ====================================================================== */
@@ -47,8 +92,8 @@
 	/* Text on flat building badges (pale category tint over white) - the
 	   PNG export (app.js exportPlanAsPNG) reads this too. */
 	--badge-ink: #1a1a1a;
-	--font-pixel: "Pixelify Sans", "Courier New", monospace;
-	--font-body: "Inter", "Segoe UI", system-ui, sans-serif;
+	/* Unifont fills in any character the Minecraft font lacks, as in-game. */
+	--font-pixel: "Minecraft", "Unifont", monospace;
 	/* Minecraft's panels have one texel clipped off each corner. Outlines
 	   get clipped along with it, which is why focus styling in the kit
 	   recolors the border instead of drawing an outline. */
@@ -63,10 +108,12 @@
 		0 2px
 	);
 	--raised: inset 2px 2px 0 var(--panel-hi), inset -2px -2px 0 var(--panel-lo);
-	--raised-thick: inset 4px 4px 0 var(--panel-hi),
-		inset -4px -4px 0 var(--panel-lo);
-	--sunken-well: inset 2px 2px 0 var(--well-lo), inset -2px -2px 0 var(--well-hi);
-	--sunken-slot: inset 2px 2px 0 var(--slot-lo), inset -2px -2px 0 var(--slot-hi);
+	--raised-thick:
+		inset 4px 4px 0 var(--panel-hi), inset -4px -4px 0 var(--panel-lo);
+	--sunken-well:
+		inset 2px 2px 0 var(--well-lo), inset -2px -2px 0 var(--well-hi);
+	--sunken-slot:
+		inset 2px 2px 0 var(--slot-lo), inset -2px -2px 0 var(--slot-hi);
 
 	--bottom-bar-height: 0px;
 	--topbar-height: 52px;
@@ -78,14 +125,14 @@
 	--preview-sidebar-collapsed-width: 44px;
 	--preview-sidebar-mobile-height: 188px;
 	--preview-sidebar-mobile-collapsed-height: 44px;
-	--bottom-tray-height: 170px;
+	/* A shape card's height (149px, see .shape-option) plus the tray's 14px
+	   horizontal scrollbar - anything more is dead space taken from the map. */
+	--bottom-tray-height: 163px;
 }
 
 /* Dark theme: "deepslate" - the same bevel rules built from darker stone. */
 :root,
 [data-theme="dark"] {
-	--page-texture: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'><path fill='%23211810' d='M0 0h1v1h-1zM1 0h1v1h-1zM3 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM8 0h1v1h-1zM9 0h1v1h-1zM10 0h1v1h-1zM11 0h1v1h-1zM12 0h1v1h-1zM14 0h1v1h-1zM15 0h1v1h-1zM3 1h1v1h-1zM5 1h1v1h-1zM7 1h1v1h-1zM8 1h1v1h-1zM9 1h1v1h-1zM10 1h1v1h-1zM12 1h1v1h-1zM15 1h1v1h-1zM1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM5 2h1v1h-1zM6 2h1v1h-1zM9 2h1v1h-1zM12 2h1v1h-1zM1 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM8 3h1v1h-1zM13 3h1v1h-1zM6 4h1v1h-1zM11 4h1v1h-1zM12 4h1v1h-1zM14 4h1v1h-1zM0 5h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM9 5h1v1h-1zM14 5h1v1h-1zM15 5h1v1h-1zM0 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM9 6h1v1h-1zM10 6h1v1h-1zM11 6h1v1h-1zM12 6h1v1h-1zM3 7h1v1h-1zM8 7h1v1h-1zM9 7h1v1h-1zM10 7h1v1h-1zM12 7h1v1h-1zM13 7h1v1h-1zM14 7h1v1h-1zM15 7h1v1h-1zM0 8h1v1h-1zM1 8h1v1h-1zM2 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM9 8h1v1h-1zM10 8h1v1h-1zM11 8h1v1h-1zM12 8h1v1h-1zM13 8h1v1h-1zM2 9h1v1h-1zM3 9h1v1h-1zM4 9h1v1h-1zM5 9h1v1h-1zM7 9h1v1h-1zM8 9h1v1h-1zM11 9h1v1h-1zM13 9h1v1h-1zM2 10h1v1h-1zM3 10h1v1h-1zM4 10h1v1h-1zM8 10h1v1h-1zM9 10h1v1h-1zM0 11h1v1h-1zM2 11h1v1h-1zM3 11h1v1h-1zM4 11h1v1h-1zM5 11h1v1h-1zM6 11h1v1h-1zM9 11h1v1h-1zM13 11h1v1h-1zM14 11h1v1h-1zM15 11h1v1h-1zM0 12h1v1h-1zM1 12h1v1h-1zM8 12h1v1h-1zM14 12h1v1h-1zM0 13h1v1h-1zM3 13h1v1h-1zM4 13h1v1h-1zM7 13h1v1h-1zM8 13h1v1h-1zM9 13h1v1h-1zM12 13h1v1h-1zM0 14h1v1h-1zM2 14h1v1h-1zM3 14h1v1h-1zM8 14h1v1h-1zM11 14h1v1h-1zM12 14h1v1h-1zM13 14h1v1h-1zM14 14h1v1h-1zM0 15h1v1h-1zM1 15h1v1h-1zM2 15h1v1h-1zM4 15h1v1h-1zM8 15h1v1h-1zM13 15h1v1h-1zM14 15h1v1h-1zM15 15h1v1h-1z'/><path fill='%231e150e' d='M2 0h1v1h-1zM4 0h1v1h-1zM7 0h1v1h-1zM0 1h1v1h-1zM2 1h1v1h-1zM13 1h1v1h-1zM14 1h1v1h-1zM0 2h1v1h-1zM4 2h1v1h-1zM7 2h1v1h-1zM8 2h1v1h-1zM11 2h1v1h-1zM13 2h1v1h-1zM14 2h1v1h-1zM7 3h1v1h-1zM9 3h1v1h-1zM11 3h1v1h-1zM14 3h1v1h-1zM15 3h1v1h-1zM0 4h1v1h-1zM1 4h1v1h-1zM4 4h1v1h-1zM5 4h1v1h-1zM8 4h1v1h-1zM13 4h1v1h-1zM15 4h1v1h-1zM10 5h1v1h-1zM7 6h1v1h-1zM8 6h1v1h-1zM13 6h1v1h-1zM15 6h1v1h-1zM0 7h1v1h-1zM1 7h1v1h-1zM2 7h1v1h-1zM11 7h1v1h-1zM8 8h1v1h-1zM0 9h1v1h-1zM1 9h1v1h-1zM10 9h1v1h-1zM12 9h1v1h-1zM14 9h1v1h-1zM1 10h1v1h-1zM6 10h1v1h-1zM1 11h1v1h-1zM7 11h1v1h-1zM2 12h1v1h-1zM5 12h1v1h-1zM6 12h1v1h-1zM9 12h1v1h-1zM13 12h1v1h-1zM15 13h1v1h-1zM1 14h1v1h-1zM5 14h1v1h-1zM6 14h1v1h-1zM15 14h1v1h-1zM5 15h1v1h-1zM6 15h1v1h-1zM10 15h1v1h-1zM11 15h1v1h-1zM12 15h1v1h-1z'/><path fill='%23251b12' d='M13 0h1v1h-1zM11 1h1v1h-1zM10 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM10 3h1v1h-1zM2 4h1v1h-1zM7 4h1v1h-1zM10 4h1v1h-1zM3 5h1v1h-1zM12 5h1v1h-1zM5 7h1v1h-1zM7 7h1v1h-1zM14 8h1v1h-1zM6 9h1v1h-1zM5 10h1v1h-1zM7 10h1v1h-1zM10 10h1v1h-1zM13 10h1v1h-1zM14 10h1v1h-1zM15 10h1v1h-1zM4 12h1v1h-1zM7 12h1v1h-1zM11 12h1v1h-1zM12 12h1v1h-1zM15 12h1v1h-1zM1 13h1v1h-1zM6 13h1v1h-1zM11 13h1v1h-1zM13 13h1v1h-1zM10 14h1v1h-1z'/><path fill='%23160f0a' d='M1 1h1v1h-1zM6 1h1v1h-1zM15 2h1v1h-1zM12 3h1v1h-1zM3 4h1v1h-1zM7 5h1v1h-1zM11 5h1v1h-1zM13 5h1v1h-1zM1 6h1v1h-1zM4 7h1v1h-1zM6 7h1v1h-1zM7 8h1v1h-1zM0 10h1v1h-1zM12 10h1v1h-1zM10 11h1v1h-1zM3 12h1v1h-1zM10 12h1v1h-1zM5 13h1v1h-1zM10 13h1v1h-1zM7 14h1v1h-1zM9 14h1v1h-1zM3 15h1v1h-1zM7 15h1v1h-1zM9 15h1v1h-1z'/><path fill='%232e2117' d='M4 1h1v1h-1zM2 3h1v1h-1zM9 4h1v1h-1zM2 6h1v1h-1zM14 6h1v1h-1zM15 8h1v1h-1zM9 9h1v1h-1zM15 9h1v1h-1zM11 10h1v1h-1zM8 11h1v1h-1zM11 11h1v1h-1zM12 11h1v1h-1zM2 13h1v1h-1zM14 13h1v1h-1zM4 14h1v1h-1z'/></svg>");
-	--page-bg: #150f0a;
 	--panel: #3a3a3a;
 	--panel-hi: #5a5a5a;
 	--panel-lo: #1e1e1e;
@@ -121,12 +168,10 @@
 /* Light theme: the classic container gray. Duplicated below for
    prefers-color-scheme before nav.js has set data-theme - keep in sync. */
 [data-theme="light"] {
-	--page-texture: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'><path fill='%2338281c' d='M0 0h1v1h-1zM1 0h1v1h-1zM3 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM8 0h1v1h-1zM9 0h1v1h-1zM10 0h1v1h-1zM11 0h1v1h-1zM12 0h1v1h-1zM14 0h1v1h-1zM15 0h1v1h-1zM3 1h1v1h-1zM5 1h1v1h-1zM7 1h1v1h-1zM8 1h1v1h-1zM9 1h1v1h-1zM10 1h1v1h-1zM12 1h1v1h-1zM15 1h1v1h-1zM1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM5 2h1v1h-1zM6 2h1v1h-1zM9 2h1v1h-1zM12 2h1v1h-1zM1 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM8 3h1v1h-1zM13 3h1v1h-1zM6 4h1v1h-1zM11 4h1v1h-1zM12 4h1v1h-1zM14 4h1v1h-1zM0 5h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM9 5h1v1h-1zM14 5h1v1h-1zM15 5h1v1h-1zM0 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM9 6h1v1h-1zM10 6h1v1h-1zM11 6h1v1h-1zM12 6h1v1h-1zM3 7h1v1h-1zM8 7h1v1h-1zM9 7h1v1h-1zM10 7h1v1h-1zM12 7h1v1h-1zM13 7h1v1h-1zM14 7h1v1h-1zM15 7h1v1h-1zM0 8h1v1h-1zM1 8h1v1h-1zM2 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM9 8h1v1h-1zM10 8h1v1h-1zM11 8h1v1h-1zM12 8h1v1h-1zM13 8h1v1h-1zM2 9h1v1h-1zM3 9h1v1h-1zM4 9h1v1h-1zM5 9h1v1h-1zM7 9h1v1h-1zM8 9h1v1h-1zM11 9h1v1h-1zM13 9h1v1h-1zM2 10h1v1h-1zM3 10h1v1h-1zM4 10h1v1h-1zM8 10h1v1h-1zM9 10h1v1h-1zM0 11h1v1h-1zM2 11h1v1h-1zM3 11h1v1h-1zM4 11h1v1h-1zM5 11h1v1h-1zM6 11h1v1h-1zM9 11h1v1h-1zM13 11h1v1h-1zM14 11h1v1h-1zM15 11h1v1h-1zM0 12h1v1h-1zM1 12h1v1h-1zM8 12h1v1h-1zM14 12h1v1h-1zM0 13h1v1h-1zM3 13h1v1h-1zM4 13h1v1h-1zM7 13h1v1h-1zM8 13h1v1h-1zM9 13h1v1h-1zM12 13h1v1h-1zM0 14h1v1h-1zM2 14h1v1h-1zM3 14h1v1h-1zM8 14h1v1h-1zM11 14h1v1h-1zM12 14h1v1h-1zM13 14h1v1h-1zM14 14h1v1h-1zM0 15h1v1h-1zM1 15h1v1h-1zM2 15h1v1h-1zM4 15h1v1h-1zM8 15h1v1h-1zM13 15h1v1h-1zM14 15h1v1h-1zM15 15h1v1h-1z'/><path fill='%23322318' d='M2 0h1v1h-1zM4 0h1v1h-1zM7 0h1v1h-1zM0 1h1v1h-1zM2 1h1v1h-1zM13 1h1v1h-1zM14 1h1v1h-1zM0 2h1v1h-1zM4 2h1v1h-1zM7 2h1v1h-1zM8 2h1v1h-1zM11 2h1v1h-1zM13 2h1v1h-1zM14 2h1v1h-1zM7 3h1v1h-1zM9 3h1v1h-1zM11 3h1v1h-1zM14 3h1v1h-1zM15 3h1v1h-1zM0 4h1v1h-1zM1 4h1v1h-1zM4 4h1v1h-1zM5 4h1v1h-1zM8 4h1v1h-1zM13 4h1v1h-1zM15 4h1v1h-1zM10 5h1v1h-1zM7 6h1v1h-1zM8 6h1v1h-1zM13 6h1v1h-1zM15 6h1v1h-1zM0 7h1v1h-1zM1 7h1v1h-1zM2 7h1v1h-1zM11 7h1v1h-1zM8 8h1v1h-1zM0 9h1v1h-1zM1 9h1v1h-1zM10 9h1v1h-1zM12 9h1v1h-1zM14 9h1v1h-1zM1 10h1v1h-1zM6 10h1v1h-1zM1 11h1v1h-1zM7 11h1v1h-1zM2 12h1v1h-1zM5 12h1v1h-1zM6 12h1v1h-1zM9 12h1v1h-1zM13 12h1v1h-1zM15 13h1v1h-1zM1 14h1v1h-1zM5 14h1v1h-1zM6 14h1v1h-1zM15 14h1v1h-1zM5 15h1v1h-1zM6 15h1v1h-1zM10 15h1v1h-1zM11 15h1v1h-1zM12 15h1v1h-1z'/><path fill='%233f2d1f' d='M13 0h1v1h-1zM11 1h1v1h-1zM10 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM10 3h1v1h-1zM2 4h1v1h-1zM7 4h1v1h-1zM10 4h1v1h-1zM3 5h1v1h-1zM12 5h1v1h-1zM5 7h1v1h-1zM7 7h1v1h-1zM14 8h1v1h-1zM6 9h1v1h-1zM5 10h1v1h-1zM7 10h1v1h-1zM10 10h1v1h-1zM13 10h1v1h-1zM14 10h1v1h-1zM15 10h1v1h-1zM4 12h1v1h-1zM7 12h1v1h-1zM11 12h1v1h-1zM12 12h1v1h-1zM15 12h1v1h-1zM1 13h1v1h-1zM6 13h1v1h-1zM11 13h1v1h-1zM13 13h1v1h-1zM10 14h1v1h-1z'/><path fill='%23251911' d='M1 1h1v1h-1zM6 1h1v1h-1zM15 2h1v1h-1zM12 3h1v1h-1zM3 4h1v1h-1zM7 5h1v1h-1zM11 5h1v1h-1zM13 5h1v1h-1zM1 6h1v1h-1zM4 7h1v1h-1zM6 7h1v1h-1zM7 8h1v1h-1zM0 10h1v1h-1zM12 10h1v1h-1zM10 11h1v1h-1zM3 12h1v1h-1zM10 12h1v1h-1zM5 13h1v1h-1zM10 13h1v1h-1zM7 14h1v1h-1zM9 14h1v1h-1zM3 15h1v1h-1zM7 15h1v1h-1zM9 15h1v1h-1z'/><path fill='%234d3726' d='M4 1h1v1h-1zM2 3h1v1h-1zM9 4h1v1h-1zM2 6h1v1h-1zM14 6h1v1h-1zM15 8h1v1h-1zM9 9h1v1h-1zM15 9h1v1h-1zM11 10h1v1h-1zM8 11h1v1h-1zM11 11h1v1h-1zM12 11h1v1h-1zM2 13h1v1h-1zM14 13h1v1h-1zM4 14h1v1h-1z'/></svg>");
-	--page-bg: #241a11;
 	--panel: #c6c6c6;
 	--panel-hi: #ffffff;
 	--panel-lo: #555555;
-	--well: #b8b8b8;
+	--well: #bdbdbd;
 	--well-hi: #ffffff;
 	--well-lo: #555555;
 	--slot: #8b8b8b;
@@ -153,12 +198,10 @@
 
 @media (prefers-color-scheme: light) {
 	:root:not([data-theme]) {
-		--page-texture: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'><path fill='%2338281c' d='M0 0h1v1h-1zM1 0h1v1h-1zM3 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM8 0h1v1h-1zM9 0h1v1h-1zM10 0h1v1h-1zM11 0h1v1h-1zM12 0h1v1h-1zM14 0h1v1h-1zM15 0h1v1h-1zM3 1h1v1h-1zM5 1h1v1h-1zM7 1h1v1h-1zM8 1h1v1h-1zM9 1h1v1h-1zM10 1h1v1h-1zM12 1h1v1h-1zM15 1h1v1h-1zM1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM5 2h1v1h-1zM6 2h1v1h-1zM9 2h1v1h-1zM12 2h1v1h-1zM1 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM8 3h1v1h-1zM13 3h1v1h-1zM6 4h1v1h-1zM11 4h1v1h-1zM12 4h1v1h-1zM14 4h1v1h-1zM0 5h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM9 5h1v1h-1zM14 5h1v1h-1zM15 5h1v1h-1zM0 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM9 6h1v1h-1zM10 6h1v1h-1zM11 6h1v1h-1zM12 6h1v1h-1zM3 7h1v1h-1zM8 7h1v1h-1zM9 7h1v1h-1zM10 7h1v1h-1zM12 7h1v1h-1zM13 7h1v1h-1zM14 7h1v1h-1zM15 7h1v1h-1zM0 8h1v1h-1zM1 8h1v1h-1zM2 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM9 8h1v1h-1zM10 8h1v1h-1zM11 8h1v1h-1zM12 8h1v1h-1zM13 8h1v1h-1zM2 9h1v1h-1zM3 9h1v1h-1zM4 9h1v1h-1zM5 9h1v1h-1zM7 9h1v1h-1zM8 9h1v1h-1zM11 9h1v1h-1zM13 9h1v1h-1zM2 10h1v1h-1zM3 10h1v1h-1zM4 10h1v1h-1zM8 10h1v1h-1zM9 10h1v1h-1zM0 11h1v1h-1zM2 11h1v1h-1zM3 11h1v1h-1zM4 11h1v1h-1zM5 11h1v1h-1zM6 11h1v1h-1zM9 11h1v1h-1zM13 11h1v1h-1zM14 11h1v1h-1zM15 11h1v1h-1zM0 12h1v1h-1zM1 12h1v1h-1zM8 12h1v1h-1zM14 12h1v1h-1zM0 13h1v1h-1zM3 13h1v1h-1zM4 13h1v1h-1zM7 13h1v1h-1zM8 13h1v1h-1zM9 13h1v1h-1zM12 13h1v1h-1zM0 14h1v1h-1zM2 14h1v1h-1zM3 14h1v1h-1zM8 14h1v1h-1zM11 14h1v1h-1zM12 14h1v1h-1zM13 14h1v1h-1zM14 14h1v1h-1zM0 15h1v1h-1zM1 15h1v1h-1zM2 15h1v1h-1zM4 15h1v1h-1zM8 15h1v1h-1zM13 15h1v1h-1zM14 15h1v1h-1zM15 15h1v1h-1z'/><path fill='%23322318' d='M2 0h1v1h-1zM4 0h1v1h-1zM7 0h1v1h-1zM0 1h1v1h-1zM2 1h1v1h-1zM13 1h1v1h-1zM14 1h1v1h-1zM0 2h1v1h-1zM4 2h1v1h-1zM7 2h1v1h-1zM8 2h1v1h-1zM11 2h1v1h-1zM13 2h1v1h-1zM14 2h1v1h-1zM7 3h1v1h-1zM9 3h1v1h-1zM11 3h1v1h-1zM14 3h1v1h-1zM15 3h1v1h-1zM0 4h1v1h-1zM1 4h1v1h-1zM4 4h1v1h-1zM5 4h1v1h-1zM8 4h1v1h-1zM13 4h1v1h-1zM15 4h1v1h-1zM10 5h1v1h-1zM7 6h1v1h-1zM8 6h1v1h-1zM13 6h1v1h-1zM15 6h1v1h-1zM0 7h1v1h-1zM1 7h1v1h-1zM2 7h1v1h-1zM11 7h1v1h-1zM8 8h1v1h-1zM0 9h1v1h-1zM1 9h1v1h-1zM10 9h1v1h-1zM12 9h1v1h-1zM14 9h1v1h-1zM1 10h1v1h-1zM6 10h1v1h-1zM1 11h1v1h-1zM7 11h1v1h-1zM2 12h1v1h-1zM5 12h1v1h-1zM6 12h1v1h-1zM9 12h1v1h-1zM13 12h1v1h-1zM15 13h1v1h-1zM1 14h1v1h-1zM5 14h1v1h-1zM6 14h1v1h-1zM15 14h1v1h-1zM5 15h1v1h-1zM6 15h1v1h-1zM10 15h1v1h-1zM11 15h1v1h-1zM12 15h1v1h-1z'/><path fill='%233f2d1f' d='M13 0h1v1h-1zM11 1h1v1h-1zM10 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM10 3h1v1h-1zM2 4h1v1h-1zM7 4h1v1h-1zM10 4h1v1h-1zM3 5h1v1h-1zM12 5h1v1h-1zM5 7h1v1h-1zM7 7h1v1h-1zM14 8h1v1h-1zM6 9h1v1h-1zM5 10h1v1h-1zM7 10h1v1h-1zM10 10h1v1h-1zM13 10h1v1h-1zM14 10h1v1h-1zM15 10h1v1h-1zM4 12h1v1h-1zM7 12h1v1h-1zM11 12h1v1h-1zM12 12h1v1h-1zM15 12h1v1h-1zM1 13h1v1h-1zM6 13h1v1h-1zM11 13h1v1h-1zM13 13h1v1h-1zM10 14h1v1h-1z'/><path fill='%23251911' d='M1 1h1v1h-1zM6 1h1v1h-1zM15 2h1v1h-1zM12 3h1v1h-1zM3 4h1v1h-1zM7 5h1v1h-1zM11 5h1v1h-1zM13 5h1v1h-1zM1 6h1v1h-1zM4 7h1v1h-1zM6 7h1v1h-1zM7 8h1v1h-1zM0 10h1v1h-1zM12 10h1v1h-1zM10 11h1v1h-1zM3 12h1v1h-1zM10 12h1v1h-1zM5 13h1v1h-1zM10 13h1v1h-1zM7 14h1v1h-1zM9 14h1v1h-1zM3 15h1v1h-1zM7 15h1v1h-1zM9 15h1v1h-1z'/><path fill='%234d3726' d='M4 1h1v1h-1zM2 3h1v1h-1zM9 4h1v1h-1zM2 6h1v1h-1zM14 6h1v1h-1zM15 8h1v1h-1zM9 9h1v1h-1zM15 9h1v1h-1zM11 10h1v1h-1zM8 11h1v1h-1zM11 11h1v1h-1zM12 11h1v1h-1zM2 13h1v1h-1zM14 13h1v1h-1zM4 14h1v1h-1z'/></svg>");
-		--page-bg: #241a11;
 		--panel: #c6c6c6;
 		--panel-hi: #ffffff;
 		--panel-lo: #555555;
-		--well: #b8b8b8;
+		--well: #bdbdbd;
 		--well-hi: #ffffff;
 		--well-lo: #555555;
 		--slot: #8b8b8b;
@@ -188,13 +231,42 @@
 	box-sizing: border-box;
 }
 
-/* Tiled dirt, darkened the way the game darkens it behind menus. 16 texels
-   drawn at 4px each - the SVG is crispEdges so it stays blocky at any size. */
+/* The game's darkened dirt menu backdrop, the same in both themes.
+   images/ui/dirt-background.png is one seamless 64px tile (16 texels at 4px
+   each). It's drawn on a fixed pseudo-element so image-rendering: pixelated
+   keeps it crisp on high-DPI screens without being inherited by real
+   content images (building previews), and so it stays put while the
+   utility pages scroll. #433021 is the tile's average color, shown until
+   it loads. */
 body {
 	margin: 0;
-	font-family: var(--font-body);
-	background: var(--page-bg) var(--page-texture) 0 0 / 64px 64px;
+	font-family: var(--font-pixel);
+	background: #433021;
 	color: var(--ink-on-bg);
+}
+
+/* The JS hides things with the `hidden` attribute everywhere, but the UA
+   stylesheet's display:none for it loses to ANY author rule that sets
+   display (e.g. a component's display:flex) - which left a dead "?" button,
+   the background controls, the Front/Top-down toggle and the walls-mode
+   Width field visible while "hidden". One rule for all of them instead of
+   a per-component [hidden] patch each time. */
+[hidden] {
+	display: none !important;
+}
+
+body::before {
+	content: "";
+	position: fixed;
+	inset: 0;
+	z-index: -1;
+	background: url("images/ui/dirt-background.png") 0 0 / 64px 64px;
+	image-rendering: pixelated;
+}
+
+code {
+	font-family: inherit;
+	color: var(--ink-title);
 }
 
 /* --- Panel: raised gray container with a black outline ----------------- */
@@ -242,8 +314,9 @@ body {
 	color: var(--ink-title);
 }
 
-/* Smaller pixel-font chrome labels. Long-form text (hints, details, tables)
-   stays in --font-body on purpose - see UI_STYLE.md "Typography". */
+/* Everything inherits the pixel font from body; these are listed only
+   because form controls and a few absolutely-positioned labels don't
+   inherit it by default. */
 .left-sidebar__section-title,
 .plan-check__group-title,
 .plan-check__title,
@@ -260,6 +333,22 @@ body {
 .preview-badge,
 .preview-card__topdown-label {
 	font-family: var(--font-pixel);
+}
+
+/* On desktop the sidebars are columns wedged between the nav bar and the
+   bottom bar. Their own top/bottom outline and bottom shadow edge would
+   double up against those bars' edges (and stop short of the map, which has
+   none), so they drop them and read as one continuous frame. Below 1025px
+   they become horizontal bands with all four edges again. */
+@media (min-width: 1025px) {
+	.left-sidebar,
+	.preview-sidebar {
+		border-top: none;
+		border-bottom: none;
+		box-shadow:
+			inset 4px 0 0 var(--panel-hi),
+			inset -4px 0 0 var(--panel-lo);
+	}
 }
 
 /* --- Well: sunken group inside a panel --------------------------------- */
@@ -297,7 +386,7 @@ body {
 }
 
 /* --- Slot: sunken item slot -------------------------------------------- */
-.shape-option,
+.shape-preview,
 .preview-card__image-wrap,
 .world-viewer-canvas-wrap,
 .debug-material-item__icon-wrap,
@@ -307,58 +396,74 @@ body {
 	box-shadow: var(--sunken-slot);
 }
 
-/* Hovering a slot lightens it, like the game's white hover overlay. */
-.shape-option:hover {
-	background: var(--slot-hover);
+/* Shape tray: each card is a sunken well holding its picture slot, name
+   and footprint. Hovering draws the game's translucent white overlay over
+   the slot's contents. */
+.shape-option {
+	background: var(--well);
+	border: none;
+	box-shadow: var(--sunken-well);
+	color: var(--ink);
 }
 
-/* Hotbar selection: a white frame inside a black one. */
-.shape-option.is-selected {
+.shape-option:hover .shape-preview::after {
+	content: "";
+	position: absolute;
+	inset: 4px;
+	background: rgba(255, 255, 255, 0.3);
+}
+
+/* Hotbar selection: a black-then-white frame around the slot. */
+.shape-option.is-selected .shape-preview {
 	box-shadow:
-		inset 0 0 0 2px var(--mc-outline),
-		inset 0 0 0 4px var(--btn-ink),
+		0 0 0 2px var(--mc-outline),
+		0 0 0 4px var(--btn-ink),
 		var(--sunken-slot);
 }
 
-/* Names in a slot are white with a drop shadow, like item stack counts. */
-.shape-label,
+.shape-option:focus-visible {
+	outline: 2px dashed var(--ink);
+	outline-offset: -2px;
+}
+
 .shape-dimensions {
-	color: var(--btn-ink);
-	text-shadow: 1px 1px 0 var(--text-shadow-color);
+	color: var(--ink-muted);
 }
 
 /* --- Button: stone, black outline, white shadowed label ---------------- */
 /* :where() keeps this at zero specificity so each component's own sizing
    (padding, font-size) still applies on top of it. */
 :where(
-		.app-nav__theme-toggle,
-		.app-nav__shortcuts-toggle,
-		.app-nav__link,
-		.shortcuts-modal__close,
-		.left-sidebar__toggle,
-		.left-sidebar__button,
-		.left-sidebar__plan-action,
-		.preview-sidebar__toggle,
-		.preview-card__view-btn,
-		.cost-card__level-button,
-		.grid-zoom-controls button,
-		.grid-goto-controls button,
-		.subtab,
-		.path-type-swatch,
-		.path-controls__erase-toggle,
-		.action-menu button,
-		.path-action-menu button,
-		.inspector-upload__button,
-		.world-viewer-goto button,
-		.world-viewer-zoom-controls button,
-		.shortcuts-modal kbd
-	) {
+	.app-nav__theme-toggle,
+	.app-nav__shortcuts-toggle,
+	.app-nav__link,
+	.shortcuts-modal__close,
+	.left-sidebar__toggle,
+	.left-sidebar__button,
+	.left-sidebar__plan-action,
+	.preview-sidebar__toggle,
+	.preview-card__view-btn,
+	.cost-card__level-button,
+	.grid-zoom-controls button,
+	.grid-goto-controls button,
+	.subtab,
+	.path-type-swatch,
+	.path-controls__erase-toggle,
+	.action-menu button,
+	.path-action-menu button,
+	.inspector-upload__button,
+	.world-viewer-goto button,
+	.world-viewer-zoom-controls button,
+	.shortcuts-modal kbd
+) {
 	font: inherit;
 	font-family: var(--font-pixel);
 	background: var(--btn);
 	color: var(--btn-ink);
 	border: 2px solid var(--mc-outline);
-	box-shadow: inset 2px 2px 0 var(--btn-hi), inset -2px -2px 0 var(--btn-lo);
+	box-shadow:
+		inset 2px 2px 0 var(--btn-hi),
+		inset -2px -2px 0 var(--btn-lo);
 	text-shadow: 1px 1px 0 var(--text-shadow-color);
 	clip-path: var(--mc-notch);
 }
@@ -416,18 +521,20 @@ body {
 		.world-viewer-zoom-controls button
 	):is(:active, .is-active):not(:disabled) {
 	background: var(--btn-pressed);
-	box-shadow: inset 2px 2px 0 var(--btn-lo), inset -2px -2px 0 var(--btn-pressed);
+	box-shadow:
+		inset 2px 2px 0 var(--btn-lo),
+		inset -2px -2px 0 var(--btn-pressed);
 }
 
 /* Toggled on: pressed in, with a yellow (§e) label. */
 :is(
-		.app-nav__link,
-		.preview-card__view-btn,
-		.cost-card__level-button,
-		.subtab,
-		.path-type-swatch,
-		.path-controls__erase-toggle
-	).is-active {
+	.app-nav__link,
+	.preview-card__view-btn,
+	.cost-card__level-button,
+	.subtab,
+	.path-type-swatch,
+	.path-controls__erase-toggle
+).is-active {
 	color: var(--btn-ink-active);
 }
 
@@ -442,11 +549,11 @@ body {
 /* Destructive actions turn the whole button red - red text on the gray
    stone fill has almost no contrast. */
 :is(
-		.left-sidebar__button--danger,
-		.left-sidebar__plan-action--danger,
-		.action-menu button[data-action="delete"],
-		.path-action-menu button[data-path-action="delete"]
-	) {
+	.left-sidebar__button--danger,
+	.left-sidebar__plan-action--danger,
+	.action-menu button[data-action="delete"],
+	.path-action-menu button[data-path-action="delete"]
+) {
 	background: var(--danger-btn);
 	box-shadow:
 		inset 2px 2px 0 var(--danger-btn-hi),
@@ -488,17 +595,17 @@ body {
 
 /* --- Text field / select: black box, gray border, white on focus ------- */
 :where(
-		.left-sidebar__text-input,
-		.world-bg-controls__offsets input[type="number"],
-		.grid-goto-controls input[type="number"],
-		.shape-search-input,
-		.path-controls__field select,
-		.path-controls__field input[type="number"],
-		.style-select,
-		.inspector-picker__select,
-		.world-viewer-goto input[type="number"],
-		.debug-search
-	) {
+	.left-sidebar__text-input,
+	.world-bg-controls__offsets input[type="number"],
+	.grid-goto-controls input[type="number"],
+	.shape-search-input,
+	.path-controls__field select,
+	.path-controls__field input[type="number"],
+	.style-select,
+	.inspector-picker__select,
+	.world-viewer-goto input[type="number"],
+	.debug-search
+) {
 	font: inherit;
 	font-family: var(--font-pixel);
 	background: var(--field-bg);
@@ -509,22 +616,26 @@ body {
 }
 
 :is(
-		.left-sidebar__text-input,
-		.world-bg-controls__offsets input[type="number"],
-		.grid-goto-controls input[type="number"],
-		.shape-search-input,
-		.path-controls__field select,
-		.path-controls__field input[type="number"],
-		.style-select,
-		.inspector-picker__select,
-		.world-viewer-goto input[type="number"],
-		.debug-search
-	):focus {
+	.left-sidebar__text-input,
+	.world-bg-controls__offsets input[type="number"],
+	.grid-goto-controls input[type="number"],
+	.shape-search-input,
+	.path-controls__field select,
+	.path-controls__field input[type="number"],
+	.style-select,
+	.inspector-picker__select,
+	.world-viewer-goto input[type="number"],
+	.debug-search
+):focus {
 	border-color: var(--btn-ink);
 	outline: none;
 }
 
-:is(.left-sidebar__text-input, .shape-search-input, .debug-search)::placeholder {
+:is(
+	.left-sidebar__text-input,
+	.shape-search-input,
+	.debug-search
+)::placeholder {
 	color: var(--field-placeholder);
 }
 
@@ -687,18 +798,11 @@ body.preview-collapsed #root {
 .app-nav__brand {
 	display: flex;
 	align-items: center;
-	gap: 8px;
 	color: var(--ink);
 	text-decoration: none;
 	font-weight: 700;
-	font-size: 14px;
+	font-size: 16px;
 	white-space: nowrap;
-}
-
-.app-nav__logo {
-	display: flex;
-	align-items: center;
-	color: var(--ink);
 }
 
 .app-nav__links {
@@ -718,7 +822,7 @@ body.preview-collapsed #root {
 }
 
 .app-nav__link {
-	font-size: 13px;
+	font-size: 12px;
 	padding: 6px 14px;
 	text-decoration: none;
 	white-space: nowrap;
@@ -731,7 +835,6 @@ body.preview-collapsed #root {
 
 .app-nav__theme-toggle,
 .app-nav__shortcuts-toggle {
-	font: inherit;
 	font-size: 16px;
 	line-height: 1;
 	padding: 8px 10px;
@@ -782,7 +885,7 @@ body.preview-collapsed #root {
 
 .shortcuts-modal__header h2 {
 	margin: 0;
-	font-size: 18px;
+	font-size: 20px;
 }
 
 .shortcuts-modal__close {
@@ -801,7 +904,7 @@ body.preview-collapsed #root {
 
 .shortcuts-modal__group h3 {
 	margin: 0 0 8px;
-	font-size: 13px;
+	font-size: 12px;
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
 	color: var(--ink-muted);
@@ -830,12 +933,12 @@ body.preview-collapsed #root {
 	margin: 0;
 	text-align: right;
 	color: var(--ink);
-	font-size: 13px;
+	font-size: 12px;
 }
 
 .shortcuts-modal kbd {
 	font-size: 12px;
-	font-family: ui-monospace, "SF Mono", Consolas, monospace;
+	font-family: var(--font-pixel);
 	padding: 2px 6px;
 }
 
@@ -845,7 +948,9 @@ body.preview-collapsed #root {
 		padding: 0 12px;
 	}
 
-	.app-nav__title {
+	/* The brand is text only, so hiding it entirely rather than leaving an
+	   empty, still-focusable link. */
+	.app-nav__brand {
 		display: none;
 	}
 
@@ -880,7 +985,7 @@ body.preview-collapsed #root {
 .left-sidebar__title {
 	margin: 0;
 	font-size: 16px;
-	font-weight: 700;
+	font-weight: 400;
 }
 
 .left-sidebar__toggle {
@@ -891,7 +996,7 @@ body.preview-collapsed #root {
 
 .left-sidebar__content {
 	padding: 12px;
-	font-size: 13px;
+	font-size: 12px;
 	line-height: 1.45;
 	color: var(--ink-muted);
 }
@@ -936,7 +1041,7 @@ body.preview-collapsed #root {
 
 .plan-check__group-title {
 	margin: 0;
-	font-size: 11px;
+	font-size: 12px;
 	font-weight: 700;
 	letter-spacing: 0.02em;
 	text-transform: uppercase;
@@ -969,7 +1074,7 @@ body.preview-collapsed #root {
 }
 
 .plan-check__detail {
-	font-size: 11px;
+	font-size: 12px;
 	line-height: 1.4;
 	color: var(--ink-muted);
 }
@@ -981,7 +1086,7 @@ body.preview-collapsed #root {
 
 .left-sidebar__button {
 	display: block;
-	font-size: 13px;
+	font-size: 12px;
 	padding: 8px 12px;
 	cursor: pointer;
 	text-align: left;
@@ -989,14 +1094,13 @@ body.preview-collapsed #root {
 	box-sizing: border-box;
 }
 
-
 .left-sidebar__button--danger {
 	text-align: center;
 }
 
 .left-sidebar__text-input {
 	flex: 1;
-	font-size: 13px;
+	font-size: 12px;
 	padding: 8px 10px;
 	min-width: 0;
 }
@@ -1032,7 +1136,7 @@ body.preview-collapsed #root {
 	   connected control regardless of label length. */
 	justify-content: flex-start;
 	gap: 8px;
-	font-size: 13px;
+	font-size: 12px;
 	color: var(--ink);
 }
 
@@ -1051,7 +1155,7 @@ body.preview-collapsed #root {
 }
 
 .world-bg-controls__offsets input[type="number"] {
-	font-size: 13px;
+	font-size: 12px;
 	padding: 6px 8px;
 	width: 100%;
 	box-sizing: border-box;
@@ -1077,7 +1181,7 @@ body.preview-collapsed #root {
 
 .left-sidebar__plan-name {
 	flex: 1;
-	font-size: 13px;
+	font-size: 12px;
 	color: var(--ink);
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -1086,7 +1190,7 @@ body.preview-collapsed #root {
 }
 
 .left-sidebar__plan-action {
-	font-size: 11px;
+	font-size: 12px;
 	padding: 4px 8px;
 	cursor: pointer;
 }
@@ -1159,7 +1263,7 @@ body.preview-collapsed #root {
 .preview-sidebar__title {
 	margin: 0;
 	font-size: 16px;
-	font-weight: 700;
+	font-weight: 400;
 }
 
 .preview-sidebar__toggle {
@@ -1176,8 +1280,8 @@ body.preview-collapsed #root {
 }
 
 .preview-card__name {
-	font-size: 14px;
-	font-weight: 700;
+	font-size: 16px;
+	font-weight: 400;
 	color: var(--ink);
 	word-break: break-word;
 }
@@ -1191,7 +1295,7 @@ body.preview-collapsed #root {
 }
 
 .preview-card__view-btn {
-	font-size: 11px;
+	font-size: 12px;
 	padding: 4px 10px;
 	cursor: pointer;
 }
@@ -1232,7 +1336,7 @@ body.preview-collapsed #root {
 	width: max-content;
 	max-width: calc(100% - 16px);
 	padding: 5px 9px;
-	font-size: 14px;
+	font-size: 16px;
 	font-weight: 700;
 	line-height: 1.3;
 	text-align: center;
@@ -1326,7 +1430,7 @@ body.hide-topdown-overlay .preview-card__topdown-label {
 
 .cost-card__section-title {
 	margin: 0 0 6px;
-	font-size: 11px;
+	font-size: 12px;
 	font-weight: 700;
 	letter-spacing: 0.02em;
 	text-transform: uppercase;
@@ -1490,7 +1594,7 @@ body.preview-collapsed .map-compass {
 }
 
 .map-compass__label {
-	font-size: 10px;
+	font-size: 12px;
 	font-weight: 700;
 	line-height: 1;
 }
@@ -1519,12 +1623,12 @@ body.preview-collapsed .map-compass {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
-	font-size: 11px;
+	font-size: 12px;
 	color: var(--ink-muted);
 }
 
 .grid-goto-controls input[type="number"] {
-	font-size: 13px;
+	font-size: 12px;
 	padding: 5px 6px;
 	width: 72px;
 	box-sizing: border-box;
@@ -1533,7 +1637,7 @@ body.preview-collapsed .map-compass {
 .grid-goto-controls button {
 	height: 30px;
 	padding: 0 12px;
-	font-size: 13px;
+	font-size: 12px;
 	cursor: pointer;
 }
 
@@ -1548,10 +1652,14 @@ body.preview-collapsed .map-compass {
 .grid {
 	position: relative;
 	background:
-		linear-gradient(to right, var(--map-grid-major) 2px, transparent 2px) 0 0 / var(--chunk-size) var(--chunk-size),
-		linear-gradient(to bottom, var(--map-grid-major) 2px, transparent 2px) 0 0 / var(--chunk-size) var(--chunk-size),
-		linear-gradient(to right, var(--map-grid-minor) 1px, transparent 1px) 0 0 / var(--cell-size) var(--cell-size),
-		linear-gradient(to bottom, var(--map-grid-minor) 1px, transparent 1px) 0 0 / var(--cell-size) var(--cell-size),
+		linear-gradient(to right, var(--map-grid-major) 2px, transparent 2px) 0 0 /
+			var(--chunk-size) var(--chunk-size),
+		linear-gradient(to bottom, var(--map-grid-major) 2px, transparent 2px) 0 0 /
+			var(--chunk-size) var(--chunk-size),
+		linear-gradient(to right, var(--map-grid-minor) 1px, transparent 1px) 0 0 /
+			var(--cell-size) var(--cell-size),
+		linear-gradient(to bottom, var(--map-grid-minor) 1px, transparent 1px) 0 0 /
+			var(--cell-size) var(--cell-size),
 		var(--grid-bg);
 	border: 2px solid var(--mc-outline);
 	cursor: grab;
@@ -1602,11 +1710,11 @@ body.preview-collapsed .map-compass {
 	left: 0;
 	right: 0;
 	bottom: 0;
-	padding: 16px 24px;
+	padding: 14px 24px 8px;
 	display: flex;
 	flex-direction: column;
 	align-items: stretch;
-	gap: 16px;
+	gap: 12px;
 	color: var(--ink);
 }
 
@@ -1665,7 +1773,7 @@ body.preview-collapsed .map-compass {
 }
 
 .tab {
-	font-size: 13px;
+	font-size: 12px;
 	padding: 7px 16px;
 	cursor: pointer;
 }
@@ -1674,16 +1782,18 @@ body.preview-collapsed .map-compass {
 	font-weight: 600;
 }
 
+/* Same fixed height as .shape-search-input next to it, so the two line up. */
 .style-select {
-	font-size: 14px;
-	padding: 6px 10px;
+	height: 32px;
+	font-size: 12px;
+	padding: 0 10px;
 }
 
 .shape-search-input {
-	font-size: 14px;
-	padding: 6px 10px;
+	height: 32px;
+	font-size: 12px;
+	padding: 0 10px;
 	width: 170px;
-	align-self: center;
 }
 
 /* Lives inside the shape tray (see renderShapeTray's "roads" branch), not
@@ -1755,13 +1865,13 @@ body.preview-collapsed .map-compass {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
-	font-size: 11px;
+	font-size: 12px;
 	color: var(--ink-muted);
 }
 
 .path-controls__field select,
 .path-controls__field input[type="number"] {
-	font-size: 13px;
+	font-size: 12px;
 	padding: 5px 8px;
 }
 
@@ -1770,7 +1880,7 @@ body.preview-collapsed .map-compass {
 }
 
 .path-controls__erase-toggle {
-	font-size: 13px;
+	font-size: 12px;
 	padding: 6px 14px;
 	cursor: pointer;
 	height: 30px;
@@ -1785,62 +1895,47 @@ body.preview-collapsed .map-compass {
 	min-width: max-content;
 }
 
-/* 6px padding on each side matches the +12px app.js adds to the
-   thumbnail's width (renderShapeTray), so the preview fits exactly. */
+/* Fixed-size card: an 88px square slot, then a two-line name, then the
+   footprint. Every card is identical in size whatever the building. The
+   6px padding covers the well's 2px edge plus the 4px selection frame
+   drawn outside the slot (.is-selected), so the frame never overlaps it. */
 .shape-option {
+	/* 96px of text width - the widest single-word names (Swineherder) fit
+	   without being broken mid-word. */
+	width: 108px;
 	padding: 6px;
 	cursor: pointer;
 	display: grid;
 	justify-items: center;
 	gap: 4px;
 	align-content: start;
-	align-items: start;
+	text-align: center;
 }
 
-.shape-preview-wrap {
-	height: 110px;
-	overflow: hidden;
-	display: flex;
-	align-items: flex-start;
-	justify-content: flex-start;
-}
-
+/* Shows the photo when there is one, otherwise the flat category-colored
+   name badge (see loadShapeTrayThumbnail). */
 .shape-preview {
-	background-color: var(--category-color, #d8c4a8);
-	background-image:
-		linear-gradient(
-			to right,
-			var(--category-line, rgba(90, 70, 50, 0.35)) 1px,
-			transparent 1px
-		),
-		linear-gradient(
-			to bottom,
-			var(--category-line, rgba(90, 70, 50, 0.35)) 1px,
-			transparent 1px
-		);
-	background-size: var(--cell-size) var(--cell-size);
-	border: 2px solid var(--category-border, #b59a7a);
-	box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
-	transform-origin: top left;
 	position: relative;
+	width: 88px;
+	height: 88px;
 }
 
 .shape-preview__image {
 	position: absolute;
-	inset: 0;
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
+	inset: 4px;
+	width: calc(100% - 8px);
+	height: calc(100% - 8px);
+	object-fit: contain;
 }
 
 .preview-badge {
 	position: absolute;
-	inset: 0;
+	inset: 4px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	text-align: center;
-	font-size: 10px;
+	font-size: 12px;
 	line-height: 1.2;
 	padding: 4px;
 	background: color-mix(
@@ -1865,12 +1960,24 @@ body.preview-collapsed .map-compass {
 	display: none;
 }
 
+/* Room for exactly two lines on every card, so cards stay the same height
+   whether a name wraps or not; longer names are cut with an ellipsis (the
+   full name is in the button's title tooltip). */
 .shape-label {
+	width: 100%;
 	font-size: 12px;
+	line-height: 14px;
+	min-height: 28px;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	overflow: hidden;
+	overflow-wrap: break-word;
 }
 
 .shape-dimensions {
-	font-size: 10px;
+	font-size: 12px;
 }
 
 .sample-square,
@@ -1933,7 +2040,7 @@ body.preview-collapsed .map-compass {
 	align-items: center;
 	justify-content: center;
 	text-align: center;
-	font-size: 11px;
+	font-size: 12px;
 	line-height: 1.2;
 	padding: 4px;
 	background: color-mix(
@@ -1995,7 +2102,7 @@ body.preview-collapsed .map-compass {
 	align-items: center;
 	justify-content: center;
 	padding: 4px 7px;
-	font-size: 11px;
+	font-size: 12px;
 	line-height: 1.25;
 	background: rgba(0, 0, 0, 0.6);
 	color: #ffffff;
@@ -2239,7 +2346,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 	}
 
 	.left-sidebar__title {
-		font-size: 14px;
+		font-size: 16px;
 	}
 
 	.left-sidebar__header {
@@ -2274,7 +2381,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 	}
 
 	.preview-sidebar__title {
-		font-size: 14px;
+		font-size: 16px;
 	}
 
 	.preview-sidebar__header {
@@ -2299,7 +2406,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 
 	.preview-card__name {
 		width: 130px;
-		font-size: 13px;
+		font-size: 12px;
 	}
 
 	.preview-card__image-wrap {
@@ -2335,12 +2442,12 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 
 .inspector-intro__title {
 	margin: 0;
-	font-size: 22px;
+	font-size: 24px;
 }
 
 .inspector-intro__subtitle {
 	margin: 4px 0 0;
-	font-size: 14px;
+	font-size: 16px;
 }
 
 .inspector-upload {
@@ -2352,7 +2459,9 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 .inspector-upload__zone {
 	padding: 32px 24px;
 	text-align: center;
-	transition: border-color 0.15s ease, background 0.15s ease;
+	transition:
+		border-color 0.15s ease,
+		background 0.15s ease;
 }
 
 .inspector-upload__prompt {
@@ -2365,14 +2474,14 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 }
 
 .inspector-upload__button {
-	font-size: 14px;
+	font-size: 16px;
 	padding: 10px 18px;
 	cursor: pointer;
 }
 
 .inspector-upload__status {
 	margin: 12px 0 0;
-	font-size: 13px;
+	font-size: 12px;
 	color: var(--ink-muted);
 	min-height: 1.2em;
 }
@@ -2400,7 +2509,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 
 .inspector-help summary {
 	cursor: pointer;
-	font-size: 13px;
+	font-size: 12px;
 	color: var(--ink);
 }
 
@@ -2409,7 +2518,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
-	font-size: 13px;
+	font-size: 12px;
 	color: var(--ink-muted);
 }
 
@@ -2419,7 +2528,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 
 .inspector-notice {
 	padding: 12px 14px;
-	font-size: 13px;
+	font-size: 12px;
 	color: var(--ink-muted);
 }
 
@@ -2431,12 +2540,12 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
-	font-size: 13px;
+	font-size: 12px;
 	color: var(--ink-muted);
 }
 
 .inspector-picker__select {
-	font-size: 14px;
+	font-size: 16px;
 	padding: 8px 10px;
 }
 
@@ -2463,15 +2572,18 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 }
 
 .inspector-stat-tile__label {
-	font-size: 11px;
+	font-size: 12px;
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
 	color: var(--ink-muted);
 }
 
+/* Regular weight: the game font's bold is too wide for short values like
+   "caledonia" to fit a tile without breaking mid-word. Only genuinely long
+   ids (minecraft:overworld) still wrap. */
 .inspector-stat-tile__value {
-	font-size: 15px;
-	font-weight: 600;
+	font-size: 16px;
+	font-weight: 400;
 	overflow-wrap: anywhere;
 }
 
@@ -2480,7 +2592,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 	align-items: center;
 	gap: 6px;
 	font-weight: 400;
-	font-size: 13px;
+	font-size: 12px;
 }
 
 .inspector-swatch {
@@ -2503,7 +2615,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 }
 
 .inspector-chip--small {
-	font-size: 11px;
+	font-size: 12px;
 	padding: 3px 8px;
 }
 
@@ -2515,7 +2627,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 
 .inspector-section__title {
 	margin: 0;
-	font-size: 18px;
+	font-size: 20px;
 }
 
 .inspector-citizen-grid {
@@ -2540,7 +2652,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 
 .inspector-citizen-card__name {
 	margin: 0;
-	font-size: 15px;
+	font-size: 16px;
 }
 
 .inspector-citizen-card__gender {
@@ -2558,7 +2670,8 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 
 .inspector-meter-row {
 	display: grid;
-	grid-template-columns: 70px 1fr auto;
+	/* Wide enough for "Saturation" in the game font. */
+	grid-template-columns: 84px 1fr auto;
 	align-items: center;
 	gap: 8px;
 	font-size: 12px;
@@ -2588,7 +2701,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 4px 8px;
-	font-size: 11px;
+	font-size: 12px;
 	color: var(--ink-muted);
 }
 
@@ -2600,14 +2713,14 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 
 .inspector-citizen-card__happiness-detail summary {
 	cursor: pointer;
-	font-size: 11px;
+	font-size: 12px;
 	color: var(--ink-muted);
 }
 
 .inspector-table {
 	width: 100%;
 	border-collapse: collapse;
-	font-size: 13px;
+	font-size: 12px;
 }
 
 .inspector-table th,
@@ -2629,7 +2742,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 
 .inspector-raw summary {
 	cursor: pointer;
-	font-size: 13px;
+	font-size: 12px;
 }
 
 .inspector-raw__list {
@@ -2637,7 +2750,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 	margin: 6px 0 0;
 	padding-left: 16px;
 	border-left: 2px solid var(--panel-lo);
-	font-family: "SFMono-Regular", Consolas, monospace;
+	font-family: var(--font-pixel);
 	font-size: 12px;
 }
 
@@ -2723,12 +2836,12 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
-	font-size: 11px;
+	font-size: 12px;
 	color: var(--ink-muted);
 }
 
 .world-viewer-goto input[type="number"] {
-	font-size: 13px;
+	font-size: 12px;
 	padding: 5px 6px;
 	width: 72px;
 	box-sizing: border-box;
@@ -2737,7 +2850,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 .world-viewer-goto button {
 	height: 30px;
 	padding: 0 12px;
-	font-size: 13px;
+	font-size: 12px;
 	cursor: pointer;
 }
 
@@ -2807,15 +2920,15 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 
 .debug-section__title {
 	margin: 0;
-	font-size: 18px;
+	font-size: 20px;
 }
 
 .debug-section__count {
-	font-size: 13px;
+	font-size: 12px;
 }
 
 .debug-search {
-	font-size: 14px;
+	font-size: 16px;
 	padding: 8px 12px;
 	max-width: 320px;
 }
@@ -2851,7 +2964,7 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 }
 
 .debug-material-item__label {
-	font-size: 10px;
+	font-size: 12px;
 	color: var(--ink-muted);
 	text-align: center;
 	overflow: hidden;
@@ -2886,12 +2999,12 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 }
 
 .debug-biome-item__name {
-	font-size: 13px;
+	font-size: 12px;
 	color: var(--ink);
 }
 
 .debug-biome-item__meta {
-	font-size: 11px;
+	font-size: 12px;
 	color: var(--ink-muted);
 	overflow: hidden;
 	text-overflow: ellipsis;

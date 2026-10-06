@@ -15,7 +15,6 @@ function initNavBar(activePage, shortcutGroups) {
 	nav.className = "app-nav";
 	nav.innerHTML = `
 		<a class="app-nav__brand" href="index.html">
-			<span class="app-nav__logo" aria-hidden="true">${window.MCIcons.getIconSvg("⛏️", { size: 20 })}</span>
 			<span class="app-nav__title">MineColonies Planner</span>
 		</a>
 		<div class="app-nav__links">

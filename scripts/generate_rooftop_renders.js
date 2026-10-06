@@ -816,6 +816,10 @@ const CATEGORY_TO_FOLDER = { farming: "agriculture", decoration: "decorations" }
 //    it's a distinct, non-leveled structure the mod calls
 //    "universitylibrary", separate from the regular "University" (levels
 //    1-5) shape.
+//  - Caledonia's "Monorail Plug B" and "Birail Plug B" blueprints are both
+//    misspelled "plub_b" in the mod source (same kind of typo as
+//    "alfarmer") - without these the fallback search matched the ROADS
+//    folder's plug_b instead, a different piece entirely.
 //  - Caledonia's "Roads Station Medium" blueprint abbreviates to
 //    "station_med", unlike every other roads/station file which spells out
 //    its size word in full.
@@ -829,6 +833,8 @@ const OVERRIDES = {
 	"styles/caledonia.json::horticulture_altfarmer": { folder: "agriculture/horticulture", key: "alfarmer" },
 	"styles/medievalspruce.json::education_universityfull": { folder: "education", key: "universitylibrary" },
 	"styles/caledonia.json::roads_station_medium": { folder: "infrastructure/roads", key: "station_med" },
+	"styles/caledonia.json::monorail_plug_b": { folder: "infrastructure/monorail", key: "plubb" },
+	"styles/caledonia.json::birail_plug_b": { folder: "infrastructure/birail", key: "plubb" },
 };
 
 // Same taxonomy app.js's subcategoryMap uses for the shape tray - kept in

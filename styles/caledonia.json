@@ -7171,8 +7171,8 @@
 		{
 			"id": "luxury_kitchen",
 			"label": "Kitchen",
-			"w": 13,
-			"h": 13,
+			"w": 14,
+			"h": 15,
 			"category": "craftsmanship",
 			"emoji": "🍳",
 			"levels": [
@@ -19222,7 +19222,7 @@
 		{
 			"id": "monorail_long",
 			"label": "Monorail Long",
-			"w": 11,
+			"w": 13,
 			"h": 5,
 			"category": "infrastructure",
 			"emoji": "🚝",
@@ -19319,7 +19319,7 @@
 		{
 			"id": "monorail_short_a",
 			"label": "Monorail Short A",
-			"w": 1,
+			"w": 7,
 			"h": 5,
 			"category": "infrastructure",
 			"emoji": "🚝",
@@ -19397,7 +19397,7 @@
 		{
 			"id": "monorail_station",
 			"label": "Monorail Station",
-			"w": 12,
+			"w": 13,
 			"h": 5,
 			"category": "infrastructure",
 			"emoji": "🚝",
@@ -19478,7 +19478,7 @@
 			"id": "monorail_turn",
 			"label": "Monorail Turn",
 			"w": 9,
-			"h": 8,
+			"h": 9,
 			"category": "infrastructure",
 			"emoji": "🚝",
 			"levels": [
@@ -21881,7 +21881,7 @@
 			"id": "military_barracks",
 			"label": "Barracks",
 			"w": 19,
-			"h": 19,
+			"h": 39,
 			"category": "military",
 			"emoji": "🪖",
 			"levels": [
@@ -24319,7 +24319,7 @@
 		{
 			"id": "mystic_mysticalsite",
 			"label": "Mystical Site",
-			"w": 19,
+			"w": 21,
 			"h": 13,
 			"category": "mystic",
 			"emoji": "🔮",
@@ -25623,7 +25623,7 @@
 			"id": "walls_misc_diagonal",
 			"label": "Diagonal",
 			"w": 7,
-			"h": 7,
+			"h": 11,
 			"category": "walls",
 			"emoji": "🧱",
 			"levels": [
@@ -25854,29 +25854,6 @@
 				{
 					"level": 1,
 					"materials": {
-						"minecraft:stone_bricks": 68,
-						"minecraft:polished_diorite": 32,
-						"minecraft:stone_brick_stairs": 49,
-						"minecraft:stone_brick_wall": 19,
-						"minecraft:iron_bars": 4,
-						"minecraft:lantern": 4,
-						"minecraft:polished_diorite_stairs": 8,
-						"minecraft:diorite_wall": 8
-					},
-					"upgradeCost": {
-						"minecraft:stone_bricks": 68,
-						"minecraft:polished_diorite": 32,
-						"minecraft:stone_brick_stairs": 49,
-						"minecraft:stone_brick_wall": 19,
-						"minecraft:iron_bars": 4,
-						"minecraft:lantern": 4,
-						"minecraft:polished_diorite_stairs": 8,
-						"minecraft:diorite_wall": 8
-					}
-				},
-				{
-					"level": 1,
-					"materials": {
 						"minecraft:polished_diorite": 32,
 						"minecraft:stone_bricks": 47,
 						"minecraft:stone_brick_stairs": 24,
@@ -25971,7 +25948,7 @@
 			"id": "walls_plug_a",
 			"label": "Wall Plug A",
 			"w": 1,
-			"h": 7,
+			"h": 5,
 			"category": "walls",
 			"emoji": "🧱",
 			"levels": [
