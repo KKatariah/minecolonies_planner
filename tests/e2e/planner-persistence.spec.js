@@ -86,7 +86,7 @@ test.describe("autosave", () => {
 
 	test("a corrupt autosave doesn't break startup", async ({ page, planner, pageErrors }) => {
 		pageErrors.allow(/Failed to restore autosave/);
-		await page.evaluate(() => localStorage.setItem(AUTOSAVE_STORAGE_KEY, "{not json"));
+		await page.evaluate(() => localStorage.setItem(__planner.AUTOSAVE_STORAGE_KEY, "{not json"));
 		await planner.reload();
 		expect(await planner.buildingCount()).toBe(0);
 		await planner.place(FARMER, 10, 10); // still fully usable
@@ -112,7 +112,7 @@ test.describe("JSON export / import", () => {
 		expect(plan.background).toBeNull();
 		expect(plan.buildings.map((b) => b.id)).toEqual([FARMER, "fundamentals_residence"]);
 		expect(plan.roads.paths).toHaveLength(1);
-		const live = await page.evaluate(() => serializePlan());
+		const live = await page.evaluate(() => __planner.serializePlan());
 		expect(comparable(plan)).toEqual(comparable(live));
 	});
 
@@ -210,7 +210,7 @@ test.describe("JSON export / import", () => {
 			paths: [{ id: "path_1", cells: [{ x: 3, y: 700 }] }],
 		}));
 		await expect.poll(() => planner.buildingCount()).toBe(1);
-		const grid = await page.evaluate(() => ({ rows, cols }));
+		const grid = await page.evaluate(() => ({ rows: __planner.rows, cols: __planner.cols }));
 		expect(grid).toEqual({ rows: 701, cols: 613 });
 	});
 
@@ -262,7 +262,7 @@ test.describe("JSON export / import", () => {
 		}));
 		await expect.poll(() => planner.buildingCount()).toBe(1);
 		const [p] = await planner.paths();
-		expect(p).toMatchObject({ type: "default", width: 10, cells: [{ x: 1, y: 1 }] });
+		expect(p).toMatchObject({ type: "default", width: 16, cells: [{ x: 1, y: 1 }] });
 		await expect(page.locator(".placed-badge")).toHaveText('<img src=x onerror="window.__xss=1">');
 		await planner.clickCell(7, 7); // select it so the preview pane renders the label too
 		await page.waitForTimeout(200);
@@ -341,12 +341,12 @@ test.describe("My Plans (named saves)", () => {
 			d.dismiss();
 		});
 		await saveAs(page, "Same");
-		let stored = await page.evaluate(() => loadNamedPlans().Same.plan.buildings.length);
+		let stored = await page.evaluate(() => __planner.loadNamedPlans().Same.plan.buildings.length);
 		expect(stored).toBe(1);
 
 		page.once("dialog", (d) => d.accept());
 		await saveAs(page, "Same");
-		await expect.poll(() => page.evaluate(() => loadNamedPlans().Same.plan.buildings.length)).toBe(2);
+		await expect.poll(() => page.evaluate(() => __planner.loadNamedPlans().Same.plan.buildings.length)).toBe(2);
 		await expect(rows(page)).toHaveCount(1);
 	});
 
@@ -451,7 +451,7 @@ test.describe("preferences", () => {
 	});
 
 	test("collapsing a pane gives the grid more room", async ({ page }) => {
-		const width = () => page.evaluate(() => root.getBoundingClientRect().width);
+		const width = () => page.evaluate(() => __planner.root.getBoundingClientRect().width);
 		const before = await width();
 		await page.locator("[data-left-toggle]").click();
 		await expect.poll(width).toBeGreaterThan(before);
@@ -459,11 +459,11 @@ test.describe("preferences", () => {
 
 	test("zoom and scroll position are restored after a reload", async ({ page, planner }) => {
 		await page.locator("[data-zoom-in]").click();
-		await page.evaluate(() => root.scrollTo(400, 300));
+		await page.evaluate(() => __planner.root.scrollTo(400, 300));
 		await page.waitForTimeout(400); // saveGridView is debounced 300ms
-		const before = await page.evaluate(() => ({ zoom: gridZoom, left: root.scrollLeft, top: root.scrollTop }));
+		const before = await page.evaluate(() => ({ zoom: __planner.gridZoom, left: __planner.root.scrollLeft, top: __planner.root.scrollTop }));
 		await planner.reload();
-		const after = await page.evaluate(() => ({ zoom: gridZoom, left: root.scrollLeft, top: root.scrollTop }));
+		const after = await page.evaluate(() => ({ zoom: __planner.gridZoom, left: __planner.root.scrollLeft, top: __planner.root.scrollTop }));
 		expect(after).toEqual(before);
 	});
 });

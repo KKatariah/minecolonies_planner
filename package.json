@@ -2,6 +2,9 @@
 	"name": "minecolonies-planner",
 	"private": true,
 	"description": "Static site - no build step. package.json exists only for the test tooling.",
+	"engines": {
+		"node": ">=22.12"
+	},
 	"scripts": {
 		"test": "npm run test:unit && npm run test:e2e",
 		"test:unit": "node --test \"tests/unit/**/*.test.js\"",

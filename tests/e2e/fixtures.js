@@ -4,16 +4,17 @@
 //   console.error, or a request 404s - except the expected misses listed
 //   in EXPECTED_MISSES. Tests that deliberately trigger an error call
 //   `pageErrors.allow(/regex/)` first.
-// - `planner`: helpers for driving index.html. The app is plain classic
-//   scripts, so its top-level `let`/`const` state (placedSquares, paths,
-//   gridZoom, ...) is reachable by name from page.evaluate() - tests use
-//   that to read state, and the real mouse/keyboard to change it.
+// - `planner`: helpers for driving index.html. The planner is ES modules;
+//   planner/main.js exposes every module export as a read-only live getter
+//   on `window.__planner` (e.g. __planner.placedSquares, __planner.gridZoom).
+//   Tests read state through it inside page.evaluate(), and use the real
+//   mouse/keyboard to change it.
 
 const base = require("@playwright/test");
 const { expect } = base;
 
 // The tray/preview look up a front photo by trying several candidate
-// filenames in turn (getPreviewImageCandidates in app.js), so 404s for
+// filenames in turn (getFrontImageCandidates in planner/catalog.js), so 404s for
 // those are normal - not every building has a photo.
 const EXPECTED_MISSES = [/\/images\/[a-z]+\/[a-z0-9_]+_front\.jpg$/, /\/favicon\.ico$/];
 const isExpectedMiss = (url) => EXPECTED_MISSES.some((re) => re.test(url));
@@ -56,8 +57,8 @@ class Planner {
 		this.page = page;
 	}
 
-	// Opens the planner and waits for both style catalogs, the tray, and the
-	// startup autosave restore (which ends with runPlanCheck) to finish.
+	// Opens the planner and waits for its startup (styles loaded, autosave
+	// restored) to finish - planner/main.js sets __planner.ready last.
 	async goto() {
 		await this.page.goto("/index.html");
 		await this.waitForReady();
@@ -71,10 +72,7 @@ class Planner {
 	async waitForReady() {
 		await this.page.waitForFunction(
 			() =>
-				typeof styleCache !== "undefined" &&
-				styleCache.size === STYLE_FILES.length &&
-				shapes.length > 0 &&
-				planCheckEl.innerHTML.trim().length > 0,
+				window.__planner?.ready === true,
 		);
 	}
 
@@ -84,11 +82,11 @@ class Planner {
 	async cellPoint(x, y) {
 		return this.page.evaluate(
 			([cx, cy]) => {
-				const rect = grid.getBoundingClientRect();
-				const size = cellSize * gridZoom;
+				const rect = __planner.grid.getBoundingClientRect();
+				const size = __planner.cellSize * __planner.gridZoom;
 				return {
-					x: rect.left + grid.clientLeft * gridZoom + (cx + 0.5) * size,
-					y: rect.top + grid.clientTop * gridZoom + (cy + 0.5) * size,
+					x: rect.left + __planner.grid.clientLeft * __planner.gridZoom + (cx + 0.5) * size,
+					y: rect.top + __planner.grid.clientTop * __planner.gridZoom + (cy + 0.5) * size,
 				};
 			},
 			[x, y],
@@ -124,7 +122,7 @@ class Planner {
 
 	async shapeInfo(shapeId) {
 		return this.page.evaluate((id) => {
-			const s = shapes.find((shape) => shape.id === id);
+			const s = __planner.shapes.find((shape) => shape.id === id);
 			return s ? { id: s.id, label: s.label, w: s.w, h: s.h, category: s.category || "farming" } : null;
 		}, shapeId);
 	}
@@ -151,18 +149,18 @@ class Planner {
 	async selectStyle(label) {
 		await this.page.locator(".style-select").selectOption({ label });
 		await this.page.waitForFunction(
-			(l) => STYLE_FILES.find((s) => s.label === l).id === activeStyleId,
+			(l) => __planner.STYLE_FILES.find((s) => s.label === l).file === __planner.activeStyleFile,
 			label,
 		);
 	}
 
 	async buildingCount() {
-		return this.page.evaluate(() => placedSquares.length);
+		return this.page.evaluate(() => __planner.placedSquares.length);
 	}
 
 	async buildings() {
 		return this.page.evaluate(() =>
-			placedSquares.map(({ id, label, x, y, w, h, category, styleFile, rotated }) => ({
+			__planner.placedSquares.map(({ id, label, x, y, w, h, category, styleFile, rotated }) => ({
 				id, label, x, y, w, h, category, styleFile, rotated,
 			})),
 		);
@@ -170,24 +168,24 @@ class Planner {
 
 	async paths() {
 		return this.page.evaluate(() =>
-			paths.map((p) => ({ id: p.id, type: p.type, width: p.width, cells: p.cells.map((c) => ({ ...c })) })),
+			__planner.paths.map((p) => ({ id: p.id, type: p.type, width: p.width, cells: p.cells.map((c) => ({ ...c })) })),
 		);
 	}
 
 	async selectedIds() {
 		return this.page.evaluate(() =>
-			placedSquares.filter((p) => selectedPlaced.has(p.el)).map((p) => `${p.id}@${p.x},${p.y}`),
+			__planner.placedSquares.filter((p) => __planner.selectedPlaced.has(p)).map((p) => `${p.id}@${p.x},${p.y}`),
 		);
 	}
 
 	async undoRedoState() {
-		return this.page.evaluate(() => ({ undo: undoStack.length, redo: redoStack.length }));
+		return this.page.evaluate(() => ({ undo: __planner.undoStack.length, redo: __planner.redoStack.length }));
 	}
 
 	// Waits for the debounced (500ms) autosave to actually land.
 	async waitForAutosave() {
 		await this.page.waitForFunction(
-			() => autoSaveTimer === null && window.localStorage.getItem(AUTOSAVE_STORAGE_KEY) !== null,
+			() => __planner.autoSaveTimer === null && window.localStorage.getItem(__planner.AUTOSAVE_STORAGE_KEY) !== null,
 		);
 		// The timer callback itself is async (awaits IndexedDB) - one more
 		// tick for its setItem to run.
@@ -195,7 +193,7 @@ class Planner {
 	}
 
 	async autosave() {
-		return this.page.evaluate(() => JSON.parse(window.localStorage.getItem(AUTOSAVE_STORAGE_KEY)));
+		return this.page.evaluate(() => JSON.parse(window.localStorage.getItem(__planner.AUTOSAVE_STORAGE_KEY)));
 	}
 
 	// Builds a plan JSON in the app's save format (see serializePlan).

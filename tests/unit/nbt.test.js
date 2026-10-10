@@ -7,9 +7,9 @@ const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
 
-const NBT = require("../../nbt.js");
+const NBT = require("../../lib/nbt.js");
 const W = require("../helpers/nbt-writer.js");
-const { REPO_ROOT } = require("../helpers/load-browser-script.js");
+const { REPO_ROOT } = require("../helpers/repo-root.js");
 
 // Compounds come back as null-prototype objects; compare by value.
 const plain = (v) => JSON.parse(JSON.stringify(v));

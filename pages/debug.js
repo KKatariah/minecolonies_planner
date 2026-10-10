@@ -1,6 +1,8 @@
-// Debug — a reference page listing every material icon and every curated
-// biome color this app knows about, for checking icon coverage and color
-// choices at a glance instead of hunting through the actual data files.
+// Debug page: every material icon and every curated biome color the app
+// has, for checking icon coverage and color choices at a glance.
+
+import { initNavBar } from "../lib/nav.js";
+import { BIOME_COLORS, formatBiomeName } from "../lib/world-terrain.js";
 
 initNavBar("debug");
 
@@ -37,7 +39,6 @@ const biomeGridEl = root.querySelector("[data-biome-grid]");
 // ---------- biome colors ----------
 // BIOME_COLORS itself (not colorForBiome()) - the curated presets, not the
 // keyword-fallback guess used for unrecognized/modded biomes.
-const { BIOME_COLORS, formatBiomeName } = window.WorldTerrain;
 const biomeIds = Object.keys(BIOME_COLORS).sort();
 biomeCountEl.textContent = `(${biomeIds.length})`;
 biomeGridEl.innerHTML = "";

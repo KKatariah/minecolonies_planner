@@ -1,12 +1,15 @@
-// Colony Inspector — upload a MineColonies colony<ID>.dat save file (gzip
-// NBT) and view the colony's citizens/buildings client-side. Nothing is
-// uploaded anywhere; parsing happens entirely in the browser via nbt.js.
+// Colony Inspector: upload a MineColonies colony<ID>.dat save (gzip NBT) and
+// view its citizens and buildings. Parsed entirely in the browser.
 //
-// NBT key names below were confirmed against the mod source (fork of
-// ldtteam/minecolonies, commit e0d7ae1, MC 1.20.1) — see MINECOLONIES_MECHANICS.md.
-// Schema drift across mod versions is expected; unknown/renamed keys degrade
-// to "not found" rather than throwing, and the raw tree view is always
-// available as a fallback.
+// NBT key names were confirmed against the mod source (ldtteam/minecolonies
+// commit e0d7ae1, MC 1.20.1 - see notes/MINECOLONIES_MECHANICS.md). Keys
+// drift between mod versions, so anything missing shows as "not found"
+// rather than throwing, and the raw data view always shows the whole file.
+
+import { initNavBar } from "../lib/nav.js";
+import { getIconSvg } from "../lib/icons.js";
+import { escapeHtml } from "../lib/dom.js";
+import { readNbtFile } from "../lib/nbt.js";
 
 const SKILL_NAMES = [
 	"Athletics",
@@ -86,7 +89,6 @@ root.innerHTML = `
 	<section class="inspector-results" data-results hidden></section>
 `;
 
-const dropzone = root.querySelector("[data-dropzone]");
 const dropzoneTarget = root.querySelector("[data-dropzone-target]");
 const fileInput = root.querySelector("[data-file-input]");
 const fileTriggerButton = root.querySelector("[data-file-trigger]");
@@ -134,7 +136,7 @@ async function handleFile(file) {
 	resultsEl.hidden = true;
 	resultsEl.innerHTML = "";
 	try {
-		const { value: root } = await window.NBT.readNbtFile(file);
+		const { value: root } = await readNbtFile(file);
 		const resolved = resolveColonyRoot(root);
 		renderResolved(resolved, file.name);
 		statusEl.textContent = `Loaded ${file.name}`;
@@ -329,7 +331,7 @@ function buildCitizenCard(citizen, residentLinks) {
 	card.innerHTML = `
 		<div class="inspector-citizen-card__header">
 			<h3 class="inspector-citizen-card__name">${escapeHtml(citizen.name ?? "Unnamed")}</h3>
-			<span class="inspector-citizen-card__gender">${window.MCIcons.getIconSvg(genderLabel === "Female" ? "♀" : "♂", { size: 15 })}</span>
+			<span class="inspector-citizen-card__gender">${getIconSvg(genderLabel === "Female" ? "♀" : "♂", { size: 15 })}</span>
 		</div>
 		<div class="inspector-citizen-card__meta">
 			<span>${escapeHtml(jobLabel)}</span>
@@ -403,7 +405,7 @@ function getSkillLevels(citizen) {
 }
 
 // The mod computes happiness live from time-decaying modifier factors rather
-// than storing a final number (see MINECOLONIES_MECHANICS.md). This
+// than storing a final number (see notes/MINECOLONIES_MECHANICS.md). This
 // reproduces the weighted-average shape using the confirmed 7/14-day
 // homelessness-style decay thresholds, but is an estimate, not the exact
 // in-game value — polymorphic per-modifier decay curves aren't fully known.
@@ -509,12 +511,8 @@ function collectResidentIds(node, out, depth) {
 }
 
 function formatJobType(type) {
-	// A save file's job/building "type" field is expected to be a namespaced
-	// string ("minecolonies:baker"), but nothing about NBT enforces that at
-	// the format level - a malformed or hand-edited file can put a number or
-	// compound there instead. This file's whole design is "degrade to 'not
-	// found' rather than throw" (see the header comment), so match that
-	// instead of letting a bad .type crash the entire render.
+	// Normally a namespaced string ("minecolonies:baker"), but a malformed
+	// or hand-edited file can put anything here.
 	if (typeof type !== "string") return "Unknown";
 	const short = type.includes(":") ? type.split(":")[1] : type;
 	return short
@@ -527,14 +525,6 @@ function formatJobType(type) {
 function formatBuildingType(type) {
 	if (!type) return "Unknown";
 	return formatJobType(type);
-}
-
-function escapeHtml(str) {
-	return String(str)
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;");
 }
 
 function buildRawTreeSection(value, fileName) {
@@ -595,14 +585,8 @@ function buildTreeNode(value, depth) {
 		}
 		const list = document.createElement("ul");
 		list.className = "inspector-raw__list";
-		// Unlike a List/Array tag, a Compound has no length prefix in the NBT
-		// format itself - nothing bounds how many distinct keys one can hold,
-		// and each costs only a few bytes to encode. A flat compound with
-		// hundreds of thousands of short keys (a few MB on disk) builds a
-		// same-sized wall of DOM nodes here, synchronously, on every
-		// successfully-parsed colony (this section is always appended, not
-		// just shown on request) - same truncation as the array branch above,
-		// just applied to object keys instead of array indices.
+		// Truncated like arrays: a compound can hold hundreds of thousands of
+		// keys for a few MB of file, and this view is built for every colony.
 		for (const [key, child] of entries.slice(0, RAW_TREE_MAX_ITEMS)) {
 			const li = document.createElement("li");
 			const label = document.createElement("span");

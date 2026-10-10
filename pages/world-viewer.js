@@ -1,21 +1,19 @@
-// World Viewer — upload real Minecraft region files (region/*.mca from a
-// world save) and render a solid-color biome overview map, like chunkbase's
-// seed map, so a colony's site can be picked against real terrain instead of
-// a blank grid. Nothing is uploaded anywhere; parsing happens entirely in
-// the browser via nbt.js plus the native DecompressionStream API for the
-// region file's per-chunk zlib payloads.
-//
-// The actual region-file parsing and biome-map rendering live in
-// world-terrain.js, shared with app.js's "upload a world as a background"
-// feature on the planner grid - this file is just the page-specific UI
-// (upload widget, zoom/pan, tooltip, legend) built on top of it.
-//
-// Format details (region file layout, chunk NBT schema, bit-packing for
-// heightmaps/biomes) were confirmed against a real 1.20.1 world save this
-// session — see "Feasibility notes for uploading a world save" in
-// FEASIBILITY_NOTES.md for the full writeup and the bugs that came up along
-// the way (heightmaps AND block_states/biomes use padded per-long packing,
-// not the newer no-waste packing originally assumed for the latter two).
+// World Viewer: upload region files (.mca) from a world save and browse a
+// biome map of them, to pick a colony site against real terrain. Parsing
+// and painting live in lib/world-terrain.js (shared with the planner's world
+// background); this is the page around it - upload, zoom/pan, tooltip,
+// legend, go-to.
+
+import { initNavBar } from "../lib/nav.js";
+import { escapeHtml } from "../lib/dom.js";
+import { trackPointerGesture } from "../lib/pointer-gesture.js";
+import {
+	buildTerrainImage,
+	collectFilesFromEntry,
+	colorForBiome,
+	filterMcaFiles,
+	formatBiomeName,
+} from "../lib/world-terrain.js";
 
 initNavBar("world-viewer");
 
@@ -80,7 +78,6 @@ root.innerHTML = `
 	</section>
 `;
 
-const dropzone = root.querySelector("[data-dropzone]");
 const dropzoneTarget = root.querySelector("[data-dropzone-target]");
 const fileInput = root.querySelector("[data-file-input]");
 const folderInput = root.querySelector("[data-folder-input]");
@@ -99,8 +96,6 @@ const zoomResetButton = root.querySelector("[data-zoom-reset]");
 const gotoForm = root.querySelector("[data-goto-form]");
 const gotoXInput = root.querySelector("[data-goto-x]");
 const gotoZInput = root.querySelector("[data-goto-z]");
-
-const { filterMcaFiles, collectFilesFromEntry, colorForBiome, formatBiomeName, escapeHtml } = window.WorldTerrain;
 
 fileTriggerButton.addEventListener("click", () => fileInput.click());
 fileInput.addEventListener("change", () => {
@@ -144,8 +139,7 @@ dropzoneTarget.addEventListener("drop", async (event) => {
 	const items = event.dataTransfer.items;
 	const hasDirectorySupport = items && [...items].some((i) => i.webkitGetAsEntry?.());
 	if (hasDirectorySupport) {
-		// covers both a dropped folder and plain dropped files - entries for
-		// files are just leaves, no recursion needed for those
+		// Handles dropped folders and dropped files alike.
 		const entries = [...items].map((i) => i.webkitGetAsEntry()).filter(Boolean);
 		const collected = [];
 		for (const entry of entries) await collectFilesFromEntry(entry, collected);
@@ -154,45 +148,31 @@ dropzoneTarget.addEventListener("drop", async (event) => {
 		else statusEl.textContent = "No .mca region files found in what was dropped.";
 		return;
 	}
-	// fallback for browsers without drag-and-drop directory support
+	// Browsers without directory drop support.
 	const files = filterMcaFiles([...(event.dataTransfer.files || [])]);
 	if (files.length) handleFiles(files);
 });
 
 // ---------- zoom / pan ----------
-// The transform lives on canvasInner (a plain wrapper div), not the canvas
-// itself, purely so the pixel-drawing code above never has to think about
-// it. getBoundingClientRect() on the canvas already reports its POST-
-// transform position and size (CSS transforms affect descendants' rendered
-// boxes too), so the existing tooltip math (scaleX = canvas.width /
-// rect.width) keeps working completely unchanged - it already divides out
-// whatever the current zoom is, without needing to know the zoom value at
-// all.
+// The transform is on canvasInner, a wrapper, so drawing never deals with it.
+// The canvas's getBoundingClientRect() already reflects the transform, which
+// the tooltip math relies on.
 let viewZoom = 1;
 let viewPanX = 0;
 let viewPanY = 0;
-// Low enough that even a max-sized upload (MAX_GRID_DIMENSION, 16384 blocks
-// on an axis) can still reach a fully-zoomed-out fit in a small viewport -
-// the old 0.05 floor was only good down to a ~800px-wide viewport before it
-// started clamping the fit zoom upward and cropping part of the map.
+// Low enough to fit even a maximum-size map (16384 blocks) in a small viewport.
 const MIN_ZOOM = 0.01;
 const MAX_ZOOM = 32;
+let isPanning = false;
 
 function applyViewTransform() {
 	canvasInner.style.transform = `translate(${viewPanX}px, ${viewPanY}px) scale(${viewZoom})`;
-	// Below 1:1 the canvas is being shrunk - switch off nearest-neighbor so
-	// thin contour lines get blended into the downscale instead of skipped
-	// over (see the .is-downscaled rule in styles.css for the full story).
+	// Below 1:1, smooth the downscale (see .is-downscaled in styles.css).
 	canvas.classList.toggle("is-downscaled", viewZoom < 1);
 }
 
-// Picks a zoom level that fits the whole rendered map inside the visible
-// viewport, anchored at the map's own origin (world block 0,0 - top-left of
-// the canvas) rather than centered - the sane starting point after loading
-// new data, and what the "fit to view" button returns to. Deliberately NOT
-// clamped to MIN_ZOOM here (unlike interactive zoom below): the fit must
-// always be able to show the entire loaded area regardless of how large it
-// is, even if that needs a smaller zoom than manual zoom-out normally allows.
+// Fits the whole map in the viewport, anchored at its top-left. Not clamped
+// to MIN_ZOOM: fitting must work however large the map is.
 function fitToView() {
 	if (!canvas.width || !canvas.height) return;
 	const vw = viewport.clientWidth;
@@ -203,12 +183,7 @@ function fitToView() {
 	applyViewTransform();
 }
 
-// Zooms toward a specific point in viewport-local coordinates (the cursor
-// for wheel-zoom, the viewport center for the +/- buttons), keeping
-// whatever block was under that point still under it after the zoom
-// changes - the standard "zoom toward cursor" trick: find the point in
-// content-space first, change the zoom, then solve for the pan that puts
-// that same content-space point back under the same screen-space point.
+// Zooms keeping the content under (pointX, pointY) - viewport-local - fixed.
 function zoomTowardPoint(factor, pointX, pointY) {
 	const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, viewZoom * factor));
 	const contentX = (pointX - viewPanX) / viewZoom;
@@ -238,67 +213,35 @@ zoomOutButton.addEventListener("click", () => {
 });
 zoomResetButton.addEventListener("click", fitToView);
 
-// Click-and-drag panning. Dragging shouldn't also spam the hover tooltip
-// with whatever block happens to pass under the cursor mid-drag, so it's
-// explicitly hidden for the duration.
-let isDragging = false;
-let dragStartX = 0;
-let dragStartY = 0;
-let dragStartPanX = 0;
-let dragStartPanY = 0;
-
+// Drag to pan. The tooltip is hidden while dragging.
 viewport.addEventListener("pointerdown", (event) => {
 	if (!canvas.width) return;
-	// The zoom controls and the goto-coordinates form both live inside the
-	// viewport (positioned over the map), so interacting with them also
-	// bubbles a pointerdown up to this handler. Without this check,
-	// setPointerCapture() below hijacks the interaction as a drag before a
-	// button's click can fire cleanly - or, for the form's number inputs,
-	// before the browser can even focus them to place a text cursor.
+	// The zoom buttons and go-to form sit inside the viewport; capturing the
+	// pointer would steal their clicks and focus.
 	if (event.target.closest("button, input, label")) return;
-	isDragging = true;
-	dragStartX = event.clientX;
-	dragStartY = event.clientY;
-	dragStartPanX = viewPanX;
-	dragStartPanY = viewPanY;
-	viewport.setPointerCapture(event.pointerId);
+	const startPanX = viewPanX;
+	const startPanY = viewPanY;
+	isPanning = true;
 	viewport.classList.add("is-panning");
 	tooltip.hidden = true;
+	trackPointerGesture(event, {
+		captureTarget: viewport,
+		onMove: (move) => {
+			viewPanX = startPanX + (move.clientX - event.clientX);
+			viewPanY = startPanY + (move.clientY - event.clientY);
+			applyViewTransform();
+		},
+		onEnd: () => {
+			isPanning = false;
+			viewport.classList.remove("is-panning");
+		},
+	});
 });
-viewport.addEventListener("pointermove", (event) => {
-	if (!isDragging) return;
-	viewPanX = dragStartPanX + (event.clientX - dragStartX);
-	viewPanY = dragStartPanY + (event.clientY - dragStartY);
-	applyViewTransform();
-});
-function endDrag(event) {
-	if (!isDragging) return;
-	isDragging = false;
-	viewport.classList.remove("is-panning");
-	try {
-		viewport.releasePointerCapture(event.pointerId);
-	} catch {
-		// already released (e.g. pointer left the window) - fine to ignore
-	}
-}
-viewport.addEventListener("pointerup", endDrag);
-viewport.addEventListener("pointercancel", endDrag);
 
-// Selecting a new batch of files while a previous batch is still being
-// parsed (e.g. changing your mind partway through a large upload) used to
-// silently corrupt the display - both async handleFiles() calls run
-// concurrently and write to the same shared status/canvas/legend elements,
-// so whichever one happens to finish LAST wins, regardless of which the
-// user actually intended to see last. A simple generation token fixes it:
-// each call captures the generation counter at the start, and bails out
-// before touching the DOM if a newer call has since started.
+// A newer upload supersedes one still being parsed: each run captures the
+// generation it started in and gives up once a newer one begins.
 let uploadGeneration = 0;
-// The "go to coordinates" form needs minCx/minCz/biomeAt after handleFiles()
-// has already returned (it only runs later, on user submit) - result itself
-// is otherwise just a handleFiles()-local closure variable (captured by
-// canvas.onmousemove below), so it doesn't survive past this function
-// without being stashed somewhere outside it.
-let loadedResult = null;
+let loadedResult = null; // the current map, for the go-to form
 
 async function handleFiles(files) {
 	const myGeneration = ++uploadGeneration;
@@ -307,7 +250,7 @@ async function handleFiles(files) {
 	resultsEl.hidden = true;
 	statusEl.textContent = "";
 
-	const result = await window.WorldTerrain.buildTerrainImage(files, {
+	const result = await buildTerrainImage(files, {
 		onStatus: (text) => {
 			if (!isStale()) statusEl.textContent = text;
 		},
@@ -326,13 +269,9 @@ async function handleFiles(files) {
 	canvas.getContext("2d").drawImage(result.canvas, 0, 0);
 
 	canvas.onmousemove = (event) => {
-		if (isDragging) return; // avoid fighting the drag with tooltip flicker
-		// Block-index math needs the CANVAS's own rect - it's the thing
-		// actually being scaled/panned, so its post-transform size/position
-		// is what correctly divides zoom back out. The tooltip's on-screen
-		// position needs the VIEWPORT's rect instead: the tooltip is a
-		// sibling of canvasInner (not a descendant), so its CSS positioned
-		// ancestor is the viewport, not the canvas.
+		if (isPanning) return;
+		// Block coordinates come from the (transformed) canvas rect; the
+		// tooltip is positioned within the viewport, its containing block.
 		const canvasRect = canvas.getBoundingClientRect();
 		const viewportRect = viewport.getBoundingClientRect();
 		const scaleX = canvas.width / canvasRect.width;
@@ -375,10 +314,7 @@ async function handleFiles(files) {
 }
 
 // ---------- go to coordinates ----------
-// Same screen = pan + content*zoom relationship zoomTowardPoint() below
-// uses, solved for pan with the viewport's own center as the target screen
-// point instead of the cursor - keeps whatever zoom level is already set
-// rather than forcing a specific one.
+// Pans (at the current zoom) so map block (gx, gz) is centered.
 function centerViewOn(gx, gz) {
 	const vw = viewport.clientWidth;
 	const vh = viewport.clientHeight;
@@ -400,3 +336,16 @@ gotoForm.addEventListener("submit", (event) => {
 			? `Centered on (${worldX}, ${worldZ}).`
 			: `Centered on (${worldX}, ${worldZ}) - no data there (outside the uploaded area, or not yet explored in-game).`;
 });
+
+// Read-only view state for the e2e tests.
+window.__worldViewer = {
+	get viewZoom() {
+		return viewZoom;
+	},
+	get viewPanX() {
+		return viewPanX;
+	},
+	get viewPanY() {
+		return viewPanY;
+	},
+};

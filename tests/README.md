@@ -22,8 +22,12 @@ A failed e2e run leaves a screenshot and trace per failure under
 ## Layout
 
 - `unit/nbt.test.js` - the NBT reader: every tag type, malformed/truncated/hostile input, gzip.
-- `unit/world-terrain.test.js` - region file parsing, biome colors/names, file filtering.
-- `unit/data-integrity.test.js` - the style JSONs, rooftop renders + manifest, material icons, and every asset the HTML/CSS reference.
+- `unit/world-terrain.test.js` - region file parsing, biome colors/names, file filtering, the map computed off the main thread.
+- `unit/dom.test.js` - HTML escaping and the text-field check shortcuts use.
+- `unit/cell-geometry.test.js` - brush footprints, lines, cell keys and legacy road migration behind painted paths.
+- `unit/plan-format.test.js` - validating plan files (imports, autosaves) before they touch the board.
+- `unit/planner-rules.test.js` - the Plan Check rules, material names, and event batching.
+- `unit/data-integrity.test.js` - the style JSONs, rooftop renders + manifest, material icons, every asset the HTML/CSS reference, and every page's module imports.
 - `e2e/site.spec.js` - every page boots with no errors; nav, theme toggle, shortcuts modal.
 - `e2e/planner-buildings.spec.js` - tray, placing, selecting, moving, rotating, copy/paste, undo/redo, zoom/pan.
 - `e2e/planner-roads.spec.js` - road/river paint brush, eraser, walls tool.
@@ -35,6 +39,6 @@ A failed e2e run leaves a screenshot and trace per failure under
 ## Conventions
 
 - Every e2e test fails automatically if the page throws, logs a `console.error`, or gets a 404 (see `e2e/fixtures.js`). The one exception is the `images/<style>/*_front.jpg` misses the preview-photo fallback chain expects. A test that triggers an error on purpose calls `pageErrors.allow(/.../)`.
-- The app is plain classic scripts, so tests read its state by name (`placedSquares`, `paths`, `gridZoom`, ...) via `page.evaluate`. Renaming one of those globals means updating `e2e/fixtures.js`.
+- The site is ES modules. Unit tests `require()` the pure modules (`lib/`, and the planner modules that don't touch the DOM) directly - Node 22.12+ can require ES modules. E2e tests read planner state through `window.__planner`, which `planner/main.js` builds from every module's exports (`__planner.placedSquares`, `__planner.gridZoom`, ...) as read-only live getters; World Viewer exposes `window.__worldViewer` the same way. Tests change state with the real mouse and keyboard.
 - If you find a bug you can't fix right away, pin it rather than deleting the test: mark it `test.fail()` with a `KNOWN BUG` comment, or add it to one of the `KNOWN_*` allow-lists (each has a companion check that the entry is still real). Once it's fixed, the suite tells you to remove the marker. All of these are currently empty.
 - Building footprints (`w`/`h` in `styles/*.json`) must match the real blueprint size, with `w` = the blueprint's `size_x`; `data-integrity.test.js` enforces this against the rooftop renders. `scripts/generate_rooftop_renders.js` regenerates renders from a local MineColonies source checkout.

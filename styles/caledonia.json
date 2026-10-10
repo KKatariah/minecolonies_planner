@@ -450,7 +450,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:cobblestone_extra,minecraft:oak_planks": 11
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 39,
+				"size_z": 26,
+				"blocks": [
+					{
+						"x": 20,
+						"z": 16
+					}
+				]
+			}
 		},
 		{
 			"id": "horticulture_composter",
@@ -674,7 +684,17 @@
 						"minecraft:grindstone": 2
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 9,
+						"z": 14
+					}
+				]
+			}
 		},
 		{
 			"id": "horticulture_farmer",
@@ -1018,7 +1038,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:cobblestone_extra,minecraft:oak_planks": 11
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 7,
+						"z": 3
+					}
+				]
+			}
 		},
 		{
 			"id": "horticulture_florist",
@@ -1377,7 +1407,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:cobblestone_extra,minecraft:oak_planks": 2
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 7,
+						"z": 6
+					}
+				]
+			}
 		},
 		{
 			"id": "horticulture_plantation",
@@ -1777,7 +1817,17 @@
 						"minecraft:spruce_button": 4
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 19,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 8,
+						"z": 5
+					}
+				]
+			}
 		},
 		{
 			"id": "husbandry_beekeeper",
@@ -2098,7 +2148,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:cobblestone_extra,minecraft:oak_planks": 1
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 6,
+						"z": 2
+					}
+				]
+			}
 		},
 		{
 			"id": "husbandry_chickenherder",
@@ -2502,7 +2562,17 @@
 						"minecraft:stripped_spruce_log": 3
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 8,
+						"z": 4
+					}
+				]
+			}
 		},
 		{
 			"id": "husbandry_cowboy",
@@ -2903,7 +2973,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:cobblestone_extra,minecraft:oak_planks": 2
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 6,
+						"z": 4
+					}
+				]
+			}
 		},
 		{
 			"id": "husbandry_fisherman",
@@ -3144,7 +3224,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:blue_cobblestone_extra,minecraft:oak_planks": 7
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 6,
+						"z": 9
+					}
+				]
+			}
 		},
 		{
 			"id": "husbandry_rabbithutch",
@@ -3482,7 +3572,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:cobblestone_extra,minecraft:oak_planks": 2
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 7,
+						"z": 4
+					}
+				]
+			}
 		},
 		{
 			"id": "husbandry_shepherd",
@@ -3859,7 +3959,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:blue_cobblestone_extra,minecraft:oak_planks": 19
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 6,
+						"z": 4
+					}
+				]
+			}
 		},
 		{
 			"id": "husbandry_swineherder",
@@ -4293,7 +4403,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:cobblestone_extra,minecraft:oak_planks": 2
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 4,
+						"z": 4
+					}
+				]
+			}
 		},
 		{
 			"id": "carpentry_fletcher",
@@ -4692,7 +4812,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:cobblestone_extra,minecraft:oak_planks": 9
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 19,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 8,
+						"z": 7
+					}
+				]
+			}
 		},
 		{
 			"id": "carpentry_sawmill",
@@ -5085,7 +5215,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:cobblestone_extra,minecraft:oak_planks": 26
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 7,
+						"z": 14
+					}
+				]
+			}
 		},
 		{
 			"id": "luxury_alchemist",
@@ -5608,7 +5748,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:cobblestone_extra,minecraft:oak_planks": 14
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 19,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 14,
+						"z": 5
+					}
+				]
+			}
 		},
 		{
 			"id": "luxury_baker",
@@ -6035,7 +6185,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:cobblestone_extra,minecraft:oak_planks": 4
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 5,
+						"z": 7
+					}
+				]
+			}
 		},
 		{
 			"id": "luxury_concretemixer",
@@ -6350,7 +6510,17 @@
 						"minecraft:spruce_button": 3
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 3,
+						"z": 5
+					}
+				]
+			}
 		},
 		{
 			"id": "luxury_dyer",
@@ -6813,7 +6983,17 @@
 						"domum_ornamentum:side_framed@@domum_ornamentum:paper_extra,minecraft:spruce_planks": 4
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 19,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 12,
+						"z": 1
+					}
+				]
+			}
 		},
 		{
 			"id": "luxury_glassblower",
@@ -7166,7 +7346,17 @@
 						"minecraft:flower_pot": 2
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 2,
+						"z": 4
+					}
+				]
+			}
 		},
 		{
 			"id": "luxury_kitchen",
@@ -7592,7 +7782,17 @@
 						"minecraft:spruce_button": 2
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 14,
+				"size_z": 15,
+				"blocks": [
+					{
+						"x": 8,
+						"z": 3
+					}
+				]
+			}
 		},
 		{
 			"id": "masonry_crusher",
@@ -8099,7 +8299,17 @@
 						"minecraft:iron_block": 2
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 6,
+						"z": 9
+					}
+				]
+			}
 		},
 		{
 			"id": "masonry_sifter",
@@ -8554,7 +8764,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:blue_cobblestone_extra,minecraft:oak_planks": 13
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 6,
+						"z": 11
+					}
+				]
+			}
 		},
 		{
 			"id": "masonry_stonemason",
@@ -9068,7 +9288,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:cobblestone_extra,minecraft:oak_planks": 11
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 5,
+						"z": 4
+					}
+				]
+			}
 		},
 		{
 			"id": "masonry_stonesmeltery",
@@ -9523,7 +9753,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:cobblestone_extra,minecraft:oak_planks": 14
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 19,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 9,
+						"z": 8
+					}
+				]
+			}
 		},
 		{
 			"id": "metallurgy_blacksmith",
@@ -9929,7 +10169,17 @@
 						"minecraft:stripped_spruce_log": 6
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 19,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 5,
+						"z": 6
+					}
+				]
+			}
 		},
 		{
 			"id": "metallurgy_mechanic",
@@ -10364,7 +10614,17 @@
 						"minecraft:campfire": 1
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 7,
+						"z": 10
+					}
+				]
+			}
 		},
 		{
 			"id": "metallurgy_smeltery",
@@ -10737,7 +10997,17 @@
 						"minecraft:flower_pot": 4
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 6,
+						"z": 4
+					}
+				]
+			}
 		},
 		{
 			"id": "storage_deliveryman",
@@ -11091,7 +11361,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:cobblestone_extra,minecraft:oak_planks": 7
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 3,
+						"z": 6
+					}
+				]
+			}
 		},
 		{
 			"id": "storage_warehouse",
@@ -11439,7 +11719,17 @@
 						"minecraft:spruce_button": 2
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 19,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 9,
+						"z": 10
+					}
+				]
+			}
 		},
 		{
 			"id": "arches_double",
@@ -13876,7 +14166,17 @@
 						"domum_ornamentum:vanilla_slab_compat": 1
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 19,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 9,
+						"z": 2
+					}
+				]
+			}
 		},
 		{
 			"id": "education_school",
@@ -14187,7 +14487,17 @@
 						"domum_ornamentum:vanilla_fence_compat": 1
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 6,
+						"z": 3
+					}
+				]
+			}
 		},
 		{
 			"id": "education_university",
@@ -14568,7 +14878,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:blue_cobblestone_extra,minecraft:oak_planks": 1
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 19,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 3,
+						"z": 6
+					}
+				]
+			}
 		},
 		{
 			"id": "fundamentals_builder",
@@ -15300,7 +15620,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:cobblestone_extra,minecraft:oak_planks": 2
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 5,
+						"z": 9
+					}
+				]
+			}
 		},
 		{
 			"id": "fundamentals_cook",
@@ -15769,7 +16099,17 @@
 						"minecraft:stone_pressure_plate": 1
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 19,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 7,
+						"z": 3
+					}
+				]
+			}
 		},
 		{
 			"id": "fundamentals_hospital",
@@ -16190,7 +16530,17 @@
 						"minecraft:birch_planks": 26
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 19,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 2,
+						"z": 3
+					}
+				]
+			}
 		},
 		{
 			"id": "fundamentals_lumberjack",
@@ -16569,7 +16919,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:cobblestone_extra,minecraft:oak_planks": 9
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 9,
+						"z": 10
+					}
+				]
+			}
 		},
 		{
 			"id": "fundamentals_miner",
@@ -16993,7 +17353,17 @@
 						"minecraft:iron_bars": 1
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 19,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 6,
+						"z": 9
+					}
+				]
+			}
 		},
 		{
 			"id": "fundamentals_residence",
@@ -17568,7 +17938,17 @@
 						"minecraft:stone_pressure_plate": 4
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 19,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 12,
+						"z": 3
+					}
+				]
+			}
 		},
 		{
 			"id": "fundamentals_tavern",
@@ -17811,7 +18191,17 @@
 						"domum_ornamentum:shingle_slab@@domum_ornamentum:cobblestone_extra,minecraft:oak_planks": 9
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 6,
+						"z": 3
+					}
+				]
+			}
 		},
 		{
 			"id": "fundamentals_townhall",
@@ -18150,7 +18540,17 @@
 						"minecraft:redstone_lamp": 4
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 19,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 9,
+						"z": 4
+					}
+				]
+			}
 		},
 		{
 			"id": "alleys_cross",
@@ -19106,7 +19506,33 @@
 						"minecraft:lantern": 20
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 39,
+				"size_z": 26,
+				"blocks": [
+					{
+						"x": 6,
+						"z": 6
+					},
+					{
+						"x": 19,
+						"z": 6
+					},
+					{
+						"x": 32,
+						"z": 6
+					},
+					{
+						"x": 6,
+						"z": 19
+					},
+					{
+						"x": 32,
+						"z": 19
+					}
+				]
+			}
 		},
 		{
 			"id": "monorail_cross",
@@ -21434,7 +21860,17 @@
 						"minecraft:light_blue_wool": 4
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 9,
+						"z": 11
+					}
+				]
+			}
 		},
 		{
 			"id": "military_archery",
@@ -21875,7 +22311,17 @@
 						"minecraft:gray_wool": 2
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 9,
+						"z": 12
+					}
+				]
+			}
 		},
 		{
 			"id": "military_barracks",
@@ -22426,7 +22872,17 @@
 						"minecraft:stone_brick_wall": 2
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 19,
+				"size_z": 39,
+				"blocks": [
+					{
+						"x": 9,
+						"z": 23
+					}
+				]
+			}
 		},
 		{
 			"id": "military_combatacademy",
@@ -22846,7 +23302,17 @@
 						"minecraft:gray_wool": 2
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 3,
+						"z": 12
+					}
+				]
+			}
 		},
 		{
 			"id": "military_guardtower",
@@ -23297,7 +23763,17 @@
 						"minecraft:gray_wool": 8
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 7,
+						"z": 11
+					}
+				]
+			}
 		},
 		{
 			"id": "mystic_enchanter",
@@ -24027,7 +24503,17 @@
 						"minecraft:cobweb": 5
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 6,
+						"z": 5
+					}
+				]
+			}
 		},
 		{
 			"id": "mystic_graveyard",
@@ -24314,7 +24800,17 @@
 						"minecraft:oak_planks": 10
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 6,
+						"z": 2
+					}
+				]
+			}
 		},
 		{
 			"id": "mystic_mysticalsite",
@@ -24545,7 +25041,17 @@
 						"minecraft:light_gray_concrete": 56
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 21,
+				"size_z": 13,
+				"blocks": [
+					{
+						"x": 14,
+						"z": 7
+					}
+				]
+			}
 		},
 		{
 			"id": "mystic_netherworker",
@@ -24966,7 +25472,17 @@
 						"minecraft:polished_blackstone_wall": 28
 					}
 				}
-			]
+			],
+			"huts": {
+				"size_x": 13,
+				"size_z": 19,
+				"blocks": [
+					{
+						"x": 5,
+						"z": 11
+					}
+				]
+			}
 		},
 		{
 			"id": "walls_corners_corner_a",

@@ -1,0 +1,4 @@
+{
+	"type": "module",
+	"description": "Browser ES modules; this marker lets Node import them too (unit tests, scripts/)."
+}

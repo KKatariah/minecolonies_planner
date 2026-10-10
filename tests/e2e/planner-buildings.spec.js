@@ -20,7 +20,7 @@ test.describe("shape tray", () => {
 		]);
 		await expect(page.locator(".tab.is-active")).toHaveText("Farming");
 		const expected = await page.evaluate(
-			() => shapes.filter((s) => (s.category || "farming") === "farming").length,
+			() => __planner.shapes.filter((s) => (s.category || "farming") === "farming").length,
 		);
 		await expect(page.locator(".shape-option")).toHaveCount(expected);
 	});
@@ -29,7 +29,7 @@ test.describe("shape tray", () => {
 		for (const tab of ["craftsmanship", "decoration", "education", "fundamentals", "infrastructure", "military", "mystic", "walls"]) {
 			await planner.openTab(tab);
 			const ids = await page.locator(".shape-option").evaluateAll((els) => els.map((e) => e.dataset.shapeId));
-			const expected = await page.evaluate((t) => shapes.filter((s) => s.category === t).map((s) => s.id), tab);
+			const expected = await page.evaluate((t) => __planner.shapes.filter((s) => s.category === t).map((s) => s.id), tab);
 			expect(ids, tab).toEqual(expected);
 			expect(ids.length, tab).toBeGreaterThan(0);
 		}
@@ -62,10 +62,10 @@ test.describe("shape tray", () => {
 
 	test("picking a search result from the Roads tab disarms the road tool", async ({ page, planner }) => {
 		await planner.openTab("roads");
-		expect(await page.evaluate(() => pathToolActive)).toBe(true);
+		expect(await page.evaluate(() => __planner.pathToolActive)).toBe(true);
 		await page.locator(".shape-search-input").fill("farmer");
 		await page.locator(`.shape-option[data-shape-id="${FARMER}"]`).click();
-		expect(await page.evaluate(() => ({ tool: pathToolActive, tab: activeTab, selected: selectedShapeId }))).toEqual({
+		expect(await page.evaluate(() => ({ tool: __planner.pathToolActive, tab: __planner.activeTab, selected: __planner.selectedShapeId }))).toEqual({
 			tool: false,
 			tab: "farming",
 			selected: FARMER,
@@ -177,10 +177,100 @@ test.describe("placing buildings", () => {
 
 		await planner.place(RESIDENCE, 40, 10);
 		await expect(check).toContainText("No guard buildings yet");
+		await expect(check.locator(".plan-check__item--info")).toContainText(["Up to 5 colonists"]);
 
 		await planner.place("military_guardtower", 70, 10);
 		await expect(check).toContainText("1 guard building for 1 housing building");
 		await expect(check.locator(".plan-check__item--warn", { hasText: "Housing" })).toHaveCount(0);
+
+		// Off-screen, so placed directly rather than by clicking.
+		await page.evaluate((id) => __planner.placeBuilding(300, 10, { id }), FARMER);
+		await expect(check.locator(".plan-check__item--warn")).toContainText(["Farmer is"]);
+	});
+	test("an armed building shows a ghost: green where it fits, red where it doesn't", async ({ page, planner }) => {
+		await planner.place(FARMER, 20, 20);
+		const info = await planner.armShape(FARMER);
+		const ghosts = page.locator(".placement-ghosts");
+		await expect(ghosts).toBeHidden();
+
+		const free = await planner.cellPoint(60, 20);
+		await page.mouse.move(free.x, free.y);
+		await expect(ghosts).toBeVisible();
+		await expect(ghosts).not.toHaveClass(/is-blocked/);
+		const ghost = ghosts.locator(".placement-ghost").first();
+		await expect(ghost).toHaveText(info.label);
+		// Exactly where a click would put it: top-left at the cursor's cell.
+		const cell = await page.evaluate(() => __planner.cellSize);
+		expect(await ghost.evaluate((el) => [el.style.left, el.style.width])).toEqual([`${60 * cell}px`, `${info.w * cell}px`]);
+
+		const blocked = await planner.cellPoint(25, 25);
+		await page.mouse.move(blocked.x, blocked.y);
+		await expect(ghosts).toHaveClass(/is-blocked/);
+
+		// Clicking there (over the existing Farmer) places nothing, says why,
+		// and keeps the shape armed instead of selecting the Farmer.
+		await page.mouse.click(blocked.x, blocked.y);
+		await expect(page.locator(".placement-ghosts__message")).toBeVisible();
+		expect(await planner.buildingCount()).toBe(1);
+		await expect(page.locator(".shape-option.is-selected")).toHaveCount(1);
+		await expect(page.locator(".placed-square.is-selected")).toHaveCount(0);
+
+		// Moving back to free space clears it, and a click there places.
+		await page.mouse.move(free.x, free.y);
+		await expect(ghosts).not.toHaveClass(/is-blocked/);
+		await expect(page.locator(".placement-ghosts__message")).toBeHidden();
+		await page.mouse.click(free.x, free.y);
+		await expect.poll(() => planner.buildingCount()).toBe(2);
+		await expect(ghosts).toBeHidden();
+	});
+
+	test("the ghost turns with R, and leaves with the pointer", async ({ page, planner }) => {
+		const info = await planner.armShape(RESIDENCE);
+		const at = await planner.cellPoint(60, 20);
+		await page.mouse.move(at.x, at.y);
+		const ghost = page.locator(".placement-ghost").first();
+		const cell = await page.evaluate(() => __planner.cellSize);
+		await expect(ghost).toHaveCSS("width", `${info.w * cell}px`);
+		await page.keyboard.press("r");
+		await expect(ghost).toHaveCSS("width", `${info.h * cell}px`);
+		await page.mouse.move(5, 5);
+		await expect(page.locator(".placement-ghosts")).toBeHidden();
+	});
+
+	test("a pasted copy shows its ghost, red over the original", async ({ page, planner }) => {
+		await planner.place(FARMER, 20, 20);
+		await planner.clickCell(25, 25);
+		await page.keyboard.press("ControlOrMeta+c");
+		await page.keyboard.press("ControlOrMeta+v");
+		const over = await planner.cellPoint(22, 22);
+		await page.mouse.move(over.x, over.y);
+		await expect(page.locator(".placement-ghosts")).toHaveClass(/is-blocked/);
+		await page.mouse.click(over.x, over.y);
+		await expect(page.locator(".placement-ghosts__message")).toBeVisible();
+		expect(await planner.buildingCount()).toBe(1);
+
+		const free = await planner.cellPoint(60, 60);
+		await page.mouse.move(free.x, free.y);
+		await expect(page.locator(".placement-ghosts")).not.toHaveClass(/is-blocked/);
+		await page.mouse.click(free.x, free.y);
+		await expect.poll(() => planner.buildingCount()).toBe(2);
+	});
+
+	test("clicking a warning arms the building that fixes it", async ({ page, planner }) => {
+		await planner.place(RESIDENCE, 40, 10);
+		const check = page.locator("[data-plan-check]");
+		const warehouse = check.locator(".plan-check__item--fix", { hasText: "Warehouse" });
+		await expect(warehouse).toContainText("Click to pick a Warehouse");
+		await warehouse.click();
+
+		await expect(page.locator('.tab[data-tab-id="craftsmanship"]')).toHaveClass(/is-active/);
+		const option = page.locator(".shape-option.is-selected");
+		await expect(option).toHaveCount(1);
+		await expect(option).toHaveAttribute("title", "Warehouse");
+
+		await planner.clickCell(80, 60);
+		await expect(check.locator(".plan-check__item--warn", { hasText: "Warehouse" })).toHaveCount(0);
+		await expect(check.locator(".plan-check__item--ok", { hasText: "Warehouse" })).toHaveCount(1);
 	});
 });
 
@@ -259,7 +349,7 @@ test.describe("selecting and editing", () => {
 		await planner.armShape(FLORIST);
 		await page.keyboard.press("r");
 		expect((await planner.buildings()).find((b) => b.id === RESIDENCE)).toMatchObject({ w: 19, h: 13 });
-		expect(await page.evaluate(() => pendingRotated)).toBe(true);
+		expect(await page.evaluate(() => __planner.pendingRotated)).toBe(true);
 	});
 
 	test("R does nothing when the rotated footprint would collide", async ({ page, planner }) => {
@@ -279,7 +369,7 @@ test.describe("selecting and editing", () => {
 				document.body.dispatchEvent(e);
 				results.push(e.defaultPrevented);
 			}
-			return { results, rotated: pendingRotated };
+			return { results, rotated: __planner.pendingRotated };
 		});
 		expect(prevented).toEqual({ results: [false, false], rotated: false });
 	});
@@ -351,11 +441,31 @@ test.describe("selecting and editing", () => {
 		expect((await planner.undoRedoState()).undo).toBe(2); // place + move
 	});
 
-	test("dragging onto another building is refused", async ({ planner }) => {
+	test("a building dragged over another goes red, and dropped there snaps back", async ({ page, planner }) => {
 		await planner.place(FLORIST, 40, 10);
-		await planner.dragCells({ x: 16, y: 16 }, { x: 46, y: 16 });
-		const farmer = (await planner.buildings()).find((b) => b.id === FARMER);
-		expect(farmer.x + farmer.w <= 40 || farmer.y >= 23 || farmer.y + farmer.h <= 10).toBe(true);
+		const farmerEl = page.locator(".placed-square").first();
+
+		// Mid-drag over the Florist: it follows the cursor anyway, in red.
+		const from = await planner.cellPoint(16, 16);
+		const over = await planner.cellPoint(46, 16);
+		await page.mouse.move(from.x, from.y);
+		await page.mouse.down();
+		await page.mouse.move(over.x, over.y, { steps: 12 });
+		await expect(farmerEl).toHaveClass(/is-blocked/);
+		expect((await planner.buildings())[0].x).toBe(40);
+
+		// Back over free space it's fine again.
+		const free = await planner.cellPoint(16, 60);
+		await page.mouse.move(free.x, free.y, { steps: 12 });
+		await expect(farmerEl).not.toHaveClass(/is-blocked/);
+
+		// Dropped over the Florist, it returns to where it started, with no
+		// undo step for the move that didn't happen.
+		await page.mouse.move(over.x, over.y, { steps: 12 });
+		await page.mouse.up();
+		await expect(farmerEl).not.toHaveClass(/is-blocked/);
+		expect((await planner.buildings())[0]).toMatchObject({ id: FARMER, x: 10, y: 10 });
+		expect((await planner.undoRedoState()).undo).toBe(2); // the two placements
 	});
 
 	test("Duplicate arms a copy that the next click stamps down", async ({ page, planner }) => {
@@ -525,7 +635,7 @@ test.describe("styles", () => {
 		await planner.clickCell(15, 15);
 		await expect(page.locator("[data-preview-name]")).toHaveText("Farmer");
 		const previewed = await page.evaluate(() => {
-			const s = getPreviewedShape();
+			const s = __planner.getPreviewedShape();
 			return { w: s.w, h: s.h };
 		});
 		expect(previewed).toEqual({ w: 13, h: 13 });
@@ -543,7 +653,7 @@ test.describe("styles", () => {
 
 test.describe("grid view", () => {
 	test("zoom buttons zoom in/out within limits and reset to 1", async ({ page }) => {
-		const zoom = () => page.evaluate(() => gridZoom);
+		const zoom = () => page.evaluate(() => __planner.gridZoom);
 		await page.locator("[data-zoom-in]").click();
 		expect(await zoom()).toBeCloseTo(1.25);
 		await page.locator("[data-zoom-out]").click();
@@ -563,23 +673,23 @@ test.describe("grid view", () => {
 		await page.keyboard.down("Control");
 		await page.mouse.wheel(0, -100);
 		await page.keyboard.up("Control");
-		await expect.poll(() => page.evaluate(() => gridZoom)).toBeGreaterThan(1);
+		await expect.poll(() => page.evaluate(() => __planner.gridZoom)).toBeGreaterThan(1);
 
 		await page.mouse.wheel(0, 300);
-		await expect.poll(() => page.evaluate(() => root.scrollTop)).toBeGreaterThan(0);
+		await expect.poll(() => page.evaluate(() => __planner.root.scrollTop)).toBeGreaterThan(0);
 	});
 
 	test("placement still lands on the right cell when zoomed", async ({ page, planner }) => {
 		await page.locator("[data-zoom-in]").click();
 		await page.locator("[data-zoom-in]").click();
-		await page.evaluate(() => root.scrollTo(0, 0)); // zoom anchors on the viewport center
+		await page.evaluate(() => __planner.root.scrollTo(0, 0)); // zoom anchors on the viewport center
 		await planner.place(FARMER, 20, 20);
 		expect((await planner.buildings())[0]).toMatchObject({ x: 20, y: 20 });
 	});
 
 	test("right-drag pans the map without selecting anything", async ({ page, planner }) => {
 		await planner.dragCells({ x: 100, y: 80 }, { x: 40, y: 30 }, { button: "right" });
-		const scroll = await page.evaluate(() => ({ left: root.scrollLeft, top: root.scrollTop }));
+		const scroll = await page.evaluate(() => ({ left: __planner.root.scrollLeft, top: __planner.root.scrollTop }));
 		expect(scroll.left).toBeGreaterThan(200);
 		expect(scroll.top).toBeGreaterThan(150);
 		await expect(page.locator(".placed-square.is-selected")).toHaveCount(0);
@@ -593,8 +703,8 @@ test.describe("grid view", () => {
 			await page.locator("[data-goto-form] button").click();
 			// The viewport's center point should resolve to that exact block.
 			const cell = await page.evaluate(() => {
-				const rect = root.getBoundingClientRect();
-				return getCellFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+				const rect = __planner.root.getBoundingClientRect();
+				return __planner.getCellFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
 			});
 			expect(cell, `after ${zoomClicks} zoom-ins`).toEqual({ x: 300, y: 250 });
 		}
@@ -606,13 +716,13 @@ test.describe("grid view", () => {
 		for (const zoomClicks of [0, 3]) {
 			for (let i = 0; i < zoomClicks; i++) await page.locator("[data-zoom-in]").click();
 			const cells = await page.evaluate(() => {
-				const r = grid.getBoundingClientRect();
-				const size = cellSize * gridZoom;
-				const left = r.left + grid.clientLeft * gridZoom + 10 * size;
-				const top = r.top + grid.clientTop * gridZoom + 10 * size;
+				const r = __planner.grid.getBoundingClientRect();
+				const size = __planner.cellSize * __planner.gridZoom;
+				const left = r.left + __planner.grid.clientLeft * __planner.gridZoom + 10 * size;
+				const top = r.top + __planner.grid.clientTop * __planner.gridZoom + 10 * size;
 				return [
-					getCellFromPoint(left + 0.25, top + 0.25),
-					getCellFromPoint(left + size - 0.25, top + size - 0.25),
+					__planner.getCellFromPoint(left + 0.25, top + 0.25),
+					__planner.getCellFromPoint(left + size - 0.25, top + size - 0.25),
 				];
 			});
 			expect(cells, `after ${zoomClicks} zoom-ins`).toEqual([{ x: 10, y: 10 }, { x: 10, y: 10 }]);

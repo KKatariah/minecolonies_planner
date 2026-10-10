@@ -1,8 +1,13 @@
 // Rooftop render data generator — reads real MineColonies .blueprint files
 // and produces a per-block top-down grid (block icon, shape, connections,
 // relief-shading data) for each building listed in TARGETS below. The
-// browser-side renderer (rooftop-render.js) turns that grid into an actual
+// browser-side renderer (lib/rooftop-render.js) turns that grid into an actual
 // canvas image; this script only produces the data.
+//
+// It also records where each building's hut block sits in its blueprint
+// (the `huts` field on each shape in styles/*.json: { size_x, size_z,
+// blocks: [{ x, z }] }, in the blueprint's own unrotated frame), which the
+// Plan Check measures home-to-work distances from.
 //
 // Run with: node scripts/generate_rooftop_renders.js
 // Requires a local checkout of the MineColonies mod source (for its
@@ -10,19 +15,17 @@
 // via the MINECOLONIES_MOD_SRC env var, or let it default to a sibling
 // "minecolonies" checkout next to this repo.
 //
-// This is a straight port of the scratchpad tool built over a full prior
-// session of correctness work against real blueprint data (see
-// FEASIBILITY_NOTES.md and TODO.md's "Birdseye/top-down building renders"
-// entry) — every rule below (fence/wall connections, door labeling, stair/
-// shingle facing, trapdoor/ladder/button edge-hugging, tile-entity
-// retexturing, transparent-full-block underlays) was verified against real
-// blueprint data at the time, not guessed. Ported as-is rather than
-// rewritten from scratch.
+// Every rule below (fence/wall connections, door labeling, stair/shingle
+// facing, trapdoor/ladder/button edge-hugging, tile-entity retexturing,
+// transparent-full-block underlays) was checked against real blueprint data.
+// It parses blueprints with the same hardened NBT reader the site uses
+// (lib/nbt.js).
 
 const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
-const NBT = require("../nbt.js");
+const NBT = require("../lib/nbt.js");
+const { getSubcategory } = require("../planner/catalog.js");
 
 const REPO_ROOT = path.join(__dirname, "..");
 const OUT_DIR = path.join(REPO_ROOT, "rooftop-data");
@@ -107,12 +110,11 @@ function unpackIndices(v) {
 	return idx;
 }
 
-// Same taxonomy as getMaterialShapeClass() in app.js — kept in sync by hand
-// since this script has no shared-module system with the browser app. Unlike
-// the cost-panel icons, top-down rendering also cares WHICH shapes leave
-// part of the block column visible underneath them (anything that isn't a
-// full cube) — that's every shape here, so the same list doubles as the
-// "needs an underlay" set below.
+// Partial blocks drawn with a silhouette in top-down renders. Every one of
+// them leaves part of the column visible underneath, so the list doubles as
+// the "needs an underlay" set below. (Related to, but not the same as, the
+// cost panel's list in planner/materials.js: stairs and slabs fill their
+// whole cell from above, so they aren't here.)
 const SHAPE_SUFFIXES = [
 	["_fence_gate", "fence"],
 	["_fence", "fence"],
@@ -274,8 +276,8 @@ function getWallButtonEdge(paletteEntry) {
 // isolated post) and only rotate to horizontal when it connects east/west
 // but NOT north/south, matching how the piece actually reads in-world.
 // Returns which of the 4 neighbors this fence segment actually connects to.
-// Drawing a rail toward each true direction (see drawFencePath in
-// rooftop-render.js) handles straight/corner/T/cross/stub/isolated-post
+// Drawing a rail toward each true direction (see buildPostPath in
+// lib/rooftop-render.js) handles straight/corner/T/cross/stub/isolated-post
 // shapes all from the same data, with no need to special-case each pattern —
 // a corner is just "2 adjacent directions," a plus is "all 4," etc.
 //
@@ -375,9 +377,9 @@ function isTransparentFullBlock(name) {
 }
 
 // Ravel order is y-slowest, then z, then x-fastest: index = (y*size_z + z)*size_x + x.
-function topDownGrid(blueprintPath) {
-	const v = loadBlueprint(blueprintPath);
-	const idx = unpackIndices(v);
+// Takes a loaded blueprint, optionally with its voxel indices already
+// unpacked (composite blueprints are built voxel-by-voxel, never packed).
+function topDownGrid(v, idx = unpackIndices(v)) {
 	const { size_x: sx, size_y: sy, size_z: sz } = v;
 
 	const teByPos = new Map();
@@ -553,7 +555,7 @@ function topDownGrid(blueprintPath) {
 				// neighboring columns and shade one side of a step/ledge
 				// light and the other dark, the same per-block relief
 				// technique used for World Viewer's terrain (see
-				// world-terrain.js) rather than anything World Viewer-specific.
+				// lib/world-terrain.js) rather than anything World Viewer-specific.
 				cell = { name: cellName, icon: cellIcon, shape, facingDarken, fenceConnections, wallConnections, topper, y: effectiveY };
 				if (shape === "fence") cell.fenceY = effectiveY;
 				if (shape === "wall") cell.wallY = effectiveY;
@@ -785,10 +787,8 @@ function topDownGrid(blueprintPath) {
 // filename (folder structure carries some of the naming, plus a handful of
 // genuine one-off renames/abbreviations in the mod source itself), so this
 // resolves each shape to a real .blueprint file by the same
-// category/subcategory logic app.js's shape tray already uses
-// (getSubcategory/subcategoryMap, duplicated here since this script has no
-// shared-module system with the browser app - see SHAPE_SUFFIXES above for
-// the same tradeoff elsewhere in this file), scoped to the matching mod
+// category/subcategory logic the planner's shape tray uses
+// (planner/catalog.js), scoped to the matching mod
 // folder so same-named files in different families (e.g. every rail
 // type's own "turn.blueprint") resolve to the right one instead of
 // whichever the search happens to hit first.
@@ -815,7 +815,12 @@ const CATEGORY_TO_FOLDER = { farming: "agriculture", decoration: "decorations" }
 //  - Medieval Spruce's "University Full" has no leveled university6+ file -
 //    it's a distinct, non-leveled structure the mod calls
 //    "universitylibrary", separate from the regular "University" (levels
-//    1-5) shape.
+//    1-5) shape. That blueprint is only a plot marker: structurize
+//    substitution blocks plus a library hut and a university hut, each of
+//    which then builds its own building in game. Rendered as-is it's two
+//    hut blocks in an empty 36x41 square, so it's marked `composite` and
+//    rendered with each hut's own building filled in (see
+//    compositeHutBlueprint).
 //  - Caledonia's "Monorail Plug B" and "Birail Plug B" blueprints are both
 //    misspelled "plub_b" in the mod source (same kind of typo as
 //    "alfarmer") - without these the fallback search matched the ROADS
@@ -831,40 +836,15 @@ const CATEGORY_TO_FOLDER = { farming: "agriculture", decoration: "decorations" }
 // generator rather than assuming the override was correct unverified).
 const OVERRIDES = {
 	"styles/caledonia.json::horticulture_altfarmer": { folder: "agriculture/horticulture", key: "alfarmer" },
-	"styles/medievalspruce.json::education_universityfull": { folder: "education", key: "universitylibrary" },
+	"styles/medievalspruce.json::education_universityfull": { folder: "education", key: "universitylibrary", composite: true },
 	"styles/caledonia.json::roads_station_medium": { folder: "infrastructure/roads", key: "station_med" },
 	"styles/caledonia.json::monorail_plug_b": { folder: "infrastructure/monorail", key: "plubb" },
 	"styles/caledonia.json::birail_plug_b": { folder: "infrastructure/birail", key: "plubb" },
 };
 
-// Same taxonomy app.js's subcategoryMap uses for the shape tray - kept in
-// sync by hand, same as SHAPE_SUFFIXES/SHAPE_EXACT above.
-const SUBCATEGORY_MAP = {
-	farming: ["horticulture", "husbandry"],
-	craftsmanship: ["carpentry", "luxury", "masonry", "metallurgy", "storage"],
-	decoration: ["arches", "decorative", "planning", "plaza", "supplies", "utility", "misc"],
-	infrastructure: ["alleys", "avenues", "birail", "fields", "monorail", "plaza", "roads", "canal"],
-	walls: ["corners", "gates", "misc", "stairs", "walls", "corner", "gate", "segment", "tower"],
-};
-
-function getShapeSubcategory(shape) {
-	if (shape.subcategory) return shape.subcategory;
-	const category = shape.category || "";
-	const id = shape.id || "";
-	const allowed = SUBCATEGORY_MAP[category];
-	if (!allowed) return "";
-	if (category === "walls" && id.startsWith("walls_")) {
-		if (id.startsWith("walls_corners_")) return "corners";
-		if (id.startsWith("walls_gates_")) return "gates";
-		if (id.startsWith("walls_misc_")) return "misc";
-		if (id.startsWith("walls_stairs_")) return "stairs";
-		return "walls";
-	}
-	const firstToken = id.split("_")[0] || "";
-	if (allowed.includes(firstToken)) return firstToken;
-	if (id.startsWith("infra_plaza_")) return "plaza";
-	return "";
-}
+// Subcategories come from the planner itself (planner/catalog.js), so the
+// generator and the shape tray can't disagree.
+const getShapeSubcategory = getSubcategory;
 
 function walkBlueprints(dir, out) {
 	for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -947,6 +927,142 @@ function resolveShapeBlueprint(shape, styleFile, index) {
 	return null;
 }
 
+// Quarter turn clockwise seen from above (x east, z south): north -> east.
+const CW_FACING = { north: "east", east: "south", south: "west", west: "north" };
+
+function rotatePaletteEntryCW(entry) {
+	const props = entry.Properties;
+	if (!props) return entry;
+	const rotated = { ...props };
+	if (CW_FACING[props.facing]) rotated.facing = CW_FACING[props.facing];
+	if (props.axis === "x") rotated.axis = "z";
+	else if (props.axis === "z") rotated.axis = "x";
+	// Per-direction connections (fences, walls, panes): each value moves to
+	// the side its direction now points at.
+	for (const dir of Object.keys(CW_FACING)) {
+		if (dir in props) rotated[CW_FACING[dir]] = props[dir];
+		else delete rotated[CW_FACING[dir]];
+	}
+	return { ...entry, Properties: rotated };
+}
+
+// Rotates an unpacked blueprint {size_*, palette, tile_entities, idx} a
+// quarter turn clockwise: (x, z) -> (size_z - 1 - z, x).
+function rotateBlueprintCW(bp) {
+	const { size_x: sx, size_y: sy, size_z: sz } = bp;
+	const idx = new Uint16Array(bp.idx.length);
+	for (let y = 0; y < sy; y++) {
+		for (let z = 0; z < sz; z++) {
+			for (let x = 0; x < sx; x++) {
+				const nx = sz - 1 - z;
+				const nz = x;
+				idx[(y * sx + nz) * sz + nx] = bp.idx[(y * sz + z) * sx + x];
+			}
+		}
+	}
+	return {
+		size_x: sz,
+		size_y: sy,
+		size_z: sx,
+		palette: bp.palette.map(rotatePaletteEntryCW),
+		tile_entities: (bp.tile_entities || []).map((te) => ({ ...te, x: sz - 1 - te.z, z: te.x })),
+		idx,
+	};
+}
+
+function findHuts(bp) {
+	const huts = [];
+	const { size_x: sx, size_z: sz } = bp;
+	for (let i = 0; i < bp.idx.length; i++) {
+		const entry = bp.palette[bp.idx[i]];
+		if (!entry.Name.startsWith("minecolonies:blockhut")) continue;
+		huts.push({
+			name: entry.Name,
+			facing: entry.Properties?.facing,
+			x: i % sx,
+			z: Math.floor(i / sx) % sz,
+			y: Math.floor(i / (sx * sz)),
+		});
+	}
+	return huts;
+}
+
+// Where a building's hut block(s) sit, as [{ x, z }] in the blueprint's own
+// coordinates. The blueprint's own
+// primary_offset marks the hut block the colony registers the building by;
+// a plot holding several buildings (a composite, or a field plot) has no
+// single primary hut, so every hut block in it is listed instead.
+function hutPositions(bp, primaryOffset) {
+	const huts = findHuts(bp);
+	const primary = primaryOffset && huts.find((h) => h.x === primaryOffset.x && h.y === primaryOffset.y && h.z === primaryOffset.z);
+	const chosen = primary ? [primary] : huts;
+	const seen = new Set();
+	return chosen
+		.map(({ x, z }) => ({ x, z }))
+		.filter(({ x, z }) => !seen.has(`${x},${z}`) && seen.add(`${x},${z}`));
+}
+
+// Fills a plot-marker blueprint (substitution blocks + several hut blocks)
+// with each hut's own highest-level building, rotated so its hut faces the
+// way the marker's hut does and shifted so the two hut blocks coincide -
+// the same placement the mod makes when it builds each hut in game.
+function compositeHutBlueprint(parentPath, folderIndex, styleRoot) {
+	const unpack = (v) => ({ ...v, idx: unpackIndices(v) });
+	const parent = unpack(loadBlueprint(parentPath));
+	const { size_x: sx, size_y: sy, size_z: sz } = parent;
+	const palette = [...parent.palette];
+	const paletteKeys = new Map(palette.map((p, i) => [JSON.stringify(p), i]));
+	const paletteIndex = (entry) => {
+		const key = JSON.stringify(entry);
+		if (!paletteKeys.has(key)) {
+			paletteKeys.set(key, palette.length);
+			palette.push(entry);
+		}
+		return paletteKeys.get(key);
+	};
+	const idx = Uint16Array.from(parent.idx);
+	const tileEntities = [...(parent.tile_entities || [])];
+
+	for (const hut of findHuts(parent)) {
+		const key = hut.name.slice("minecolonies:blockhut".length);
+		const hit = highestLevelMatch(folderIndex, norm(key));
+		if (!hit) throw new Error(`no blueprint for composite hut ${hut.name}`);
+		let child = unpack(loadBlueprint(path.join(styleRoot, `${hit.rel}.blueprint`)));
+		let childHut = findHuts(child).find((h) => h.name === hut.name);
+		for (let turns = 0; childHut && childHut.facing !== hut.facing; turns++) {
+			if (turns === 4) throw new Error(`can't rotate ${hit.rel} to face ${hut.facing}`);
+			child = rotateBlueprintCW(child);
+			childHut = findHuts(child).find((h) => h.name === hut.name);
+		}
+		if (!childHut) throw new Error(`${hit.rel} has no ${hut.name}`);
+		const dx = hut.x - childHut.x;
+		const dy = hut.y - childHut.y;
+		const dz = hut.z - childHut.z;
+		let clipped = 0;
+		for (let y = 0; y < child.size_y; y++) {
+			for (let z = 0; z < child.size_z; z++) {
+				for (let x = 0; x < child.size_x; x++) {
+					const entry = child.palette[child.idx[(y * child.size_z + z) * child.size_x + x]];
+					if (isIgnored(entry.Name)) continue;
+					const px = x + dx, py = y + dy, pz = z + dz;
+					if (px < 0 || px >= sx || py < 0 || py >= sy || pz < 0 || pz >= sz) {
+						clipped++;
+						continue;
+					}
+					idx[(py * sz + pz) * sx + px] = paletteIndex(entry);
+				}
+			}
+		}
+		for (const te of child.tile_entities || []) {
+			if (te.x == null) continue;
+			tileEntities.push({ ...te, x: te.x + dx, y: te.y + dy, z: te.z + dz });
+		}
+		if (clipped) console.warn(`  composite: ${clipped} blocks of ${hit.rel} fall outside the plot and were dropped`);
+		console.log(`  composite: ${hit.rel} at offset (${dx}, ${dy}, ${dz}) facing ${hut.facing}`);
+	}
+	return { size_x: sx, size_y: sy, size_z: sz, palette, tile_entities: tileEntities, idx };
+}
+
 fs.mkdirSync(OUT_DIR, { recursive: true });
 const manifest = {};
 let successCount = 0;
@@ -963,6 +1079,7 @@ for (const { styleFile, modFolder } of STYLE_TARGETS) {
 	console.log(`\n--- ${styleFile} (${shapes.length} shapes) ---`);
 
 	for (const shape of shapes) {
+		delete shape.huts;
 		const relPath = resolveShapeBlueprint(shape, styleFile, index);
 		if (!relPath) {
 			console.warn(`SKIP ${shape.id} (${shape.label}): no matching blueprint found`);
@@ -984,7 +1101,22 @@ for (const { styleFile, modFolder } of STYLE_TARGETS) {
 		// label sets before wiring this in.
 		const outLabel = `${modFolder}_${norm(shape.label) || shape.id}`;
 		try {
-			const result = topDownGrid(blueprintPath);
+			const override = OVERRIDES[`${styleFile}::${shape.id}`];
+			let result;
+			let hutBlocks;
+			if (override?.composite) {
+				const composite = compositeHutBlueprint(blueprintPath, index.get(override.folder), styleRoot);
+				result = topDownGrid(composite, composite.idx);
+				hutBlocks = hutPositions(composite);
+			} else {
+				const blueprint = loadBlueprint(blueprintPath);
+				result = topDownGrid(blueprint);
+				const primaryOffset = blueprint.optional_data?.structurize?.primary_offset;
+				hutBlocks = hutPositions({ ...blueprint, idx: unpackIndices(blueprint) }, primaryOffset);
+			}
+			// Some catalog footprints are the blueprint turned a quarter; the
+			// planner corrects for that, so keep the blueprint's own size.
+			if (hutBlocks.length) shape.huts = { size_x: result.size_x, size_z: result.size_z, blocks: hutBlocks };
 			fs.writeFileSync(path.join(OUT_DIR, `${outLabel}.json`), JSON.stringify(result));
 			const unresolvedCount = result.grid.flat().filter((c) => c && !c.icon).length;
 			const totalCount = result.grid.flat().filter((c) => c).length;
@@ -996,6 +1128,10 @@ for (const { styleFile, modFolder } of STYLE_TARGETS) {
 			skipCount++;
 		}
 	}
+	const styleData = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, styleFile), "utf8"));
+	styleData.shapes = shapes;
+	fs.writeFileSync(path.join(REPO_ROOT, styleFile), JSON.stringify(styleData, null, "\t") + "\n");
+	console.log(`${styleFile}: hut positions for ${shapes.filter((s) => s.huts).length}/${shapes.length} shapes`);
 }
 
 fs.writeFileSync(path.join(OUT_DIR, "manifest.json"), JSON.stringify(manifest, null, "\t") + "\n");

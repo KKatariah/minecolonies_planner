@@ -7,21 +7,20 @@ const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
 
-const { loadBrowserScripts, REPO_ROOT } = require("../helpers/load-browser-script.js");
+const { REPO_ROOT } = require("../helpers/repo-root.js");
 const W = require("../helpers/nbt-writer.js");
 const { makeChunkNbt, buildRegion } = require("../helpers/region-builder.js");
 
-const window = loadBrowserScripts(["nbt.js", "world-terrain.js"]);
-const WT = window.WorldTerrain;
+const WT = require("../../lib/world-terrain.js");
 
 const namedFile = (name, bytes = new Uint8Array(0), extra = {}) =>
 	Object.assign(new File([bytes], name), extra);
 
 test("exposes the expected public API", () => {
 	for (const fn of [
-		"colorForBiome", "hashColor", "formatBiomeName", "escapeHtml", "parseRegionFilename",
+		"colorForBiome", "hashColor", "rgbForBiome", "formatBiomeName", "parseRegionFilename",
 		"parseRegionFile", "filterMcaFiles", "readAllDirectoryEntries", "collectFilesFromEntry",
-		"checkFileSpan", "buildTerrainImage",
+		"checkFileSpan", "computeTerrain", "makeBiomeLookup", "buildTerrainImage",
 	]) {
 		assert.equal(typeof WT[fn], "function", `${fn} should be exported`);
 	}
@@ -58,14 +57,14 @@ test("formatBiomeName strips the namespace and title-cases words", () => {
 	assert.equal(WT.formatBiomeName("mod:a__b"), "A B");
 });
 
-test("escapeHtml neutralizes every HTML-significant character", () => {
-	const nasty = `minecraft:plains"><img src=x onerror='alert(1)'>&`;
-	const escaped = WT.escapeHtml(nasty);
-	assert.equal(
-		escaped,
-		"minecraft:plains&quot;&gt;&lt;img src=x onerror=&#39;alert(1)&#39;&gt;&amp;",
-	);
-	assert.doesNotMatch(escaped, /[<>"']/);
+test("rgbForBiome matches colorForBiome for hex colors and resolves hash colors to RGB", () => {
+	assert.deepEqual(WT.rgbForBiome("minecraft:plains"), [0x8d, 0xb3, 0x60]); // #8DB360
+	assert.deepEqual(WT.rgbForBiome("terralith:volcanic_peaks"), [0x7a, 0x2e, 0x1d]); // keyword #7A2E1D
+	// hsl(h, 45%, 45%): the channels are 0.45 +/- 0.2025, i.e. 63 and 166 at the extremes.
+	const rgb = WT.rgbForBiome("modded:zzqx");
+	assert.equal(rgb.length, 3);
+	assert.equal(Math.max(...rgb), 166);
+	assert.equal(Math.min(...rgb), 63);
 });
 
 test("parseRegionFilename reads coordinates, including negatives", () => {
@@ -174,4 +173,36 @@ test("parseRegionFile extracts surface data from the bundled sample region", asy
 		if (name == null) continue;
 		assert.match(String(name), /:/, `biome ${name} should be namespaced`);
 	}
+});
+
+test("computeTerrain paints the sample region and its biome lookup agrees with the pixels", async () => {
+	const bytes = fs.readFileSync(path.join(REPO_ROOT, "sample-data/r.0.0.mca"));
+	const statuses = [];
+	const result = await WT.computeTerrain([namedFile("r.0.0.mca", bytes)], { onStatus: (t) => statuses.push(t) });
+	assert.equal(result.ok, true);
+	assert.ok(statuses.length > 0, "should report progress");
+	assert.equal(result.gridW % 16, 0);
+	assert.equal(result.gridH % 16, 0);
+	assert.equal(result.pixels.length, result.gridW * result.gridH * 4);
+	assert.equal(result.fileErrors.length, 0);
+
+	const biomeAt = WT.makeBiomeLookup(result);
+	let painted = 0;
+	for (let gz = 0; gz < result.gridH; gz += 7) {
+		for (let gx = 0; gx < result.gridW; gx += 7) {
+			const info = biomeAt(result.minCx * 16 + gx, result.minCz * 16 + gz);
+			const alpha = result.pixels[(gz * result.gridW + gx) * 4 + 3];
+			// Opaque exactly where there's data.
+			assert.equal(alpha === 255, info !== null, `block ${gx},${gz}`);
+			if (info) painted++;
+		}
+	}
+	assert.ok(painted > 0);
+	assert.equal(biomeAt(result.minCx * 16 - 1, result.minCz * 16), null, "outside the map");
+});
+
+test("computeTerrain stops when the caller says the run is stale", async () => {
+	const bytes = fs.readFileSync(path.join(REPO_ROOT, "sample-data/r.0.0.mca"));
+	const result = await WT.computeTerrain([namedFile("r.0.0.mca", bytes)], { isStale: () => true });
+	assert.deepEqual(result, { ok: false, stale: true });
 });

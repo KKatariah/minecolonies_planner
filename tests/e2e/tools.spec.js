@@ -181,6 +181,16 @@ test.describe("World Viewer", () => {
 		await expect(page.locator(".world-viewer-legend__item")).not.toHaveCount(0);
 	});
 
+	// buildTerrainImage silently falls back to the main thread if the worker
+	// can't start, which would still render correctly - so check it directly.
+	test("region parsing runs in a Web Worker, not on the page", async ({ page }) => {
+		const workers = [];
+		page.on("worker", (worker) => workers.push(new URL(worker.url()).pathname));
+		await page.locator("[data-load-sample]").click();
+		await expect(page.locator("[data-results]")).toBeVisible({ timeout: 30_000 });
+		expect(workers).toEqual(["/lib/terrain-worker.js"]);
+	});
+
 	test("hovering the map shows a biome tooltip", async ({ page }) => {
 		await page.locator("[data-load-sample]").click();
 		await expect(page.locator("[data-results]")).toBeVisible({ timeout: 30_000 });
@@ -193,7 +203,7 @@ test.describe("World Viewer", () => {
 	test("zoom buttons, fit-to-view and go-to coordinates", async ({ page }) => {
 		await page.locator("[data-load-sample]").click();
 		await expect(page.locator("[data-results]")).toBeVisible({ timeout: 30_000 });
-		const zoom = () => page.evaluate(() => viewZoom);
+		const zoom = () => page.evaluate(() => window.__worldViewer.viewZoom);
 		const fitted = await zoom();
 		await page.locator("[data-zoom-in]").click();
 		expect(await zoom()).toBeGreaterThan(fitted);
@@ -215,13 +225,13 @@ test.describe("World Viewer", () => {
 	test("dragging pans the map", async ({ page }) => {
 		await page.locator("[data-load-sample]").click();
 		await expect(page.locator("[data-results]")).toBeVisible({ timeout: 30_000 });
-		const before = await page.evaluate(() => [viewPanX, viewPanY]);
+		const before = await page.evaluate(() => [window.__worldViewer.viewPanX, window.__worldViewer.viewPanY]);
 		const box = await page.locator("[data-viewport]").boundingBox();
 		await page.mouse.move(box.x + 200, box.y + 200);
 		await page.mouse.down();
 		await page.mouse.move(box.x + 300, box.y + 260, { steps: 5 });
 		await page.mouse.up();
-		const after = await page.evaluate(() => [viewPanX, viewPanY]);
+		const after = await page.evaluate(() => [window.__worldViewer.viewPanX, window.__worldViewer.viewPanY]);
 		expect(after[0] - before[0]).toBeCloseTo(100, 0);
 		expect(after[1] - before[1]).toBeCloseTo(60, 0);
 	});
@@ -305,7 +315,7 @@ test.describe("Debug page", () => {
 
 	test("lists every curated biome color", async ({ page }) => {
 		await page.goto("/debug.html");
-		const count = await page.evaluate(() => Object.keys(window.WorldTerrain.BIOME_COLORS).length);
+		const count = await page.evaluate(async () => Object.keys((await import("/lib/world-terrain.js")).BIOME_COLORS).length);
 		await expect(page.locator(".debug-biome-item")).toHaveCount(count);
 		await expect(page.locator("[data-biome-count]")).toHaveText(`(${count})`);
 		await expect(page.locator(".debug-biome-item__name", { hasText: /^Plains$/ })).toHaveCount(1);

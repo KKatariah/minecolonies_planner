@@ -47,8 +47,8 @@
 /* Minecraft UI kit                                                       */
 /* ====================================================================== */
 /* The site's chrome mimics Minecraft Java's container screens (inventory,
-   chest, creative tabs, title-screen buttons). UI_STYLE.md is the written
-   spec for everything in this section - palette sources, which component
+   chest, creative tabs, title-screen buttons). notes/UI_STYLE.md is the
+   written spec for everything in this section - palette sources, which component
    uses which primitive, and why. Short version: no rounded corners, no
    blurred shadows, no color transitions; depth comes only from hard 2px
    (one texel at GUI scale 2) light/dark edges drawn with inset box-shadow.
@@ -84,13 +84,16 @@
 	--tooltip-ink-muted: #aaaaaa;
 	--xp-green: #80ff20;
 	--xp-green-shade: #3f8f10;
+	/* The placement ghost's fits / doesn't-fit outline (§a green, §c red). */
+	--ghost-fits: #55ff55;
+	--ghost-blocked: #ff5555;
 	--warn-gold: #ffaa00;
 	/* White page-level text on the dirt background, same in both themes -
 	   like the game's screen titles drawn straight over the menu backdrop. */
 	--ink-on-bg: #ffffff;
 	--ink-on-bg-muted: #aaaaaa;
 	/* Text on flat building badges (pale category tint over white) - the
-	   PNG export (app.js exportPlanAsPNG) reads this too. */
+	   PNG export (planner/png-export.js) reads this too. */
 	--badge-ink: #1a1a1a;
 	/* Unifont fills in any character the Minecraft font lacks, as in-game. */
 	--font-pixel: "Minecraft", "Unifont", monospace;
@@ -166,7 +169,7 @@
 }
 
 /* Light theme: the classic container gray. Duplicated below for
-   prefers-color-scheme before nav.js has set data-theme - keep in sync. */
+   prefers-color-scheme before lib/nav.js has set data-theme - keep in sync. */
 [data-theme="light"] {
 	--panel: #c6c6c6;
 	--panel-hi: #ffffff;
@@ -319,6 +322,7 @@ code {
    inherit it by default. */
 .left-sidebar__section-title,
 .plan-check__group-title,
+.plan-check__item--fix,
 .plan-check__title,
 .cost-card__section-title,
 .shortcuts-modal__group h3,
@@ -385,6 +389,17 @@ code {
 		var(--raised);
 }
 
+/* A clickable raised piece (a Plan Check warning with a fix) hovers and
+   focuses like a button: a white outline, nothing else. */
+.plan-check__item--fix:is(:hover, :focus-visible) {
+	outline: 2px solid var(--btn-ink);
+	outline-offset: 0;
+}
+
+.plan-check__fix {
+	color: var(--link);
+}
+
 /* --- Slot: sunken item slot -------------------------------------------- */
 .shape-preview,
 .preview-card__image-wrap,
@@ -449,6 +464,7 @@ code {
 	.subtab,
 	.path-type-swatch,
 	.path-controls__erase-toggle,
+	.number-stepper__button,
 	.action-menu button,
 	.path-action-menu button,
 	.inspector-upload__button,
@@ -486,6 +502,7 @@ code {
 		.subtab,
 		.path-type-swatch,
 		.path-controls__erase-toggle,
+		.number-stepper__button,
 		.action-menu button,
 		.path-action-menu button,
 		.inspector-upload__button,
@@ -514,6 +531,7 @@ code {
 		.subtab,
 		.path-type-swatch,
 		.path-controls__erase-toggle,
+		.number-stepper__button,
 		.action-menu button,
 		.path-action-menu button,
 		.inspector-upload__button,
@@ -538,7 +556,7 @@ code {
 	color: var(--btn-ink-active);
 }
 
-:is(.left-sidebar__button, .left-sidebar__plan-action):disabled {
+:is(.left-sidebar__button, .left-sidebar__plan-action, .number-stepper__button):disabled {
 	background: var(--btn-disabled);
 	color: var(--btn-ink-disabled);
 	box-shadow: none;
@@ -596,11 +614,9 @@ code {
 /* --- Text field / select: black box, gray border, white on focus ------- */
 :where(
 	.left-sidebar__text-input,
-	.world-bg-controls__offsets input[type="number"],
 	.grid-goto-controls input[type="number"],
+	.number-stepper__input,
 	.shape-search-input,
-	.path-controls__field select,
-	.path-controls__field input[type="number"],
 	.style-select,
 	.inspector-picker__select,
 	.world-viewer-goto input[type="number"],
@@ -619,9 +635,8 @@ code {
 	.left-sidebar__text-input,
 	.world-bg-controls__offsets input[type="number"],
 	.grid-goto-controls input[type="number"],
+	.number-stepper__input,
 	.shape-search-input,
-	.path-controls__field select,
-	.path-controls__field input[type="number"],
 	.style-select,
 	.inspector-picker__select,
 	.world-viewer-goto input[type="number"],
@@ -666,8 +681,10 @@ input[type="checkbox"]:focus-visible {
 
 /* --- Tooltip: the purple-framed item tooltip --------------------------- */
 .world-viewer-tooltip,
+.sidebar-tooltip,
 .hover-coords,
-.map-compass {
+.map-compass,
+.placement-ghosts__message {
 	font-family: var(--font-pixel);
 	color: var(--tooltip-ink);
 	border: 2px solid transparent;
@@ -965,7 +982,7 @@ body.preview-collapsed #root {
 	left: 0;
 	bottom: var(--bottom-bar-height);
 	width: var(--left-sidebar-width);
-	padding: 18px;
+	padding: 16px;
 	overflow-y: auto;
 	z-index: 8;
 	transition:
@@ -995,9 +1012,14 @@ body.preview-collapsed #root {
 }
 
 .left-sidebar__content {
+	display: flex;
+	flex-direction: column;
+	/* Sections sit further apart (20px) than anything inside one (8px), so
+	   each title clearly belongs to what's below it. */
+	gap: 20px;
 	padding: 12px;
 	font-size: 12px;
-	line-height: 1.45;
+	line-height: 16px;
 	color: var(--ink-muted);
 }
 
@@ -1010,8 +1032,8 @@ body.preview-collapsed #root {
 .left-sidebar__section-title {
 	margin: 0;
 	font-size: 12px;
+	line-height: 16px;
 	font-weight: 700;
-	letter-spacing: 0.02em;
 	text-transform: uppercase;
 	color: var(--ink-muted);
 }
@@ -1024,7 +1046,7 @@ body.preview-collapsed #root {
 .plan-check {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	gap: 12px;
 }
 
 .plan-check__empty {
@@ -1036,28 +1058,41 @@ body.preview-collapsed #root {
 .plan-check__group {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: 8px;
 }
 
+/* A sub-heading under the "Plan Check" section title: regular weight and
+   sentence case, so it doesn't read as another section. */
 .plan-check__group-title {
 	margin: 0;
 	font-size: 12px;
-	font-weight: 700;
-	letter-spacing: 0.02em;
-	text-transform: uppercase;
-	color: var(--ink-muted);
+	line-height: 16px;
+	font-weight: 400;
+	color: var(--ink);
 }
 
 .plan-check__item {
 	display: flex;
 	align-items: flex-start;
 	gap: 8px;
-	padding: 8px 10px;
+	padding: 8px;
 }
 
+/* The button version: a full-width row, text left-aligned like the rest. */
+.plan-check__item--fix {
+	width: 100%;
+	font-size: 12px;
+	line-height: 16px;
+	text-align: left;
+	cursor: pointer;
+}
+
+/* The 15px icon centered on the title's first 16px line. */
 .plan-check__icon {
 	flex-shrink: 0;
-	line-height: 1.3;
+	display: flex;
+	height: 16px;
+	align-items: center;
 }
 
 .plan-check__text {
@@ -1069,19 +1104,25 @@ body.preview-collapsed #root {
 
 .plan-check__title {
 	font-size: 12px;
-	font-weight: 600;
+	font-weight: 700;
 	color: var(--ink);
 }
 
 .plan-check__detail {
 	font-size: 12px;
-	line-height: 1.4;
 	color: var(--ink-muted);
 }
 
 .left-sidebar__button-row .left-sidebar__button {
 	flex: 1;
 	text-align: center;
+}
+
+/* A short button beside a text field (Save As) stays on one line and lets
+   the field take the rest of the row. */
+.left-sidebar__button-row .left-sidebar__button--fit {
+	flex: none;
+	white-space: nowrap;
 }
 
 .left-sidebar__button {
@@ -1112,59 +1153,57 @@ body.preview-collapsed #root {
 .left-sidebar__hint {
 	margin: 0;
 	font-size: 12px;
-	line-height: 1.4;
 	color: var(--ink-muted);
+}
+
+/* An empty status line (World Background's, before any upload) takes no
+   room, so it doesn't leave a double gap. */
+.left-sidebar__hint:empty {
+	display: none;
+}
+
+/* The description of a left-pane setting, shown on hover/focus
+   (planner/sidebar-hints.js). */
+.sidebar-tooltip {
+	position: fixed;
+	z-index: 60;
+	max-width: 240px;
+	padding: 6px 8px;
+	font-size: 12px;
+	line-height: 1.4;
+	pointer-events: none;
+}
+
+.sidebar-tooltip[hidden] {
+	display: none;
 }
 
 .world-bg-controls {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	gap: 8px;
 }
 
 .world-bg-controls__row {
 	display: flex;
-	align-items: center;
-	/* Every current use is a checkbox immediately followed by its own label
-	   text (Show top-down renders / Show doors / Show name tags & borders /
-	   Show grid lines / Show background) - space-between shoved the
-	   checkbox and a short label to opposite ends of the row (a big,
-	   disconnected-looking gap for "Show doors", barely any for the longer
-	   labels), which only ever made sense back when this row template also
-	   held the old opacity slider (label on the left, control on the
-	   right) - now removed. flex-start keeps checkbox+label together as one
-	   connected control regardless of label length. */
+	/* A checkbox and its label stay together; a label that wraps keeps its
+	   checkbox beside the first line. */
 	justify-content: flex-start;
+	align-items: flex-start;
 	gap: 8px;
 	font-size: 12px;
 	color: var(--ink);
 }
 
-.world-bg-controls__offsets {
-	display: flex;
-	gap: 8px;
-}
-
-.world-bg-controls__offsets label {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	font-size: 12px;
-	color: var(--ink-muted);
-}
-
-.world-bg-controls__offsets input[type="number"] {
-	font-size: 12px;
-	padding: 6px 8px;
-	width: 100%;
-	box-sizing: border-box;
+/* The 18px box centered on the label's first 16px line. */
+.world-bg-controls__row input[type="checkbox"] {
+	margin-top: -1px;
 }
 
 .left-sidebar__plans-list {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: 8px;
 }
 
 .left-sidebar__plans-empty {
@@ -1172,15 +1211,18 @@ body.preview-collapsed #root {
 	color: var(--ink-muted);
 }
 
+/* The name gets its own line (the pane is too narrow to fit it beside two
+   buttons), with Load and Delete side by side under it. */
 .left-sidebar__plan-row {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
-	gap: 6px;
-	padding: 6px 8px;
+	gap: 8px;
+	padding: 8px;
 }
 
 .left-sidebar__plan-name {
-	flex: 1;
+	flex: 1 0 100%;
 	font-size: 12px;
 	color: var(--ink);
 	overflow: hidden;
@@ -1190,6 +1232,7 @@ body.preview-collapsed #root {
 }
 
 .left-sidebar__plan-action {
+	flex: 1;
 	font-size: 12px;
 	padding: 4px 8px;
 	cursor: pointer;
@@ -1533,10 +1576,9 @@ body.hide-topdown-overlay .preview-card__topdown-label {
 	color: var(--ink-muted);
 }
 
-/* Sized in JS to the current zoom level - see app.js's applyGridZoom(). This
-   is what #root actually scrolls; .grid-shell inside it stays at natural
-   size and is visually scaled via transform (paint-time only, doesn't
-   affect scroll extent, hence this separate sizer tracking it explicitly). */
+/* Sized in JS to the zoomed grid (planner/grid-view.js). This is what #root
+   scrolls; .grid-shell inside it stays at natural size and is scaled with a
+   transform, which doesn't affect scroll extent - hence this sizer. */
 .grid-zoom-sizer {
 	position: relative;
 }
@@ -1663,17 +1705,15 @@ body.preview-collapsed .map-compass {
 		var(--grid-bg);
 	border: 2px solid var(--mc-outline);
 	cursor: grab;
-	/* Without these, a trackpad click-and-drag can get eaten by the
-	   browser's own default touch/text-selection handling instead of
-	   reaching the pointerdown/pointermove pan logic in app.js - matches
-	   .world-viewer-canvas-wrap, whose already-working drag-to-pan has both. */
+	/* Without these, the browser's own touch and text-selection handling
+	   can swallow a trackpad drag before the grid's gestures see it. */
 	touch-action: none;
 	user-select: none;
 	-webkit-user-select: none;
 }
 
-/* "Show grid lines" toggle (see app.js) - drops both line layers, leaving
-   just the flat base fill from the same background shorthand. */
+/* The "Show grid lines" setting - drops both line layers, leaving just the
+   flat base fill. */
 .grid.hide-grid-lines {
 	background: var(--grid-bg);
 }
@@ -1682,12 +1722,9 @@ body.preview-collapsed .map-compass {
 	cursor: grabbing;
 }
 
-/* Uploaded-world background (see app.js's worldBgLayer/worldBgCanvas) - a
-   solid-color biome map positioned behind the grid so buildings can be
-   placed against real terrain instead of a blank grid. background-color
-   alone is overridden to transparent here (leaving the gridline
-   background-image layer alone) so the map shows through the gaps between
-   lines once .has-world-bg is toggled on. */
+/* With a world background (planner/world-background.js) behind the grid,
+   only the grid's fill turns transparent - its line layers stay - so the
+   map shows between the lines. */
 .grid.has-world-bg {
 	background-color: transparent;
 }
@@ -1857,26 +1894,57 @@ body.preview-collapsed .map-compass {
 
 .path-controls__row {
 	display: flex;
-	align-items: flex-end;
+	align-items: center;
 	gap: 8px;
 }
 
+/* Path's width stepper, or canal's fixed width as text. */
 .path-controls__field {
 	display: flex;
-	flex-direction: column;
-	gap: 2px;
+	align-items: center;
+	gap: 6px;
 	font-size: 12px;
 	color: var(--ink-muted);
+	white-space: nowrap;
 }
 
-.path-controls__field select,
-.path-controls__field input[type="number"] {
-	font-size: 12px;
-	padding: 5px 8px;
+/* A number field between stone − / + buttons, the same height as the
+   eraser button beside it. The browser's own spinner arrows are hidden -
+   they can't be styled to match. */
+.number-stepper {
+	display: inline-flex;
+	align-items: stretch;
+	gap: 2px;
 }
 
-.path-controls__field input[type="number"] {
-	width: 56px;
+.number-stepper[hidden] {
+	display: none;
+}
+
+.number-stepper__button {
+	width: 30px;
+	height: 30px;
+	padding: 0;
+	font-size: 16px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.number-stepper__input {
+	box-sizing: border-box;
+	width: 40px;
+	height: 30px;
+	padding: 0 4px;
+	font-size: 16px;
+	text-align: center;
+	appearance: textfield;
+	-moz-appearance: textfield;
+}
+
+.number-stepper__input::-webkit-inner-spin-button,
+.number-stepper__input::-webkit-outer-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
 }
 
 .path-controls__erase-toggle {
@@ -1980,7 +2048,6 @@ body.preview-collapsed .map-compass {
 	font-size: 12px;
 }
 
-.sample-square,
 .placed-square {
 	background-color: var(--category-color, #d8c4a8);
 	background-image:
@@ -2005,15 +2072,6 @@ body.preview-collapsed .map-compass {
 	border: 1px solid var(--category-border, #b59a7a);
 }
 
-.sample-square {
-	cursor: pointer;
-}
-
-.sample-square.is-selected {
-	outline: 3px solid var(--accent-selected);
-	outline-offset: 3px;
-}
-
 .placed-square {
 	position: absolute;
 	cursor: grab;
@@ -2029,7 +2087,7 @@ body.preview-collapsed .map-compass {
 }
 
 /* Every cell of a painted path is drawn into this one canvas (see
-   renderPathDOM) - pixelated so zooming in keeps cell edges crisp. */
+   planner/paths.js) - pixelated so zooming in keeps cell edges crisp. */
 .placed-path__canvas {
 	display: block;
 	width: 100%;
@@ -2041,11 +2099,9 @@ body.preview-collapsed .map-compass {
 .placed-badge {
 	position: absolute;
 	inset: 0;
-	/* Painted after .placed-square__rooftop-canvas in the DOM (see
-	   placeSquare) but must stay ON TOP of it in top-down mode - equal
-	   z-index falls back to DOM order, which would otherwise put the
-	   canvas above the badge and hide the top-down name tag entirely. */
-	z-index: 1;
+	/* Above the rooftop canvas and door markers, which come after it in
+	   the DOM - at equal z-index they would hide the top-down name tag. */
+	z-index: 2;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -2065,16 +2121,42 @@ body.preview-collapsed .map-compass {
 	font-weight: 700;
 }
 
-/* Wall segments/corners tile edge-to-edge into long, thin runs - a text
-   label on every piece just clutters the run, so walls skip the badge by
-   default (flat mode and top-down mode alike). The .has-topdown-qualified
-   selector isn't redundant - it out-specifies (3 ancestor classes vs 2)
-   the later `.placed-square.has-topdown .placed-badge { display: flex }`
-   rule below, which would otherwise win on source order alone once a wall
-   piece's top-down render kicks in and adds that class. */
+/* Wall pieces tile into long thin runs, where a label on every piece is
+   clutter, so walls have no badge in either mode. The .has-topdown variant
+   out-specifies the later `.placed-square.has-topdown .placed-badge` rule,
+   which would otherwise show it again. */
 .placed-square.category-walls .placed-badge,
 .placed-square.category-walls.has-topdown .placed-badge {
 	display: none;
+}
+
+/* Exterior doors on a top-down render (planner/buildings.js): a bar across
+   each doorway in Minecraft's light purple, outlined dark so it reads on any
+   roof. Sized in screen pixels (divided by the zoom), never smaller than its
+   block, so it doesn't shrink away when zoomed out. */
+.placed-square__doors {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	z-index: 1;
+}
+
+.door-marker {
+	--door-outline: calc(1.5px / var(--grid-zoom, 1));
+	position: absolute;
+	transform: translate(-50%, -50%);
+	background: #ff55ff;
+	box-shadow: 0 0 0 var(--door-outline) #200020;
+}
+
+.door-marker--horizontal {
+	width: max(5px, calc(14px / var(--grid-zoom, 1)));
+	height: max(2px, calc(5px / var(--grid-zoom, 1)));
+}
+
+.door-marker--vertical {
+	width: max(2px, calc(5px / var(--grid-zoom, 1)));
+	height: max(5px, calc(14px / var(--grid-zoom, 1)));
 }
 
 .placed-square__rooftop-canvas {
@@ -2093,10 +2175,7 @@ body.preview-collapsed .map-compass {
    Minecraft mob name tag: translucent black box, white text, in fixed
    colors regardless of theme (it sits over a render, not UI chrome; the
    game's own tags are ~25% black - darker here so it holds up over busy
-   rooftops). Text wraps rather
-   than truncating - name, not emoji, is the whole point of the tag - and
-   the emoji span (see placeSquare) is hidden below so only the name shows.
-   The tag itself (not just its text) sits centered in the middle of the
+   rooftops). Text wraps rather than truncating. The tag itself (not just its text) sits centered in the middle of the
    square - width hugs its content up to the square's own size, via the
    translate(-50%,-50%) centering trick. */
 .placed-square.has-topdown .placed-badge {
@@ -2195,6 +2274,23 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 .placed-square.is-dragging {
 	cursor: grabbing;
 	opacity: 0.85;
+	/* Over the buildings it's dragged across. */
+	z-index: 3;
+}
+
+/* Dragged somewhere it can't stay (over another building): red like a
+   blocked placement ghost, outline and tint. Dropped there, it snaps back. */
+.placed-square.is-blocked {
+	outline-color: var(--ghost-blocked);
+}
+
+.placed-square.is-blocked::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 3;
+	background: color-mix(in srgb, var(--ghost-blocked) 40%, transparent);
+	pointer-events: none;
 }
 
 .action-menu {
@@ -2255,7 +2351,100 @@ body.hide-topdown-overlay .placed-square.has-topdown {
 	pointer-events: none;
 }
 
-.wall-draw-preview {
+/* The placement ghost (planner/placement-ghost.js): the armed building where
+   a click would put it, outlined green if it fits and red if it doesn't. */
+.placement-ghosts {
+	position: absolute;
+	inset: 0;
+	z-index: 4;
+	pointer-events: none;
+}
+
+.placement-ghosts[hidden],
+.placement-ghost[hidden] {
+	display: none;
+}
+
+.placement-ghost {
+	position: absolute;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: var(--category-color, rgba(216, 196, 168, 0.5));
+	outline: 2px solid var(--ghost-fits);
+	outline-offset: -2px;
+}
+
+/* A tint over the whole ghost, render included. */
+.placement-ghost::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: color-mix(in srgb, var(--ghost-fits) 20%, transparent);
+}
+
+.placement-ghosts.is-blocked .placement-ghost {
+	outline-color: var(--ghost-blocked);
+}
+
+.placement-ghosts.is-blocked .placement-ghost::after {
+	background: color-mix(in srgb, var(--ghost-blocked) 30%, transparent);
+}
+
+/* A click where it doesn't fit flashes it a stronger red. */
+.placement-ghosts.is-denied .placement-ghost::after {
+	background: color-mix(in srgb, var(--ghost-blocked) 55%, transparent);
+}
+
+.placement-ghost__render {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	opacity: 0.8;
+	image-rendering: pixelated;
+}
+
+.placement-ghost__render[hidden] {
+	display: none;
+}
+
+/* The name, as a mob-style name tag; hidden over a render, and on walls
+   (which tile into runs), as on placed buildings. */
+.placement-ghost__label {
+	position: relative;
+	z-index: 1;
+	padding: 2px 4px;
+	font-family: var(--font-pixel);
+	font-size: 12px;
+	line-height: 16px;
+	text-align: center;
+	color: #fff;
+	background: rgba(0, 0, 0, 0.55);
+}
+
+.placement-ghost.has-render .placement-ghost__label,
+.placement-ghost.category-walls .placement-ghost__label {
+	display: none;
+}
+
+.placement-ghosts__message {
+	position: absolute;
+	z-index: 2;
+	display: none;
+	padding: 4px 8px;
+	font-size: 12px;
+	line-height: 16px;
+	white-space: nowrap;
+	transform: translateY(calc(-100% - 6px));
+}
+
+.placement-ghosts.is-denied .placement-ghosts__message {
+	display: block;
+}
+
+.run-draw-preview {
 	position: absolute;
 	z-index: 5;
 	display: none;
